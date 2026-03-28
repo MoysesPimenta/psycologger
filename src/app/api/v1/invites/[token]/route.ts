@@ -42,7 +42,7 @@ export async function POST(
   try {
     const { ipAddress, userAgent } = extractRequestMeta(req);
     const session = await getServerSession(authOptions);
-    const body = acceptSchema.parse(await req.json()).catch?.(() => ({})) ?? {};
+    const body = acceptSchema.safeParse(await req.json()).data ?? {};
 
     const invite = await db.invite.findUnique({
       where: { token: params.token },
