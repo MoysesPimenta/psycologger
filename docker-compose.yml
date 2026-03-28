@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: psycologger_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: psycologger
+      POSTGRES_PASSWORD: psycologger_dev
+      POSTGRES_DB: psycologger
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U psycologger"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── App ────────────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: psycologger_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://psycologger:psycologger_dev@postgres:5432/psycologger
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: dev-secret-change-in-production-at-least-32-chars
+      RESEND_API_KEY: ""
+      EMAIL_FROM: "Psycologger <noreply@psycologger.com>"
+      ENCRYPTION_KEY: ""
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      - /app/node_modules
+      - /app/.next
+    command: sh -c "npx prisma migrate deploy && npm run dev"
+
+  # ─── Mailhog (local email testing) ──────────────────────────────────────────
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: psycologger_mail
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+
+volumes:
+  postgres_data:

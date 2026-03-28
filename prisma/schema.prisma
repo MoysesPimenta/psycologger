@@ -1,0 +1,663 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPERADMIN
+  TENANT_ADMIN
+  PSYCHOLOGIST
+  ASSISTANT
+  READONLY
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELED
+  NO_SHOW
+}
+
+enum ChargeStatus {
+  PENDING
+  PAID
+  OVERDUE
+  VOID
+  REFUNDED
+}
+
+enum PaymentMethod {
+  PIX
+  CASH
+  CARD
+  TRANSFER
+  INSURANCE
+  OTHER
+}
+
+enum IntegrationType {
+  NFSE
+  GOOGLE_CALENDAR
+}
+
+enum NfseStatus {
+  DRAFT
+  QUEUED
+  PROCESSING
+  ISSUED
+  FAILED
+  CANCELED
+}
+
+enum AppointmentType_SessionType {
+  IN_PERSON
+  ONLINE
+  EVALUATION
+  GROUP
+}
+
+enum CalendarShowPatient {
+  NONE
+  FIRST_NAME
+  FULL_NAME
+}
+
+// ─── Auth (NextAuth required tables) ────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Users & Tenants ────────────────────────────────────────────────────────
+
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  email       String    @unique
+  name        String?
+  imageUrl    String?
+  lastLoginAt DateTime?
+  isSuperAdmin Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // App relations
+  memberships Membership[]
+  invitesSent Invite[]     @relation("InvitesSentBy")
+
+  patientsPrimary        Patient[]     @relation("PatientPrimaryProvider")
+  appointmentsAsProvider Appointment[] @relation("AppointmentProvider")
+  clinicalSessionsAsProvider ClinicalSession[] @relation("SessionProvider")
+  chargesAsProvider      Charge[]      @relation("ChargeProvider")
+
+  uploadedFiles   FileObject[] @relation("FileUploadedBy")
+  createdPayments Payment[]    @relation("PaymentCreatedBy")
+  auditLogs       AuditLog[]
+
+  googleCalendarIntegration GoogleCalendarToken?
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model Tenant {
+  id       String @id @default(uuid()) @db.Uuid
+  name     String
+  slug     String @unique // used in URLs
+  timezone String @default("America/Sao_Paulo")
+  locale   String @default("pt-BR")
+
+  // Clinic info (optional for NFSe)
+  cnpj        String?
+  cpf         String?
+  addressLine String?
+  addressCity String?
+  addressState String?
+  addressZip  String?
+  phone       String?
+  website     String?
+
+  // Feature flags / privacy defaults
+  sharedPatientPool    Boolean             @default(false)
+  adminCanViewClinical Boolean             @default(false)
+  calendarShowPatient  CalendarShowPatient @default(NONE)
+
+  // Appointment defaults
+  defaultAppointmentDurationMin Int @default(50)
+  workingHoursStart             String @default("08:00")
+  workingHoursEnd               String @default("18:00")
+  workingDays                   String @default("1,2,3,4,5") // Mon-Fri
+
+  // Subscription / plan
+  plan      String @default("beta")
+  planSince DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships      Membership[]
+  invites          Invite[]
+  appointmentTypes AppointmentType[]
+  patients         Patient[]
+  appointments     Appointment[]
+  clinicalSessions ClinicalSession[]
+  files            FileObject[]
+  charges          Charge[]
+  payments         Payment[]
+  auditLogs        AuditLog[]
+  integrations     IntegrationCredential[]
+  nfseInvoices     NfseInvoice[]
+  reminderTemplates ReminderTemplate[]
+
+  @@index([createdAt])
+  @@index([slug])
+}
+
+model Membership {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  userId   String @db.Uuid
+
+  role   Role
+  status MembershipStatus @default(ACTIVE)
+
+  // Per-membership overrides
+  canViewAllPatients   Boolean? // null = use tenant default
+  canViewClinicalNotes Boolean? // null = use role default
+  canManageFinancials  Boolean? // null = use role default
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId, role])
+  @@index([tenantId, status])
+}
+
+model Invite {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @db.Uuid
+  email      String
+  role       Role
+  token      String   @unique @default(cuid())
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  sentById   String?  @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sentBy  User?   @relation("InvitesSentBy", fields: [sentById], references: [id])
+
+  @@index([tenantId])
+  @@index([token])
+  @@index([email])
+}
+
+// ─── Patients ────────────────────────────────────────────────────────────────
+
+model Patient {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  // Primary provider (can be null for shared pool)
+  assignedUserId String? @db.Uuid
+
+  fullName      String
+  preferredName String?
+  email         String?
+  phone         String?
+  dob           DateTime? @db.Date
+  cpf           String?   // Brazilian tax ID (encrypted at app layer)
+  notes         String?   // non-clinical header notes
+  tags          String[]  @default([])
+
+  // Status
+  isActive    Boolean @default(true)
+  archivedAt  DateTime?
+  archivedBy  String?  @db.Uuid
+
+  // Consent
+  consentGiven     Boolean   @default(false)
+  consentGivenAt   DateTime?
+  consentFileId    String?   @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedUser   User?     @relation("PatientPrimaryProvider", fields: [assignedUserId], references: [id])
+  contacts       PatientContact[]
+  appointments   Appointment[]
+  clinicalSessions ClinicalSession[]
+  files          FileObject[]
+  charges        Charge[]
+
+  @@index([tenantId])
+  @@index([tenantId, assignedUserId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, fullName])
+}
+
+model PatientContact {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  patientId String @db.Uuid
+
+  type  String // EMERGENCY | RESPONSIBLE | OTHER
+  name  String
+  phone String?
+  email String?
+
+  createdAt DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, patientId])
+}
+
+// ─── Agenda ──────────────────────────────────────────────────────────────────
+
+model AppointmentType {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  name               String
+  sessionType        AppointmentType_SessionType @default(IN_PERSON)
+  defaultDurationMin Int    @default(50)
+  defaultPriceCents  Int    @default(0)
+  currency           String @default("BRL")
+  color              String @default("#3b82f6")
+  isActive           Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([tenantId])
+}
+
+model Appointment {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  patientId         String @db.Uuid
+  providerUserId    String @db.Uuid
+  appointmentTypeId String @db.Uuid
+
+  startsAt DateTime
+  endsAt   DateTime
+  status   AppointmentStatus @default(SCHEDULED)
+
+  // Location
+  location  String?
+  videoLink String?
+
+  // Notes (admin-level, NOT clinical)
+  adminNotes String?
+
+  // Recurrence
+  recurrenceId String? @db.Uuid
+
+  // Google Calendar sync
+  googleCalendarEventId String?
+  googleCalendarSynced  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient         Patient         @relation(fields: [patientId], references: [id])
+  provider        User            @relation("AppointmentProvider", fields: [providerUserId], references: [id])
+  appointmentType AppointmentType @relation(fields: [appointmentTypeId], references: [id])
+  recurrence      Recurrence?     @relation(fields: [recurrenceId], references: [id])
+  clinicalSession ClinicalSession?
+  charges         Charge[]
+  reminderLogs    ReminderLog[]
+
+  @@index([tenantId])
+  @@index([tenantId, startsAt])
+  @@index([tenantId, providerUserId, startsAt])
+  @@index([tenantId, patientId])
+  @@index([tenantId, status])
+}
+
+model Recurrence {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  // RFC 5545 RRULE string
+  rrule      String
+  startsAt   DateTime
+  endsAt     DateTime?
+  occurrences Int?
+  createdById String @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  appointments Appointment[]
+
+  @@index([tenantId])
+}
+
+model ReminderTemplate {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  type     String // CONFIRMATION | REMINDER_24H | REMINDER_1H
+  subject  String
+  body     String @db.Text
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model ReminderLog {
+  id            String @id @default(uuid()) @db.Uuid
+  tenantId      String @db.Uuid
+  appointmentId String @db.Uuid
+
+  type      String   // CONFIRMATION | REMINDER_24H
+  channel   String   // EMAIL | SMS | WHATSAPP
+  recipient String
+  sentAt    DateTime @default(now())
+  status    String   // SENT | FAILED | BOUNCED
+  errorMsg  String?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, appointmentId])
+}
+
+// ─── EMR / Clinical Sessions ──────────────────────────────────────────────────
+
+model ClinicalSession {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  appointmentId  String? @unique @db.Uuid
+  patientId      String  @db.Uuid
+  providerUserId String  @db.Uuid
+
+  templateKey String  @default("FREE") // FREE | SOAP | BIRP
+  noteText    String  @db.Text
+  tags        String[] @default([])
+
+  // Encryption flag (noteText encrypted at app layer when true)
+  isEncrypted Boolean @default(false)
+
+  sessionDate DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  patient     Patient      @relation(fields: [patientId], references: [id])
+  provider    User         @relation("SessionProvider", fields: [providerUserId], references: [id])
+  revisions   SessionRevision[]
+  files       FileObject[]
+  charges     Charge[]
+
+  @@index([tenantId])
+  @@index([tenantId, patientId])
+  @@index([tenantId, providerUserId])
+  @@index([tenantId, sessionDate])
+}
+
+model SessionRevision {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid
+  sessionId String @db.Uuid
+
+  noteText String @db.Text
+  editedById String @db.Uuid
+  editedAt   DateTime @default(now())
+
+  session ClinicalSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, sessionId])
+}
+
+// ─── Files ───────────────────────────────────────────────────────────────────
+
+model FileObject {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  patientId  String? @db.Uuid
+  sessionId  String? @db.Uuid
+  uploaderId String  @db.Uuid
+
+  storageKey String  // S3/R2 object key
+  fileName   String
+  mimeType   String
+  sizeBytes  Int
+
+  // Access control
+  isClinical Boolean @default(false) // if true → restricted like session notes
+
+  createdAt DateTime @default(now())
+
+  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient  Patient?         @relation(fields: [patientId], references: [id])
+  session  ClinicalSession? @relation(fields: [sessionId], references: [id])
+  uploader User             @relation("FileUploadedBy", fields: [uploaderId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, patientId])
+  @@index([tenantId, sessionId])
+}
+
+// ─── Financial ───────────────────────────────────────────────────────────────
+
+model Charge {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  patientId      String  @db.Uuid
+  appointmentId  String? @db.Uuid
+  sessionId      String? @db.Uuid
+  providerUserId String  @db.Uuid
+
+  amountCents    Int
+  discountCents  Int      @default(0)
+  currency       String   @default("BRL")
+  dueDate        DateTime @db.Date
+  status         ChargeStatus @default(PENDING)
+
+  description String?
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient     Patient          @relation(fields: [patientId], references: [id])
+  appointment Appointment?     @relation(fields: [appointmentId], references: [id])
+  session     ClinicalSession? @relation(fields: [sessionId], references: [id])
+  provider    User             @relation("ChargeProvider", fields: [providerUserId], references: [id])
+  payments    Payment[]
+  nfseInvoice NfseInvoice?
+
+  @@index([tenantId])
+  @@index([tenantId, patientId])
+  @@index([tenantId, providerUserId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+}
+
+model Payment {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  chargeId String @db.Uuid
+
+  amountCents Int
+  method      PaymentMethod
+  paidAt      DateTime      @default(now())
+  reference   String?       // transaction ID, receipt number, etc.
+  notes       String?
+  createdById String @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge    Charge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, chargeId])
+  @@index([tenantId, paidAt])
+}
+
+// ─── Audit Log ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String? @db.Uuid // null for platform-level events
+
+  userId   String? @db.Uuid
+  action   String  // e.g. PATIENT_CREATE, SESSION_UPDATE, LOGIN
+  entity   String? // e.g. Patient, Appointment
+  entityId String? @db.Uuid
+
+  // Redacted summary — no PHI
+  summaryJson Json?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, userId])
+  @@index([tenantId, action])
+  @@index([tenantId, entity, entityId])
+  @@index([createdAt])
+}
+
+// ─── Integrations ────────────────────────────────────────────────────────────
+
+model IntegrationCredential {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  type          IntegrationType
+  encryptedJson String @db.Text // libsodium sealed box, base64
+  status        String  @default("INACTIVE") // INACTIVE | ACTIVE | ERROR
+  providerName  String? // e.g. "eNotas", "Focus NFe"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, type])
+  @@index([tenantId])
+}
+
+model GoogleCalendarToken {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+
+  encryptedTokenJson String @db.Text // encrypted OAuth tokens
+  calendarId         String? // selected calendar ID
+  syncEnabled        Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NfseInvoice {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  patientId String @db.Uuid
+  chargeId  String @unique @db.Uuid
+
+  provider   String   // e.g. "eNotas"
+  status     NfseStatus @default(DRAFT)
+  externalId String?  // provider's invoice ID
+
+  pdfUrl String?
+  xmlUrl String?
+
+  issuedAt DateTime?
+  rawResponseRedacted Json? // Never store full response with PHI
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge  Charge  @relation(fields: [chargeId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
