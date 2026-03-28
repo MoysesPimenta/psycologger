@@ -1,6 +1,9 @@
 /**
  * NextAuth configuration — Psycologger
  * Email magic-link (Email provider) + Prisma adapter.
+ * Session strategy: JWT (required for Vercel Edge middleware compatibility —
+ * Edge runtime cannot query the database, so database sessions can't be
+ * verified in middleware; JWT is self-contained and works on the Edge).
  */
 
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -31,7 +34,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: "database",
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
@@ -41,25 +44,33 @@ export const authOptions: NextAuthOptions = {
     newUser: "/onboarding",
   },
   callbacks: {
-    async session({ session, user }) {
-      // Attach user id and superadmin flag to session
-      if (session.user) {
-        session.user.id = user.id;
+    async jwt({ token, user }) {
+      // On initial sign-in `user` is populated — load extra fields into JWT
+      if (user) {
+        token.id = user.id;
         const dbUser = await db.user.findUnique({
-          where: { id: user.id },
+          where: { id: user.id as string },
           select: { isSuperAdmin: true },
         });
-        session.user.isSuperAdmin = dbUser?.isSuperAdmin ?? false;
+        token.isSuperAdmin = dbUser?.isSuperAdmin ?? false;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      // Expose token fields to the client-side session object
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.isSuperAdmin = (token.isSuperAdmin as boolean) ?? false;
       }
       return session;
     },
     async signIn({ user }) {
-      // Update last login
+      // Update last login timestamp (non-critical — errors silently ignored)
       if (user.id) {
         await db.user.update({
           where: { id: user.id },
           data: { lastLoginAt: new Date() },
-        }).catch(() => {}); // non-critical
+        }).catch(() => {});
       }
       return true;
     },
@@ -72,10 +83,11 @@ export const authOptions: NextAuthOptions = {
         summary: { email: "[REDACTED]" },
       });
     },
-    async signOut({ session }) {
-      if (session && "userId" in session) {
+    async signOut({ token }) {
+      // With JWT strategy, signOut receives token (not session)
+      if (token?.id) {
         await auditLog({
-          userId: session.userId as string,
+          userId: token.id as string,
           action: "LOGOUT",
         });
       }
