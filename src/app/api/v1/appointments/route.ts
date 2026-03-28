@@ -10,6 +10,9 @@ import { getAuthContext } from "@/lib/tenant";
 import { ok, created, handleApiError, parsePagination, buildMeta, ConflictError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { sendAppointmentConfirmation } from "@/lib/email";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const createSchema = z.object({
   patientId: z.string().uuid(),
@@ -23,6 +26,9 @@ const createSchema = z.object({
   // Recurring
   recurrenceRrule: z.string().optional(),
   recurrenceOccurrences: z.number().int().min(1).max(52).optional(),
+  // Notifications
+  notifyPatient: z.boolean().optional(),
+  notifyMethods: z.array(z.enum(["EMAIL", "WHATSAPP", "SMS"])).optional(),
 });
 
 async function checkConflict(
@@ -157,6 +163,36 @@ export async function POST(req: NextRequest) {
       ipAddress,
       userAgent,
     });
+
+    // Send confirmation email if requested and patient has an email
+    if (body.notifyPatient && body.notifyMethods?.includes("EMAIL")) {
+      try {
+        const patient = await db.patient.findUnique({
+          where: { id: body.patientId },
+          select: { email: true, fullName: true, preferredName: true },
+        });
+        const tenant = await db.tenant.findUnique({
+          where: { id: ctx.tenantId },
+          select: { name: true },
+        });
+
+        if (patient?.email) {
+          const startsAt = new Date(body.startsAt);
+          await sendAppointmentConfirmation({
+            to: patient.email,
+            patientName: patient.preferredName ?? patient.fullName,
+            appointmentDate: format(startsAt, "d 'de' MMMM 'de' yyyy", { locale: ptBR }),
+            appointmentTime: format(startsAt, "HH:mm"),
+            clinicName: tenant?.name ?? "Psycologger",
+            location: body.location,
+            videoLink: body.videoLink || undefined,
+          });
+        }
+      } catch (emailErr) {
+        // Non-fatal: log but don't fail the appointment creation
+        console.error("[appointments] Failed to send confirmation email:", emailErr);
+      }
+    }
 
     return created(appointment);
   } catch (err) {
