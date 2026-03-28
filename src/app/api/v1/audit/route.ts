@@ -10,7 +10,7 @@ import { requirePermission, can } from "@/lib/rbac";
 
 export async function GET(req: NextRequest) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "audit:view");
 
     const { searchParams } = new URL(req.url);

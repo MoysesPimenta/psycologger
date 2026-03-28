@@ -14,7 +14,7 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "users:view");
 
     const members = await db.membership.findMany({
@@ -40,7 +40,7 @@ const inviteSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "users:invite");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 

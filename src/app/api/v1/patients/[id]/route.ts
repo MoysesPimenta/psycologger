@@ -34,7 +34,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
     const patient = await resolvePatient(params.id, ctx);
     return ok(patient);
@@ -60,7 +60,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:edit");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
@@ -107,7 +107,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:archive");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 

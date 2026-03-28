@@ -31,7 +31,7 @@ const updateSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "tenant:view");
 
     const tenant = await db.tenant.findUnique({
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "tenant:edit");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 

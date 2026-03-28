@@ -26,7 +26,7 @@ const createSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
 
     const { searchParams } = new URL(req.url);
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:create");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 

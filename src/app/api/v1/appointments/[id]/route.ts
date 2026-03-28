@@ -16,7 +16,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "appointments:view");
 
     const appointment = await db.appointment.findFirst({
@@ -57,7 +57,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "appointments:edit");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 

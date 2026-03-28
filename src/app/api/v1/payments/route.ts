@@ -21,7 +21,7 @@ const createSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "payments:create");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 

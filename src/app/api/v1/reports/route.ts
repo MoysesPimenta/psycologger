@@ -13,7 +13,7 @@ import { startOfMonth, endOfMonth } from "date-fns";
 
 export async function GET(req: NextRequest) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "reports:view");
 
     const { searchParams } = new URL(req.url);

@@ -11,10 +11,22 @@ import { UnauthorizedError, ForbiddenError } from "./rbac";
 
 /**
  * Resolve full auth context for the current request.
+ * Pass a NextRequest to automatically read the x-tenant-id header injected by
+ * middleware (required for correct multi-tenant routing in API routes).
  * Throws UnauthorizedError if not logged in.
  * Throws ForbiddenError if no active membership found.
  */
-export async function getAuthContext(tenantId?: string): Promise<AuthContext> {
+export async function getAuthContext(
+  tenantIdOrRequest?: string | Request
+): Promise<AuthContext> {
+  // Accept either a plain tenantId string or a Request whose x-tenant-id header
+  // is injected by middleware from the psycologger-tenant cookie.
+  let tenantId: string | undefined;
+  if (typeof tenantIdOrRequest === "string") {
+    tenantId = tenantIdOrRequest || undefined;
+  } else if (tenantIdOrRequest instanceof Request) {
+    tenantId = tenantIdOrRequest.headers.get("x-tenant-id") ?? undefined;
+  }
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) throw new UnauthorizedError();
 

@@ -2,18 +2,22 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { formatDate, formatTime, appointmentStatusLabel } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { TodayClient } from "@/components/appointments/today-client";
 import { startOfDay, endOfDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { redirect } from "next/navigation";
 
 export const metadata = { title: "Hoje" };
 
 export default async function TodayPage() {
   const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+
   const ctx = await getAuthContext().catch(() => null);
 
-  if (!ctx || !session) return null;
+  // User is logged in but has no active membership (e.g. new signup)
+  if (!ctx) redirect("/onboarding");
 
   // Get tenant timezone
   const tenant = await db.tenant.findUnique({

@@ -16,7 +16,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "sessions:view");
 
     const session = await db.clinicalSession.findFirst({
@@ -58,7 +58,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const ctx = await getAuthContext();
+    const ctx = await getAuthContext(req);
     requirePermission(ctx, "sessions:edit");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
