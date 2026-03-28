@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Save, ChevronLeft, Clock, FileText, Tag, History } from "lucide-react";
+import {
+  Save, ChevronLeft, Clock, FileText, Tag, History,
+  Paperclip, Upload, Trash2, Download, File, Image,
+  AlertTriangle, X, CheckCircle2, Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +15,19 @@ import { formatDateTime, formatDate } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type TemplateKey = "FREE" | "SOAP" | "BIRP";
+
+interface FileAttachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  downloadUrl: string | null;
+  createdAt: string;
+  uploader?: { id: string; name: string | null };
+}
 
 interface Props {
   session: {
@@ -21,13 +37,15 @@ interface Props {
     tags: string[];
     sessionDate: string;
     revisions: { id: string; editedAt: string; editedById: string }[];
-    files: { id: string; fileName: string }[];
+    files: FileAttachment[];
   } | null;
   patient: { id: string; fullName: string } | null;
   appointment: { id: string; startsAt: string; appointmentType?: { name: string } } | null;
   canEdit: boolean;
   userId: string;
 }
+
+// ─── Templates ────────────────────────────────────────────────────────────────
 
 const SOAP_TEMPLATE = `**S — Subjetivo**
 (O que o paciente relatou)
@@ -55,30 +73,193 @@ const BIRP_TEMPLATE = `**B — Comportamento**
 (Próximos passos)
 `;
 
-const TEMPLATES: Record<TemplateKey, string> = {
-  FREE: "",
-  SOAP: SOAP_TEMPLATE,
-  BIRP: BIRP_TEMPLATE,
-};
+const TEMPLATES: Record<TemplateKey, string> = { FREE: "", SOAP: SOAP_TEMPLATE, BIRP: BIRP_TEMPLATE };
 
-export function SessionEditor({ session, patient, appointment, canEdit, userId }: Props) {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function FileIcon({ mimeType }: { mimeType: string }) {
+  if (mimeType.startsWith("image/")) return <Image className="h-4 w-4 text-blue-500" />;
+  if (mimeType === "application/pdf") return <File className="h-4 w-4 text-red-500" />;
+  return <FileText className="h-4 w-4 text-gray-500" />;
+}
+
+// ─── File Attachment Panel ────────────────────────────────────────────────────
+
+function FileAttachmentPanel({
+  sessionId,
+  initialFiles,
+  canEdit,
+}: {
+  sessionId: string;
+  initialFiles: FileAttachment[];
+  canEdit: boolean;
+}) {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<FileAttachment[]>(initialFiles);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+  const [dragging, setDragging] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const uploadFiles = useCallback(async (fileList: FileList) => {
+    if (!fileList.length) return;
+    setUploading(true);
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      setUploadProgress(`Enviando ${file.name} (${i + 1}/${fileList.length})…`);
+      const formData = new FormData();
+      formData.append("file", file);
+      try {
+        const res = await fetch(`/api/v1/sessions/${sessionId}/files`, { method: "POST", body: formData });
+        const json = await res.json();
+        if (!res.ok) { toast({ title: json.error ?? "Erro ao enviar arquivo", variant: "destructive" }); continue; }
+        setFiles((prev) => [json.data, ...prev]);
+        toast({ title: `${file.name} enviado`, variant: "success" });
+      } catch {
+        toast({ title: `Erro ao enviar ${file.name}`, variant: "destructive" });
+      }
+    }
+    setUploading(false);
+    setUploadProgress("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [sessionId, toast]);
+
+  async function handleDelete(fileId: string, fileName: string) {
+    if (!confirm(`Excluir "${fileName}"? Não pode ser desfeito.`)) return;
+    setDeletingId(fileId);
+    try {
+      const res = await fetch(`/api/v1/sessions/${sessionId}/files/${fileId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setFiles((prev) => prev.filter((f) => f.id !== fileId));
+      toast({ title: "Arquivo excluído", variant: "success" });
+    } catch {
+      toast({ title: "Erro ao excluir arquivo", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function handleDownload(file: FileAttachment) {
+    try {
+      const res = await fetch(`/api/v1/sessions/${sessionId}/files/${file.id}`);
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      const url = json.data?.downloadUrl ?? file.downloadUrl;
+      if (url) window.open(url, "_blank");
+    } catch {
+      if (file.downloadUrl) window.open(file.downloadUrl, "_blank");
+      else toast({ title: "Não foi possível gerar link de download", variant: "destructive" });
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {canEdit && (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files) uploadFiles(e.dataTransfer.files); }}
+          onClick={() => !uploading && fileInputRef.current?.click()}
+          className={cn(
+            "relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 cursor-pointer transition-colors",
+            dragging ? "border-brand-400 bg-brand-50" : "border-gray-200 hover:border-brand-300 hover:bg-gray-50",
+            uploading && "cursor-not-allowed opacity-60"
+          )}
+        >
+          <input
+            ref={fileInputRef}
+            type="file" multiple
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.heic,.doc,.docx"
+            className="sr-only"
+            onChange={(e) => e.target.files && uploadFiles(e.target.files)}
+            disabled={uploading}
+          />
+          {uploading ? (
+            <><Loader2 className="h-6 w-6 animate-spin text-brand-500" /><p className="text-xs text-gray-600">{uploadProgress}</p></>
+          ) : (
+            <>
+              <Upload className="h-6 w-6 text-gray-400" />
+              <p className="text-xs text-gray-600 text-center">
+                <span className="font-medium text-brand-600">Clique para selecionar</span> ou arraste aqui
+              </p>
+              <p className="text-xs text-gray-400">PDF, imagens, Word · máx. 25 MB por arquivo</p>
+            </>
+          )}
+        </div>
+      )}
+
+      {files.length > 0 ? (
+        <div className="space-y-2">
+          {files.map((file) => (
+            <div key={file.id} className="flex items-center gap-3 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+              <div className="shrink-0"><FileIcon mimeType={file.mimeType} /></div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-900">{file.fileName}</p>
+                <p className="text-xs text-gray-400">
+                  {formatBytes(file.sizeBytes)} · {formatDate(file.createdAt)}
+                  {file.uploader?.name && ` · ${file.uploader.name}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button variant="ghost" size="sm" onClick={() => handleDownload(file)} title="Baixar"
+                  className="h-7 w-7 p-0 text-gray-400 hover:text-brand-600">
+                  <Download className="h-3.5 w-3.5" />
+                </Button>
+                {canEdit && (
+                  <Button variant="ghost" size="sm" disabled={deletingId === file.id}
+                    onClick={() => handleDelete(file.id, file.fileName)} title="Excluir"
+                    className="h-7 w-7 p-0 text-gray-400 hover:text-red-600">
+                    {deletingId === file.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-xs text-gray-400 py-2">Nenhum arquivo anexado</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Editor ──────────────────────────────────────────────────────────────
+
+export function SessionEditor({ session, patient, appointment, canEdit }: Props) {
   const router = useRouter();
   const { toast } = useToast();
-  const [loading, setSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [templateKey, setTemplateKey] = useState<TemplateKey>(session?.templateKey ?? "FREE");
   const [noteText, setNoteText] = useState(session?.noteText ?? "");
   const [tags, setTags] = useState<string[]>(session?.tags ?? []);
   const [tagInput, setTagInput] = useState("");
   const [showHistory, setShowHistory] = useState(false);
-  const [sessionDate] = useState(
-    session?.sessionDate ?? appointment?.startsAt ?? new Date().toISOString()
-  );
+  const [sessionDate] = useState(session?.sessionDate ?? appointment?.startsAt ?? new Date().toISOString());
+  // Track saved session id so file panel becomes available after first save
+  const [savedSessionId, setSavedSessionId] = useState<string | null>(session?.id ?? null);
+  // undefined = not yet checked, true/false = result
+  const [storageOk, setStorageOk] = useState<boolean | undefined>(undefined);
+
+  // Probe storage config once we have a session ID
+  function probeStorage(id: string) {
+    if (storageOk !== undefined) return;
+    fetch(`/api/v1/sessions/${id}/files`)
+      .then((r) => setStorageOk(r.status !== 503))
+      .catch(() => setStorageOk(false));
+  }
+
+  if (savedSessionId && storageOk === undefined) probeStorage(savedSessionId);
 
   function handleTemplateChange(key: TemplateKey) {
     setTemplateKey(key);
-    if (!noteText && TEMPLATES[key]) {
-      setNoteText(TEMPLATES[key]);
-    }
+    if (!noteText && TEMPLATES[key]) setNoteText(TEMPLATES[key]);
   }
 
   function addTag(tag: string) {
@@ -88,39 +269,26 @@ export function SessionEditor({ session, patient, appointment, canEdit, userId }
   }
 
   async function handleSave() {
-    if (!noteText.trim()) {
-      toast({ title: "A nota não pode estar vazia", variant: "destructive" });
-      return;
-    }
+    if (!noteText.trim()) { toast({ title: "A nota não pode estar vazia", variant: "destructive" }); return; }
     setSaving(true);
     try {
-      const isNew = !session;
-      const url = isNew ? "/api/v1/sessions" : `/api/v1/sessions/${session!.id}`;
+      const isNew = !savedSessionId;
+      const url = isNew ? "/api/v1/sessions" : `/api/v1/sessions/${savedSessionId}`;
       const method = isNew ? "POST" : "PATCH";
       const body = isNew
-        ? {
-            patientId: patient!.id,
-            appointmentId: appointment?.id,
-            templateKey,
-            noteText,
-            tags,
-            sessionDate,
-          }
+        ? { patientId: patient!.id, appointmentId: appointment?.id, templateKey, noteText, tags, sessionDate }
         : { noteText, templateKey, tags };
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (!res.ok) throw new Error();
       const data = await res.json();
-
       toast({ title: isNew ? "Sessão criada!" : "Sessão salva!", variant: "success" });
 
       if (isNew) {
-        router.push(`/app/sessions/${data.data.id}`);
+        const newId: string = data.data.id;
+        setSavedSessionId(newId);
+        probeStorage(newId);
+        router.replace(`/app/sessions/${newId}`);
       }
     } catch {
       toast({ title: "Erro ao salvar sessão", variant: "destructive" });
@@ -131,7 +299,7 @@ export function SessionEditor({ session, patient, appointment, canEdit, userId }
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild>
@@ -140,59 +308,45 @@ export function SessionEditor({ session, patient, appointment, canEdit, userId }
             </Link>
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              {session ? "Nota clínica" : "Nova sessão"}
-            </h1>
+            <h1 className="text-xl font-bold text-gray-900">{session ? "Nota clínica" : "Nova sessão"}</h1>
             {patient && (
-              <p className="text-sm text-gray-500">
-                {patient.fullName} · {formatDate(sessionDate)}
-              </p>
+              <p className="text-sm text-gray-500">{patient.fullName} · {formatDate(sessionDate)}</p>
             )}
           </div>
         </div>
         <div className="flex gap-2">
           {session?.revisions && session.revisions.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowHistory(!showHistory)}
-            >
-              <History className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
+              <History className="h-4 w-4 mr-1" />
               {session.revisions.length} revisõe{session.revisions.length !== 1 ? "s" : ""}
             </Button>
           )}
           {canEdit && (
-            <Button onClick={handleSave} loading={loading} size="sm">
-              <Save className="h-4 w-4" />
-              Salvar
+            <Button onClick={handleSave} disabled={saving} size="sm">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+              {saving ? "Salvando…" : "Salvar"}
             </Button>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Main editor */}
+        {/* ── Main area ── */}
         <div className="lg:col-span-3 space-y-4">
           {/* Template selector */}
           <div className="flex gap-2">
             {(["FREE", "SOAP", "BIRP"] as TemplateKey[]).map((key) => (
-              <button
-                key={key}
-                onClick={() => handleTemplateChange(key)}
-                disabled={!canEdit}
+              <button key={key} onClick={() => handleTemplateChange(key)} disabled={!canEdit}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                  templateKey === key
-                    ? "bg-brand-600 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                )}
-              >
+                  templateKey === key ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                )}>
                 {key === "FREE" ? "Texto livre" : key}
               </button>
             ))}
           </div>
 
-          {/* Text editor */}
+          {/* Note textarea */}
           <div className="bg-white border rounded-xl overflow-hidden">
             <div className="flex items-center gap-2 px-3 py-2 border-b bg-gray-50">
               <FileText className="h-4 w-4 text-gray-400" />
@@ -203,16 +357,52 @@ export function SessionEditor({ session, patient, appointment, canEdit, userId }
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               readOnly={!canEdit}
-              placeholder="Registre a evolução do paciente..."
+              placeholder="Registre a evolução do paciente…"
               className="w-full p-4 text-sm text-gray-900 font-mono leading-relaxed resize-none focus:outline-none"
-              style={{ minHeight: "400px" }}
+              style={{ minHeight: "420px" }}
             />
+          </div>
+
+          {/* ── File attachments ── */}
+          <div className="bg-white border rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 border-b bg-gray-50">
+              <Paperclip className="h-4 w-4 text-gray-400" />
+              <span className="text-xs text-gray-500 font-medium">Anexos</span>
+              {savedSessionId && (
+                <span className="ml-auto text-xs text-gray-400">
+                  {(session?.files ?? []).length} arquivo{(session?.files ?? []).length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+            <div className="p-4">
+              {!savedSessionId ? (
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                  Salve a nota antes de adicionar anexos.
+                </div>
+              ) : storageOk === false ? (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>
+                    Armazenamento não configurado. Adicione{" "}
+                    <code className="font-mono bg-amber-100 px-1 rounded">SUPABASE_URL</code> e{" "}
+                    <code className="font-mono bg-amber-100 px-1 rounded">SUPABASE_SERVICE_KEY</code> nas variáveis de
+                    ambiente e crie o bucket <strong>session-files</strong> no Supabase Storage.
+                  </span>
+                </div>
+              ) : (
+                <FileAttachmentPanel
+                  sessionId={savedSessionId}
+                  initialFiles={session?.files ?? []}
+                  canEdit={canEdit}
+                />
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* ── Sidebar ── */}
         <div className="space-y-4">
-          {/* Session info */}
           <div className="bg-white border rounded-xl p-4 space-y-3">
             <h3 className="text-sm font-semibold text-gray-700">Informações</h3>
             {appointment?.startsAt && (
@@ -221,23 +411,29 @@ export function SessionEditor({ session, patient, appointment, canEdit, userId }
                 {formatDateTime(appointment.startsAt)}
               </div>
             )}
+            {appointment?.id && (
+              <Link href={`/app/appointments/${appointment.id}`} className="text-xs text-brand-600 hover:underline block">
+                Ver consulta →
+              </Link>
+            )}
+            {savedSessionId && (
+              <div className="flex items-center gap-1.5 text-xs text-green-700">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Salvo
+              </div>
+            )}
           </div>
 
-          {/* Tags */}
           <div className="bg-white border rounded-xl p-4 space-y-3">
             <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1">
               <Tag className="h-4 w-4" /> Tags
             </h3>
             <div className="flex flex-wrap gap-1">
               {tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
+                <Badge key={tag} variant="secondary" className="text-xs gap-1">
                   {tag}
                   {canEdit && (
-                    <button
-                      onClick={() => setTags(tags.filter((t) => t !== tag))}
-                      className="ml-1 hover:text-red-500"
-                    >
-                      ×
+                    <button onClick={() => setTags(tags.filter((t) => t !== tag))} className="hover:text-red-500 ml-0.5">
+                      <X className="h-3 w-3" />
                     </button>
                   )}
                 </Badge>
@@ -245,30 +441,21 @@ export function SessionEditor({ session, patient, appointment, canEdit, userId }
             </div>
             {canEdit && (
               <input
-                type="text"
-                placeholder="Adicionar tag..."
+                type="text" placeholder="Adicionar tag…"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === ",") {
-                    e.preventDefault();
-                    addTag(tagInput);
-                  }
-                }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(tagInput); } }}
                 className="w-full text-xs border rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             )}
           </div>
 
-          {/* Revision history */}
           {showHistory && session?.revisions && (
             <div className="bg-white border rounded-xl p-4 space-y-3">
               <h3 className="text-sm font-semibold text-gray-700">Histórico de edições</h3>
               <div className="space-y-2">
                 {session.revisions.map((rev) => (
-                  <div key={rev.id} className="text-xs text-gray-500">
-                    {formatDateTime(rev.editedAt)}
-                  </div>
+                  <div key={rev.id} className="text-xs text-gray-500">{formatDateTime(rev.editedAt)}</div>
                 ))}
               </div>
             </div>

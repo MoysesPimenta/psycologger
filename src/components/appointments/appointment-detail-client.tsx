@@ -152,10 +152,13 @@ export function AppointmentDetailClient({
     appointmentTypeId: initialAppt.appointmentType.id,
   });
 
-  const isActive = !["CANCELED", "NO_SHOW", "COMPLETED"].includes(appt.status);
-  const canEdit = isActive && ["SUPERADMIN", "TENANT_ADMIN", "PSYCHOLOGIST", "ASSISTANT"].includes(role);
-  const canCancel = isActive && ["SUPERADMIN", "TENANT_ADMIN", "PSYCHOLOGIST", "ASSISTANT"].includes(role);
-  const canComplete = isActive && ["SUPERADMIN", "TENANT_ADMIN", "PSYCHOLOGIST"].includes(role);
+  // "Active" = can still be progressed forward (scheduled/confirmed)
+  const isActive   = !["CANCELED", "NO_SHOW", "COMPLETED"].includes(appt.status);
+  // "Editable" = can edit fields (also allow for completed — psychologist may need to fix notes/link)
+  const canEdit    = !["CANCELED"].includes(appt.status) && ["SUPERADMIN", "TENANT_ADMIN", "PSYCHOLOGIST", "ASSISTANT"].includes(role);
+  const canCancel  = isActive && ["SUPERADMIN", "TENANT_ADMIN", "PSYCHOLOGIST", "ASSISTANT"].includes(role);
+  const canComplete= isActive && ["SUPERADMIN", "TENANT_ADMIN", "PSYCHOLOGIST"].includes(role);
+  const canCorrect = ["COMPLETED", "NO_SHOW"].includes(appt.status) && ["SUPERADMIN", "TENANT_ADMIN", "PSYCHOLOGIST"].includes(role);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -514,6 +517,38 @@ export function AppointmentDetailClient({
         </Card>
       )}
 
+      {/* ── Correct status for COMPLETED ── */}
+      {canCorrect && appt.status === "COMPLETED" && (
+        <Card className="border-gray-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base text-gray-700">Corrigir status</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button
+              variant="outline" size="sm" disabled={saving}
+              onClick={() => handleStatusChange("NO_SHOW")}
+              className="gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50"
+            >
+              <X className="h-3.5 w-3.5" /> O paciente faltou (registrar falta)
+            </Button>
+            <Button
+              variant="outline" size="sm" disabled={saving}
+              onClick={() => handleStatusChange("CANCELED")}
+              className="gap-1.5 border-red-300 text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Cancelar consulta
+            </Button>
+            <Button
+              variant="outline" size="sm" disabled={saving}
+              onClick={() => handleStatusChange("SCHEDULED")}
+              className="gap-1.5 border-gray-300 text-gray-600 hover:bg-gray-50"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Voltar para agendada
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── Clinical session ── */}
       {appt.status === "COMPLETED" && (
         <Card>
@@ -525,7 +560,7 @@ export function AppointmentDetailClient({
               onClick={() =>
                 appt.clinicalSession
                   ? router.push(`/app/sessions/${appt.clinicalSession.id}`)
-                  : router.push(`/app/sessions/new?appointmentId=${appt.id}`)
+                  : router.push(`/app/sessions/new?appointmentId=${appt.id}&patientId=${appt.patient.id}`)
               }
               className={!appt.clinicalSession ? "bg-brand-600 hover:bg-brand-700" : ""}
             >
