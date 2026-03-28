@@ -53,7 +53,9 @@ export function OnboardingClient({ userName, userEmail }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: userName,
+          // Fall back to the email username part if the session has no name
+          // (happens when the user logged in via magic link without signing up first)
+          name: userName || userEmail.split("@")[0],
           email: userEmail,
           clinicName: clinicName.trim(),
         }),

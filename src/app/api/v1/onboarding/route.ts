@@ -11,7 +11,9 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { generateSlug } from "@/lib/utils";
 
 const schema = z.object({
-  name: z.string().min(2).max(100),
+  // name is optional for users who logged in via magic link (email provider doesn't
+  // collect a name, so session.user.name is null and arrives here as "").
+  name: z.string().max(100).default(""),
   email: z.string().email().toLowerCase(),
   clinicName: z.string().min(2).max(100),
 });
