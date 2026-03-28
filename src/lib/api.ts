@@ -97,8 +97,10 @@ export interface PaginationParams {
 }
 
 export function parsePagination(searchParams: URLSearchParams): PaginationParams {
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
-  const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "20")));
+  const rawPage = parseInt(searchParams.get("page") ?? "1");
+  const rawPageSize = parseInt(searchParams.get("pageSize") ?? "20");
+  const page = Math.max(1, isNaN(rawPage) ? 1 : rawPage);
+  const pageSize = Math.min(100, Math.max(1, isNaN(rawPageSize) ? 20 : rawPageSize));
   return { page, pageSize, skip: (page - 1) * pageSize };
 }
 
