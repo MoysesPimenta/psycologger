@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Calendar, Clock, MapPin, Video, User, Stethoscope, FileText,
   Edit2, X, Check, AlertTriangle, ChevronLeft, ExternalLink,
-  Repeat, CreditCard, Trash2,
+  Repeat, CreditCard, Trash2, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -412,7 +412,7 @@ export function AppointmentDetailClient({
         </CardContent>
       </Card>
 
-      {/* ── Status actions ── */}
+      {/* ── Status actions (active appointments) ── */}
       {isActive && (
         <Card>
           <CardHeader className="pb-3">
@@ -461,6 +461,55 @@ export function AppointmentDetailClient({
                 <Trash2 className="h-3.5 w-3.5" /> Cancelar consulta
               </Button>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Restore panel (cancelled or no-show) ── */}
+      {(appt.status === "CANCELED" || appt.status === "NO_SHOW") && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base text-amber-800">
+              {appt.status === "CANCELED" ? "Consulta cancelada" : "Falta registrada"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-amber-700">
+              {appt.status === "CANCELED"
+                ? "Esta consulta foi cancelada. Se foi um engano ou o paciente confirmou presença, você pode reativá-la."
+                : "A falta foi registrada. Se o paciente compareceu ou houve um engano, você pode corrigir o status."}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={saving}
+                onClick={() => handleStatusChange("SCHEDULED")}
+                className="gap-1.5 border-amber-400 text-amber-800 hover:bg-amber-100 bg-white"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Reagendar (voltar para agendada)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={saving}
+                onClick={() => handleStatusChange("CONFIRMED")}
+                className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50 bg-white"
+              >
+                <Check className="h-3.5 w-3.5" /> Marcar como confirmada
+              </Button>
+              {appt.status === "NO_SHOW" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={saving}
+                  onClick={() => handleStatusChange("COMPLETED")}
+                  className="gap-1.5 border-gray-300 text-gray-700 hover:bg-gray-50 bg-white"
+                >
+                  <Check className="h-3.5 w-3.5" /> O paciente compareceu (marcar realizada)
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

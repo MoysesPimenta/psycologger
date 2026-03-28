@@ -89,7 +89,13 @@ export async function GET(req: NextRequest) {
       ...(to && { endsAt: { lte: new Date(to) } }),
       ...(providerUserId && { providerUserId }),
       ...(patientId && { patientId }),
-      ...(status && { status: status as never }),
+      // If a specific status is requested return it; otherwise exclude CANCELED
+      // (pass status=ALL to get every status, e.g. for patient history views)
+      ...(status === "ALL"
+        ? {}
+        : status
+        ? { status: status as never }
+        : { status: { not: "CANCELED" as never } }),
     };
 
     const [appointments, total] = await Promise.all([
