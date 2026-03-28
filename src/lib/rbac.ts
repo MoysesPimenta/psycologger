@@ -67,7 +67,7 @@ export type Permission =
 // ─── Base permission matrix per role ─────────────────────────────────────────
 
 const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
-  SUPERADMIN: new Set([
+  SUPERADMIN: new Set<Permission>([
     "tenant:view", "tenant:edit", "tenant:delete",
     "users:invite", "users:view", "users:editRole", "users:suspend",
     "patients:list", "patients:create", "patients:edit", "patients:archive", "patients:viewAll",
@@ -84,7 +84,7 @@ const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "sa:impersonate", "sa:viewAllTenants", "sa:manageTenants",
   ]),
 
-  TENANT_ADMIN: new Set([
+  TENANT_ADMIN: new Set<Permission>([
     "tenant:view", "tenant:edit",
     "users:invite", "users:view", "users:editRole", "users:suspend",
     "patients:list", "patients:create", "patients:edit", "patients:archive", "patients:viewAll",
@@ -103,7 +103,7 @@ const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "audit:view", "audit:export",
   ]),
 
-  PSYCHOLOGIST: new Set([
+  PSYCHOLOGIST: new Set<Permission>([
     "tenant:view",
     "users:view",
     "patients:list", "patients:create", "patients:edit",
@@ -118,7 +118,7 @@ const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "audit:view",
   ]),
 
-  ASSISTANT: new Set([
+  ASSISTANT: new Set<Permission>([
     "patients:list", "patients:create", "patients:edit",
     "appointments:view", "appointments:create", "appointments:edit",
     "appointments:cancel", "appointments:markNoShow",
@@ -130,7 +130,7 @@ const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "audit:view",
   ]),
 
-  READONLY: new Set([
+  READONLY: new Set<Permission>([
     "patients:list",
     "appointments:view",
     "charges:view", "payments:view",

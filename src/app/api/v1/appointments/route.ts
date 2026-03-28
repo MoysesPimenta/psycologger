@@ -11,7 +11,7 @@ import { ok, created, handleApiError, parsePagination, buildMeta, ConflictError 
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { sendAppointmentConfirmation } from "@/lib/email";
-import { format } from "date-fns";
+import { format, addWeeks, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const createSchema = z.object({
@@ -25,11 +25,28 @@ const createSchema = z.object({
   adminNotes: z.string().max(1000).optional(),
   // Recurring
   recurrenceRrule: z.string().optional(),
-  recurrenceOccurrences: z.number().int().min(1).max(52).optional(),
+  recurrenceOccurrences: z.number().int().min(1).max(104).optional(),
+  recurrenceTime: z.string().regex(/^\d{2}:\d{2}$/).optional(), // "HH:mm" for recurring sessions
   // Notifications
   notifyPatient: z.boolean().optional(),
   notifyMethods: z.array(z.enum(["EMAIL", "WHATSAPP", "SMS"])).optional(),
 });
+
+/** Advance a date by one recurrence step according to the RRULE string */
+function nextOccurrence(date: Date, rrule: string): Date {
+  if (rrule.includes("FREQ=MONTHLY")) return addMonths(date, 1);
+  const intervalMatch = rrule.match(/INTERVAL=(\d+)/);
+  const interval = intervalMatch ? parseInt(intervalMatch[1]) : 1;
+  return addWeeks(date, interval);
+}
+
+/** Apply an "HH:mm" time string to a Date, returning a new Date */
+function applyTime(date: Date, hhmm: string): Date {
+  const [h, m] = hhmm.split(":").map(Number);
+  const result = new Date(date);
+  result.setHours(h, m, 0, 0);
+  return result;
+}
 
 async function checkConflict(
   tenantId: string,
@@ -108,7 +125,7 @@ export async function POST(req: NextRequest) {
     const startsAt = new Date(body.startsAt);
     const endsAt = new Date(body.endsAt);
 
-    // Conflict detection
+    // Conflict detection for the first slot
     const conflict = await checkConflict(ctx.tenantId, body.providerUserId, startsAt, endsAt);
     if (conflict) {
       throw new ConflictError(
@@ -116,10 +133,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let recurrenceId: string | undefined;
+    const durationMs = endsAt.getTime() - startsAt.getTime();
 
-    const appointment = await db.$transaction(async (tx) => {
-      // Create recurrence if requested
+    // ── Build list of slots to create ────────────────────────────────────────
+    const slots: Array<{ startsAt: Date; endsAt: Date }> = [{ startsAt, endsAt }];
+
+    if (body.recurrenceRrule && body.recurrenceOccurrences && body.recurrenceOccurrences > 1) {
+      let current = startsAt;
+      for (let i = 1; i < body.recurrenceOccurrences; i++) {
+        current = nextOccurrence(current, body.recurrenceRrule);
+        // Override time for recurring sessions if a specific time was set
+        const slotStart = body.recurrenceTime
+          ? applyTime(current, body.recurrenceTime)
+          : new Date(current);
+        const slotEnd = new Date(slotStart.getTime() + durationMs);
+        slots.push({ startsAt: slotStart, endsAt: slotEnd });
+      }
+    }
+
+    // ── Transaction: create recurrence record + all appointment slots ─────────
+    const { firstAppointment, createdCount } = await db.$transaction(async (tx) => {
+      let recurrenceId: string | undefined;
+
       if (body.recurrenceRrule) {
         const recurrence = await tx.recurrence.create({
           data: {
@@ -133,24 +168,55 @@ export async function POST(req: NextRequest) {
         recurrenceId = recurrence.id;
       }
 
-      return tx.appointment.create({
-        data: {
-          tenantId: ctx.tenantId,
-          patientId: body.patientId,
-          providerUserId: body.providerUserId,
-          appointmentTypeId: body.appointmentTypeId,
-          startsAt,
-          endsAt,
-          location: body.location ?? null,
-          videoLink: body.videoLink || null,
-          adminNotes: body.adminNotes ?? null,
-          recurrenceId: recurrenceId ?? null,
-        },
-        include: {
-          patient: { select: { id: true, fullName: true } },
-          appointmentType: { select: { id: true, name: true } },
-        },
-      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let first: any = null;
+      let count = 0;
+
+      for (const slot of slots) {
+        // Skip slots that conflict (soft-skip, don't abort the whole transaction)
+        const hasConflict = await tx.appointment.findFirst({
+          where: {
+            tenantId: ctx.tenantId,
+            providerUserId: body.providerUserId,
+            status: { notIn: ["CANCELED", "NO_SHOW"] },
+            AND: [
+              { startsAt: { lt: slot.endsAt } },
+              { endsAt: { gt: slot.startsAt } },
+            ],
+          },
+        });
+        if (hasConflict) continue;
+
+        const appt = await tx.appointment.create({
+          data: {
+            tenantId: ctx.tenantId,
+            patientId: body.patientId,
+            providerUserId: body.providerUserId,
+            appointmentTypeId: body.appointmentTypeId,
+            startsAt: slot.startsAt,
+            endsAt: slot.endsAt,
+            location: body.location ?? null,
+            videoLink: body.videoLink || null,
+            adminNotes: body.adminNotes ?? null,
+            recurrenceId: recurrenceId ?? null,
+          },
+          include: {
+            patient: { select: { id: true, fullName: true } },
+            appointmentType: { select: { id: true, name: true } },
+          },
+        });
+
+        if (!first) first = appt;
+        count++;
+      }
+
+      if (!first) {
+        throw new ConflictError(
+          "Não foi possível criar nenhuma sessão: todos os horários estão ocupados."
+        );
+      }
+
+      return { firstAppointment: first, createdCount: count };
     });
 
     await auditLog({
@@ -158,8 +224,13 @@ export async function POST(req: NextRequest) {
       userId: ctx.userId,
       action: "APPOINTMENT_CREATE",
       entity: "Appointment",
-      entityId: appointment.id,
-      summary: { patientId: body.patientId, providerUserId: body.providerUserId },
+      entityId: firstAppointment.id,
+      summary: {
+        patientId: body.patientId,
+        providerUserId: body.providerUserId,
+        totalCreated: createdCount,
+        recurring: !!body.recurrenceRrule,
+      },
       ipAddress,
       userAgent,
     });
@@ -177,7 +248,6 @@ export async function POST(req: NextRequest) {
         });
 
         if (patient?.email) {
-          const startsAt = new Date(body.startsAt);
           await sendAppointmentConfirmation({
             to: patient.email,
             patientName: patient.preferredName ?? patient.fullName,
@@ -194,7 +264,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return created(appointment);
+    return created({ ...firstAppointment, totalCreated: createdCount });
   } catch (err) {
     return handleApiError(err);
   }

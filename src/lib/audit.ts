@@ -46,6 +46,11 @@ export type AuditAction =
   | "CHARGE_VOID"
   | "PAYMENT_CREATE"
   | "PAYMENT_UPDATE"
+  // Appointment Types & Templates
+  | "APPOINTMENT_TYPE_CREATE"
+  | "APPOINTMENT_TYPE_UPDATE"
+  | "APPOINTMENT_TYPE_DELETE"
+  | "REMINDER_TEMPLATE_SAVE"
   // Integrations
   | "NFSE_ISSUE"
   | "GOOGLE_CALENDAR_CONNECT"
@@ -73,7 +78,8 @@ export async function auditLog(params: AuditParams): Promise<void> {
         action: params.action,
         entity: params.entity ?? null,
         entityId: params.entityId ?? null,
-        summaryJson: params.summary ? redact(params.summary) : null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        summaryJson: params.summary ? (redact(params.summary) as any) : undefined,
         ipAddress: params.ipAddress ?? null,
         userAgent: params.userAgent ?? null,
       },
