@@ -99,6 +99,32 @@ function formatRRule(rrule: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** Normalize any date value (Date object or string) to an ISO string */
+function toISO(val: unknown): string {
+  if (val instanceof Date) return val.toISOString();
+  if (typeof val === "string") return val;
+  return String(val);
+}
+
+/** Normalize an appointment so all date fields are ISO strings */
+function normalizeAppt(raw: Appointment): Appointment {
+  return {
+    ...raw,
+    startsAt: toISO(raw.startsAt),
+    endsAt:   toISO(raw.endsAt),
+    recurrence: raw.recurrence
+      ? { ...raw.recurrence, startsAt: toISO(raw.recurrence.startsAt) }
+      : null,
+  };
+}
+
+/** Format a datetime ISO string as a local datetime-local input value "YYYY-MM-DDTHH:mm" */
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function AppointmentDetailClient({
   appointment: initialAppt,
   role,
@@ -106,7 +132,7 @@ export function AppointmentDetailClient({
   recurrenceFutureCount,
 }: Props) {
   const router = useRouter();
-  const [appt, setAppt] = useState(initialAppt);
+  const [appt, setAppt] = useState(() => normalizeAppt(initialAppt));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -118,12 +144,12 @@ export function AppointmentDetailClient({
 
   // Edit form state
   const [editForm, setEditForm] = useState({
-    startsAt: appt.startsAt.slice(0, 16),   // "YYYY-MM-DDTHH:mm"
-    endsAt:   appt.endsAt.slice(0, 16),
-    location: appt.location ?? "",
-    videoLink: appt.videoLink ?? "",
-    adminNotes: appt.adminNotes ?? "",
-    appointmentTypeId: appt.appointmentType.id,
+    startsAt: toLocalInput(toISO(initialAppt.startsAt)),
+    endsAt:   toLocalInput(toISO(initialAppt.endsAt)),
+    location: initialAppt.location ?? "",
+    videoLink: initialAppt.videoLink ?? "",
+    adminNotes: initialAppt.adminNotes ?? "",
+    appointmentTypeId: initialAppt.appointmentType.id,
   });
 
   const isActive = !["CANCELED", "NO_SHOW", "COMPLETED"].includes(appt.status);
@@ -163,19 +189,20 @@ export function AppointmentDetailClient({
     try {
       setSaving(true);
       setError("");
-      // Convert local datetime strings to ISO (assume local timezone)
-      const toISO = (s: string) => new Date(s).toISOString();
+      // Convert local datetime-local strings → UTC ISO strings
+      const isoStart = new Date(editForm.startsAt).toISOString();
+      const isoEnd   = new Date(editForm.endsAt).toISOString();
       await patch({
-        startsAt: toISO(editForm.startsAt),
-        endsAt: toISO(editForm.endsAt),
+        startsAt: isoStart,
+        endsAt: isoEnd,
         location: editForm.location || null,
         videoLink: editForm.videoLink || null,
         adminNotes: editForm.adminNotes || null,
       });
       setAppt((a) => ({
         ...a,
-        startsAt: toISO(editForm.startsAt),
-        endsAt: toISO(editForm.endsAt),
+        startsAt: isoStart,
+        endsAt: isoEnd,
         location: editForm.location || null,
         videoLink: editForm.videoLink || null,
         adminNotes: editForm.adminNotes || null,
