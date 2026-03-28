@@ -29,13 +29,57 @@ export async function POST(req: NextRequest) {
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Check if user already exists
-    const existing = await db.user.findUnique({ where: { email: body.email } });
+    const existing = await db.user.findUnique({
+      where: { email: body.email },
+      include: {
+        memberships: { where: { status: "ACTIVE" }, take: 1 },
+      },
+    });
+
     if (existing) {
-      // Don't leak whether email exists — just say success
+      if (existing.memberships.length > 0) {
+        // User already has an active membership — idempotent success.
+        // This can happen if they submit the form twice or if there's a race condition.
+        return created({ message: "Conta criada com sucesso." });
+      }
+
+      // User exists but has NO membership — this is the "magic link → onboarding" case.
+      // NextAuth creates a bare user record on first login; the user then lands here to
+      // name their clinic. Create the tenant + membership for them now.
+      const result = await db.$transaction(async (tx) => {
+        const slug = generateSlug(body.clinicName);
+
+        const tenant = await tx.tenant.create({
+          data: { name: body.clinicName, slug },
+        });
+
+        await tx.membership.create({
+          data: {
+            tenantId: tenant.id,
+            userId: existing.id,
+            role: "TENANT_ADMIN",
+            status: "ACTIVE",
+          },
+        });
+
+        return { user: existing, tenant };
+      });
+
+      await auditLog({
+        tenantId: result.tenant.id,
+        userId: result.user.id,
+        action: "TENANT_CREATE",
+        entity: "Tenant",
+        entityId: result.tenant.id,
+        summary: { tenantSlug: result.tenant.slug, via: "onboarding-existing-user" },
+        ipAddress,
+        userAgent,
+      });
+
       return created({ message: "Conta criada com sucesso." });
     }
 
-    // Create user + tenant + membership in a transaction
+    // Brand-new user: create user + tenant + membership in one transaction
     const result = await db.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
