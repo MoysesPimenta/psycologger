@@ -50,6 +50,12 @@ const patchSchema = z.object({
   videoLink: z.string().url().optional().nullable().or(z.literal("")),
   adminNotes: z.string().max(1000).optional().nullable(),
   appointmentTypeId: z.string().uuid().optional(),
+  /**
+   * When cancelling a recurring appointment:
+   * - "THIS"             → cancel only this occurrence (default)
+   * - "THIS_AND_FUTURE"  → cancel this + all future occurrences in the series
+   */
+  cancelScope: z.enum(["THIS", "THIS_AND_FUTURE"]).optional(),
 });
 
 export async function PATCH(
@@ -86,17 +92,38 @@ export async function PATCH(
       }
     }
 
-    const updated = await db.appointment.update({
-      where: { id: params.id },
-      data: {
-        ...(body.status && { status: body.status }),
-        ...(body.startsAt && { startsAt: new Date(body.startsAt) }),
-        ...(body.endsAt && { endsAt: new Date(body.endsAt) }),
-        ...(body.location !== undefined && { location: body.location }),
-        ...(body.videoLink !== undefined && { videoLink: body.videoLink || null }),
-        ...(body.adminNotes !== undefined && { adminNotes: body.adminNotes }),
-        ...(body.appointmentTypeId && { appointmentTypeId: body.appointmentTypeId }),
-      },
+    const isCancelling = body.status === "CANCELED";
+    const cancelFuture = isCancelling && body.cancelScope === "THIS_AND_FUTURE";
+
+    const updated = await db.$transaction(async (tx) => {
+      const appt = await tx.appointment.update({
+        where: { id: params.id },
+        data: {
+          ...(body.status && { status: body.status }),
+          ...(body.startsAt && { startsAt: new Date(body.startsAt) }),
+          ...(body.endsAt && { endsAt: new Date(body.endsAt) }),
+          ...(body.location !== undefined && { location: body.location }),
+          ...(body.videoLink !== undefined && { videoLink: body.videoLink || null }),
+          ...(body.adminNotes !== undefined && { adminNotes: body.adminNotes }),
+          ...(body.appointmentTypeId && { appointmentTypeId: body.appointmentTypeId }),
+        },
+      });
+
+      // Cancel this + all future occurrences in the same recurrence series
+      if (cancelFuture && existing.recurrenceId) {
+        await tx.appointment.updateMany({
+          where: {
+            tenantId: ctx.tenantId,
+            recurrenceId: existing.recurrenceId,
+            // All future occurrences (strictly after the selected one)
+            startsAt: { gt: existing.startsAt },
+            status: { notIn: ["CANCELED", "NO_SHOW"] },
+          },
+          data: { status: "CANCELED" },
+        });
+      }
+
+      return appt;
     });
 
     const action =
@@ -111,7 +138,12 @@ export async function PATCH(
       action,
       entity: "Appointment",
       entityId: params.id,
-      summary: { newStatus: body.status, fields: Object.keys(body) },
+      summary: {
+        newStatus: body.status,
+        fields: Object.keys(body),
+        cancelScope: body.cancelScope ?? "THIS",
+        recurrenceId: existing.recurrenceId ?? undefined,
+      },
       ipAddress,
       userAgent,
     });

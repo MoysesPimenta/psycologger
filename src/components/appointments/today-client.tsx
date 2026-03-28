@@ -149,8 +149,9 @@ export function TodayClient({ appointments, userId, role }: Props) {
                   </div>
 
                   <Link
-                    href={`/app/patients/${appt.patient.id}`}
-                    className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                    href={`/app/appointments/${appt.id}`}
+                    className="text-gray-400 hover:text-brand-600 flex-shrink-0"
+                    title="Ver / editar consulta"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Link>
