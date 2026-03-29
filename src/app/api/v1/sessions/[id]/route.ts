@@ -51,6 +51,7 @@ const updateSchema = z.object({
   noteText: z.string().min(1).max(50000).optional(),
   templateKey: z.enum(["FREE", "SOAP", "BIRP"]).optional(),
   tags: z.array(z.string()).optional(),
+  restore: z.boolean().optional(),
 });
 
 export async function PATCH(
@@ -68,6 +69,25 @@ export async function PATCH(
     if (!existing) throw new NotFoundError("Session");
 
     const body = updateSchema.parse(await req.json());
+
+    // Restore from soft-delete
+    if (body.restore === true) {
+      const restored = await db.clinicalSession.update({
+        where: { id: params.id },
+        data: { deletedAt: null, deletedBy: null },
+      });
+      await auditLog({
+        tenantId: ctx.tenantId,
+        userId: ctx.userId,
+        action: "SESSION_RESTORE",
+        entity: "ClinicalSession",
+        entityId: params.id,
+        summary: { patientId: existing.patientId },
+        ipAddress,
+        userAgent,
+      });
+      return ok(restored);
+    }
 
     const updated = await db.$transaction(async (tx) => {
       const sess = await tx.clinicalSession.update({

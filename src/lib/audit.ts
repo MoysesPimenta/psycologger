@@ -36,11 +36,13 @@ export type AuditAction =
   | "SESSION_CREATE"
   | "SESSION_UPDATE"
   | "SESSION_DELETE"
+  | "SESSION_RESTORE"
   | "SESSION_REVISION_RESTORE"
   // Files
   | "FILE_UPLOAD"
   | "FILE_DOWNLOAD"
   | "FILE_DELETE"
+  | "FILE_RESTORE"
   // Financial
   | "CHARGE_CREATE"
   | "CHARGE_UPDATE"

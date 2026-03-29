@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   User, Calendar, FileText, DollarSign, Phone, Mail,
   Tag, Edit, Plus, Lock, Clock, ChevronLeft, Trash2,
-  ToggleLeft, ToggleRight
+  ToggleLeft, ToggleRight, RotateCcw, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,11 @@ import { formatDate, formatDateTime, formatCurrency, chargeStatusLabel, initials
 import { cn } from "@/lib/utils";
 
 type Tab = "timeline" | "sessions" | "files" | "financial" | "profile";
+
+function daysUntilHardDelete(deletedAt: string): number {
+  const hardDeleteAt = new Date(deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000;
+  return Math.max(0, Math.ceil((hardDeleteAt - Date.now()) / (24 * 60 * 60 * 1000)));
+}
 
 /* ─── Reusable confirm modal ─────────────────────────────────────────────── */
 function ConfirmModal({
@@ -289,20 +294,40 @@ function TimelineTab({ appointments, canViewClinical }: { appointments: any[]; c
 /* ─── Sessions tab ───────────────────────────────────────────────────────── */
 function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]; patientId: string }) {
   const [sessions, setSessions] = useState(initialSessions);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actioningId, setActioningId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
+  const active = sessions.filter((s: any) => !s.deletedAt);
+  const deleted = sessions.filter((s: any) => s.deletedAt);
+
   async function handleDeleteSession(id: string) {
-    setDeletingId(id);
+    setActioningId(id);
     try {
       const res = await fetch(`/api/v1/sessions/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Falha ao excluir sessão");
-      setSessions((prev: any[]) => prev.filter((s) => s.id !== id));
+      if (!res.ok) throw new Error();
+      setSessions((prev: any[]) => prev.map((s) => s.id === id ? { ...s, deletedAt: new Date().toISOString() } : s));
     } catch {
-      // silently fail — user can retry
+      // silently fail
     } finally {
-      setDeletingId(null);
+      setActioningId(null);
       setConfirmDelete(null);
+    }
+  }
+
+  async function handleRestoreSession(id: string) {
+    setActioningId(id);
+    try {
+      const res = await fetch(`/api/v1/sessions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restore: true }),
+      });
+      if (!res.ok) throw new Error();
+      setSessions((prev: any[]) => prev.map((s) => s.id === id ? { ...s, deletedAt: null } : s));
+    } catch {
+      // silently fail
+    } finally {
+      setActioningId(null);
     }
   }
 
@@ -327,11 +352,11 @@ function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]
         </Button>
       </div>
 
-      {sessions.length === 0 && (
+      {active.length === 0 && deleted.length === 0 && (
         <p className="text-gray-500 text-center py-8">Nenhuma sessão registrada.</p>
       )}
 
-      {sessions.map((s: any) => (
+      {active.map((s: any) => (
         <div key={s.id} className="flex items-center gap-4 bg-white rounded-xl border p-4 hover:shadow-sm transition-shadow">
           <Link href={`/app/sessions/${s.id}`} className="flex items-center gap-4 flex-1 min-w-0">
             <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
@@ -342,17 +367,49 @@ function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]
           </Link>
           <button
             onClick={() => setConfirmDelete(s.id)}
-            disabled={deletingId === s.id}
+            disabled={actioningId === s.id}
             title="Excluir sessão"
             className={cn(
               "p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors",
-              deletingId === s.id && "opacity-50 cursor-not-allowed"
+              actioningId === s.id && "opacity-50 cursor-not-allowed"
             )}
           >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
       ))}
+
+      {deleted.length > 0 && (
+        <div className="space-y-2 pt-2">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Aguardando exclusão permanente</p>
+          {deleted.map((s: any) => {
+            const days = daysUntilHardDelete(s.deletedAt);
+            return (
+              <div key={s.id} className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl p-4 opacity-75">
+                <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-500 line-through text-sm">{formatDate(s.sessionDate)}</p>
+                  <p className="text-xs text-red-500 mt-0.5">
+                    Excluído permanentemente em {days} dia{days !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleRestoreSession(s.id)}
+                  disabled={actioningId === s.id}
+                  title="Cancelar exclusão"
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-brand-600 bg-white border border-brand-200 hover:bg-brand-50 transition-colors",
+                    actioningId === s.id && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Cancelar exclusão
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -362,20 +419,36 @@ function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: 
   const [files, setFiles] = useState(
     initialFiles.filter((f: any) => !f.isClinical || canViewClinical)
   );
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actioningId, setActioningId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
+  const active = files.filter((f: any) => !f.deletedAt);
+  const deleted = files.filter((f: any) => f.deletedAt);
+
   async function handleDeleteFile(id: string) {
-    setDeletingId(id);
+    setActioningId(id);
     try {
       const res = await fetch(`/api/v1/patients/${patientId}/files/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Falha ao excluir arquivo");
-      setFiles((prev: any[]) => prev.filter((f) => f.id !== id));
+      if (!res.ok) throw new Error();
+      setFiles((prev: any[]) => prev.map((f) => f.id === id ? { ...f, deletedAt: new Date().toISOString() } : f));
     } catch {
-      // silently fail — user can retry
+      // silently fail
     } finally {
-      setDeletingId(null);
+      setActioningId(null);
       setConfirmDelete(null);
+    }
+  }
+
+  async function handleRestoreFile(id: string) {
+    setActioningId(id);
+    try {
+      const res = await fetch(`/api/v1/patients/${patientId}/files/${id}`, { method: "PATCH" });
+      if (!res.ok) throw new Error();
+      setFiles((prev: any[]) => prev.map((f) => f.id === id ? { ...f, deletedAt: null } : f));
+    } catch {
+      // silently fail
+    } finally {
+      setActioningId(null);
     }
   }
 
@@ -394,9 +467,11 @@ function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: 
         />
       )}
 
-      {files.length === 0 && <p className="text-gray-500 text-center py-8">Nenhum arquivo anexado.</p>}
+      {active.length === 0 && deleted.length === 0 && (
+        <p className="text-gray-500 text-center py-8">Nenhum arquivo anexado.</p>
+      )}
 
-      {files.map((f: any) => (
+      {active.map((f: any) => (
         <div key={f.id} className="flex items-center gap-3 bg-white rounded-xl border p-3">
           <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
@@ -406,17 +481,49 @@ function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: 
           <Button size="sm" variant="ghost" className="flex-shrink-0">Download</Button>
           <button
             onClick={() => setConfirmDelete(f.id)}
-            disabled={deletingId === f.id}
+            disabled={actioningId === f.id}
             title="Excluir arquivo"
             className={cn(
               "p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors",
-              deletingId === f.id && "opacity-50 cursor-not-allowed"
+              actioningId === f.id && "opacity-50 cursor-not-allowed"
             )}
           >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
       ))}
+
+      {deleted.length > 0 && (
+        <div className="space-y-2 pt-2">
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Aguardando exclusão permanente</p>
+          {deleted.map((f: any) => {
+            const days = daysUntilHardDelete(f.deletedAt);
+            return (
+              <div key={f.id} className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl p-3 opacity-75">
+                <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-400 line-through truncate">{f.fileName}</p>
+                  <p className="text-xs text-red-500 mt-0.5">
+                    Excluído permanentemente em {days} dia{days !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleRestoreFile(f.id)}
+                  disabled={actioningId === f.id}
+                  title="Cancelar exclusão"
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-brand-600 bg-white border border-brand-200 hover:bg-brand-50 transition-colors flex-shrink-0",
+                    actioningId === f.id && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Cancelar exclusão
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
