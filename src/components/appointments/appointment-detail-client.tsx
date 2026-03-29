@@ -664,36 +664,12 @@ export function AppointmentDetailClient({
 
       {/* ── Financial ── */}
       {appt.charges.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-base">Financeiro</CardTitle>
-            <div className="text-sm font-medium text-gray-600">
-              {totalPaid >= totalCharged ? (
-                <span className="text-green-700">Pago</span>
-              ) : (
-                <span className="text-orange-700">
-                  Pendente · R$ {((totalCharged - totalPaid) / 100).toFixed(2).replace(".", ",")}
-                </span>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {appt.charges.map((charge) => (
-              <div key={charge.id} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-3.5 w-3.5 text-gray-400" />
-                  <span className="text-gray-600">
-                    R$ {((charge.amountCents - (charge.discountCents ?? 0)) / 100).toFixed(2).replace(".", ",")}
-                  </span>
-                  {charge.discountCents ? (
-                    <span className="text-xs text-gray-400">(desconto aplicado)</span>
-                  ) : null}
-                </div>
-                <Badge variant="outline" className="text-xs capitalize">{charge.status}</Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <ChargesCard
+          charges={appt.charges}
+          totalCharged={totalCharged}
+          totalPaid={totalPaid}
+          onChargesChange={(charges) => setAppt((a) => ({ ...a, charges }))}
+        />
       )}
 
       {/* ── Charge prompt modal ── */}
@@ -825,6 +801,184 @@ export function AppointmentDetailClient({
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Charges card ─────────────────────────────────────────────────────────────
+
+function ChargesCard({
+  charges: initialCharges,
+  totalCharged,
+  totalPaid,
+  onChargesChange,
+}: {
+  charges: Charge[];
+  totalCharged: number;
+  totalPaid: number;
+  onChargesChange: (charges: Charge[]) => void;
+}) {
+  const [charges, setCharges] = useState(initialCharges);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ amountCents: "", discountCents: "" });
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  function startEdit(charge: Charge) {
+    setEditingId(charge.id);
+    setEditForm({
+      amountCents: (charge.amountCents / 100).toFixed(2),
+      discountCents: ((charge.discountCents ?? 0) / 100).toFixed(2),
+    });
+  }
+
+  async function saveEdit(id: string) {
+    setSaving(true);
+    try {
+      const amount = Math.round(parseFloat(editForm.amountCents.replace(",", ".")) * 100);
+      const discount = Math.round(parseFloat((editForm.discountCents || "0").replace(",", ".")) * 100);
+      const res = await fetch(`/api/v1/charges/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amountCents: amount, discountCents: discount }),
+      });
+      if (!res.ok) throw new Error();
+      const updated = charges.map((c) =>
+        c.id === id ? { ...c, amountCents: amount, discountCents: discount } : c
+      );
+      setCharges(updated);
+      onChargesChange(updated);
+      setEditingId(null);
+    } catch {
+      // silently fail
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteCharge(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/v1/charges/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      const updated = charges.filter((c) => c.id !== id);
+      setCharges(updated);
+      onChargesChange(updated);
+    } catch {
+      // silently fail
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  const STATUS_LABELS: Record<string, string> = {
+    PENDING: "Pendente", PAID: "Pago", OVERDUE: "Vencido",
+    PARTIAL: "Parcial", VOID: "Cancelado",
+  };
+
+  if (charges.length === 0) return null;
+
+  const computedTotal = charges.reduce((s, c) => s + c.amountCents - (c.discountCents ?? 0), 0);
+  const computedPaid  = charges.flatMap((c) => c.payments).reduce((s, p) => s + p.amountCents, 0);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <CardTitle className="text-base">Financeiro</CardTitle>
+        <div className="text-sm font-medium text-gray-600">
+          {computedPaid >= computedTotal ? (
+            <span className="text-green-700">Pago</span>
+          ) : (
+            <span className="text-orange-700">
+              Pendente · R$ {((computedTotal - computedPaid) / 100).toFixed(2).replace(".", ",")}
+            </span>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {charges.map((charge) => (
+          <div key={charge.id} className="rounded-lg border border-gray-100 p-3 space-y-2">
+            {editingId === charge.id ? (
+              // ── Edit mode ──
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Valor (R$)</label>
+                    <input
+                      type="text" inputMode="decimal"
+                      value={editForm.amountCents}
+                      onChange={(e) => setEditForm((f) => ({ ...f, amountCents: e.target.value }))}
+                      className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Desconto (R$)</label>
+                    <input
+                      type="text" inputMode="decimal"
+                      value={editForm.discountCents}
+                      onChange={(e) => setEditForm((f) => ({ ...f, discountCents: e.target.value }))}
+                      className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                  </div>
+                </div>
+                {editForm.discountCents && parseFloat(editForm.discountCents.replace(",", ".")) > 0 && (
+                  <p className="text-xs text-gray-500">
+                    Valor final: R$ {Math.max(0, (parseFloat(editForm.amountCents.replace(",", ".")) - parseFloat(editForm.discountCents.replace(",", ".")))).toFixed(2).replace(".", ",")}
+                  </p>
+                )}
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setEditingId(null)} disabled={saving}>
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={() => saveEdit(charge.id)} disabled={saving}>
+                    {saving ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              // ── View mode ──
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm">
+                  <CreditCard className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="font-medium text-gray-800">
+                    R$ {((charge.amountCents - (charge.discountCents ?? 0)) / 100).toFixed(2).replace(".", ",")}
+                  </span>
+                  {(charge.discountCents ?? 0) > 0 && (
+                    <span className="text-xs text-gray-400 line-through">
+                      R$ {(charge.amountCents / 100).toFixed(2).replace(".", ",")}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-xs">
+                    {STATUS_LABELS[charge.status] ?? charge.status}
+                  </Badge>
+                  {/* Only allow edit/delete if no payments yet */}
+                  {charge.payments.length === 0 && (
+                    <>
+                      <button
+                        onClick={() => startEdit(charge)}
+                        title="Editar cobrança"
+                        className="p-1 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => deleteCharge(charge.id)}
+                        disabled={deletingId === charge.id}
+                        title="Excluir cobrança"
+                        className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 

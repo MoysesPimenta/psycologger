@@ -22,6 +22,8 @@ const createSchema = z.object({
   notes: z.string().max(500).optional(),
   tags: z.array(z.string()).default([]),
   assignedUserId: z.string().uuid().optional(),
+  defaultAppointmentTypeId: z.string().uuid().optional(),
+  defaultFeeOverrideCents: z.number().int().min(0).max(100_000_000).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -93,6 +95,8 @@ export async function POST(req: NextRequest) {
         dob: body.dob ? new Date(body.dob) : null,
         notes: body.notes ?? null,
         tags: body.tags,
+        ...(body.defaultAppointmentTypeId && { defaultAppointmentTypeId: body.defaultAppointmentTypeId }),
+        ...(body.defaultFeeOverrideCents !== undefined && { defaultFeeOverrideCents: body.defaultFeeOverrideCents }),
       },
     });
 

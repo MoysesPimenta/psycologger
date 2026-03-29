@@ -8,7 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
-export function NewPatientClient() {
+interface AppointmentTypeSummary {
+  id: string;
+  name: string;
+  defaultPriceCents: number;
+}
+
+export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?: AppointmentTypeSummary[] }) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -20,16 +26,23 @@ export function NewPatientClient() {
     dob: "",
     notes: "",
     tags: "",
+    defaultAppointmentTypeId: "",
+    defaultFeeOverrideCents: "",
   });
 
   function set(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
+  const selectedType = appointmentTypes.find((t) => t.id === form.defaultAppointmentTypeId);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
+      const feeVal = form.defaultFeeOverrideCents.trim();
+      const feeCents = feeVal ? Math.round(parseFloat(feeVal.replace(",", ".")) * 100) : null;
+
       const res = await fetch("/api/v1/patients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -41,6 +54,8 @@ export function NewPatientClient() {
           dob: form.dob || undefined,
           notes: form.notes || undefined,
           tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+          defaultAppointmentTypeId: form.defaultAppointmentTypeId || undefined,
+          defaultFeeOverrideCents: feeCents ?? undefined,
         }),
       });
       if (!res.ok) throw new Error();
@@ -100,6 +115,55 @@ export function NewPatientClient() {
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             />
           </div>
+
+          {/* ── Billing defaults ── */}
+          {appointmentTypes.length > 0 && (
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+              <p className="text-sm font-medium text-gray-700">Cobrança padrão</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="defaultAppointmentTypeId" className="text-xs text-gray-600">Tipo de consulta padrão</Label>
+                  <select
+                    id="defaultAppointmentTypeId"
+                    value={form.defaultAppointmentTypeId}
+                    onChange={(e) => {
+                      const typeId = e.target.value;
+                      const type = appointmentTypes.find((t) => t.id === typeId);
+                      set("defaultAppointmentTypeId", typeId);
+                      // Pre-fill fee from type if no custom fee
+                      if (type && !form.defaultFeeOverrideCents) {
+                        set("defaultFeeOverrideCents", (type.defaultPriceCents / 100).toFixed(2));
+                      }
+                    }}
+                    className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">— Nenhum —</option>
+                    {appointmentTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} · R$ {(t.defaultPriceCents / 100).toFixed(2).replace(".", ",")}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="defaultFeeOverrideCents" className="text-xs text-gray-600">
+                    Valor por sessão (R$)
+                    {selectedType && !form.defaultFeeOverrideCents && (
+                      <span className="ml-1 font-normal text-gray-400">padrão: R$ {(selectedType.defaultPriceCents / 100).toFixed(2).replace(".", ",")}</span>
+                    )}
+                  </Label>
+                  <Input
+                    id="defaultFeeOverrideCents"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder={selectedType ? (selectedType.defaultPriceCents / 100).toFixed(2) : "0,00"}
+                    value={form.defaultFeeOverrideCents}
+                    onChange={(e) => set("defaultFeeOverrideCents", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => router.back()}>

@@ -68,6 +68,9 @@ export function handleApiError(err: unknown): NextResponse {
   if (err instanceof ConflictError) {
     return apiError("CONFLICT", err.message, 409);
   }
+  if (err instanceof BadRequestError) {
+    return apiError("BAD_REQUEST", err.message, 400);
+  }
   console.error("[api] Unhandled error:", err);
   return apiError("INTERNAL_ERROR", "An unexpected error occurred", 500);
 }
@@ -85,6 +88,14 @@ export class ConflictError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ConflictError";
+  }
+}
+
+export class BadRequestError extends Error {
+  readonly status = 400;
+  constructor(message: string) {
+    super(message);
+    this.name = "BadRequestError";
   }
 }
 
