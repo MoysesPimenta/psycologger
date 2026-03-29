@@ -617,6 +617,13 @@ function FinancialPaymentModal({
         if (chargeRes.ok) {
           const cj = await chargeRes.json();
           remainderCharge = { ...(cj.data ?? {}), payments: [] };
+          // Remainder charge created — mark the original charge as PAID.
+          // The remaining obligation has been transferred to the new charge.
+          await fetch(`/api/v1/charges/${charge.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "PAID" }),
+          });
         } else {
           // Payment already succeeded — warn but don't block
           setError("Pagamento registrado, mas a cobrança de saldo restante não pôde ser criada. Crie-a manualmente.");
@@ -632,7 +639,9 @@ function FinancialPaymentModal({
         method,
         paidAt: new Date(paidAt).toISOString(),
       };
-      onPaid(charge.id, newPayment, amountCents >= remaining ? "PAID" : "PENDING", remainderCharge);
+      // If a remainder charge was created, the original is fully accounted for → PAID
+      const newStatus = remainderCharge ? "PAID" : (amountCents >= remaining ? "PAID" : "PENDING");
+      onPaid(charge.id, newPayment, newStatus, remainderCharge);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro ao registrar pagamento.");
     } finally {

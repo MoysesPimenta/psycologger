@@ -16,6 +16,9 @@ const patchSchema = z.object({
   discountCents: z.number().int().min(0).max(100_000_000).optional(),
   description: z.string().max(500).optional().nullable(),
   dueDate: z.string().optional(),
+  // Allow marking a partially-paid charge as PAID once a remainder charge is created.
+  // Only PAID is accepted here — voiding uses DELETE, OVERDUE is set by a cron job.
+  status: z.enum(["PAID"]).optional(),
 });
 
 export async function PATCH(
@@ -41,6 +44,14 @@ export async function PATCH(
       throw new BadRequestError("Discount cannot exceed the charge amount");
     }
 
+    // Guard: only allow setting status=PAID if the charge already has payments
+    if (body.status === "PAID") {
+      const paymentCount = await db.payment.count({ where: { chargeId: params.id } });
+      if (paymentCount === 0) {
+        throw new BadRequestError("Cannot mark a charge as PAID without any recorded payments.");
+      }
+    }
+
     const updated = await db.charge.update({
       where: { id: params.id },
       data: {
@@ -48,6 +59,7 @@ export async function PATCH(
         ...(body.discountCents !== undefined && { discountCents: body.discountCents }),
         ...(body.description !== undefined && { description: body.description }),
         ...(body.dueDate !== undefined && { dueDate: new Date(body.dueDate) }),
+        ...(body.status !== undefined && { status: body.status }),
       },
     });
 
