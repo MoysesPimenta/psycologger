@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Clock, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Clock, User, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatTime, appointmentStatusLabel } from "@/lib/utils";
@@ -49,6 +49,7 @@ export function CalendarClient({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [show24h, setShow24h] = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -72,6 +73,13 @@ export function CalendarClient({
 
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
 
+  // When switching to 24h mode, scroll to 7h so working hours are still centred
+  useEffect(() => {
+    if (!show24h) return;
+    const el = document.getElementById("calendar-hour-7");
+    el?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [show24h]);
+
   function navigate(dir: 1 | -1) {
     if (view === "week") {
       setCurrentDate((d) => dir === 1 ? addWeeks(d, 1) : subWeeks(d, 1));
@@ -85,7 +93,10 @@ export function CalendarClient({
     end: endOfWeek(currentDate, { weekStartsOn: 1 }),
   });
 
-  const hours = Array.from({ length: 13 }, (_, i) => i + 7); // 7am to 7pm
+  // Default: 7h–19h (13 slots). Toggle: 0h–23h (24 slots).
+  const hours = show24h
+    ? Array.from({ length: 24 }, (_, i) => i)
+    : Array.from({ length: 13 }, (_, i) => i + 7);
 
   const title = view === "week"
     ? `${format(weekDays[0], "dd MMM", { locale: ptBR })} – ${format(weekDays[6], "dd MMM yyyy", { locale: ptBR })}`
@@ -109,6 +120,22 @@ export function CalendarClient({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* 24h toggle — only relevant in week view */}
+          {view === "week" && (
+            <button
+              onClick={() => setShow24h((v) => !v)}
+              title={show24h ? "Mostrar horário comercial (7h–19h)" : "Mostrar 24 horas"}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium border transition-colors",
+                show24h
+                  ? "bg-brand-600 text-white border-brand-600"
+                  : "text-gray-600 border-gray-200 hover:bg-gray-50"
+              )}
+            >
+              <Sun className="h-3.5 w-3.5" />
+              24h
+            </button>
+          )}
           <div className="flex border rounded-lg overflow-hidden">
             {(["week", "month"] as ViewMode[]).map((v) => (
               <button
@@ -159,7 +186,7 @@ export function CalendarClient({
           {/* Time slots */}
           <div className="overflow-y-auto max-h-[600px] scrollbar-thin">
             {hours.map((hour) => (
-              <div key={hour} className="grid grid-cols-8 border-b min-h-[60px]">
+              <div key={hour} id={`calendar-hour-${hour}`} className="grid grid-cols-8 border-b min-h-[60px]">
                 <div className="p-2 text-xs text-gray-400 border-r text-right pr-3 pt-2">
                   {format(new Date().setHours(hour, 0, 0), "HH:mm")}
                 </div>
