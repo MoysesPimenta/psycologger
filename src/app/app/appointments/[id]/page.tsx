@@ -23,7 +23,11 @@ export default async function AppointmentDetailPage({ params }: Props) {
     where: { id: params.id, tenantId: ctx.tenantId },
     include: {
       patient: {
-        select: { id: true, fullName: true, preferredName: true, email: true, phone: true },
+        select: {
+          id: true, fullName: true, preferredName: true, email: true, phone: true,
+          defaultFeeOverrideCents: true,
+          defaultAppointmentType: { select: { id: true, name: true, defaultPriceCents: true } },
+        },
       },
       provider: { select: { id: true, name: true, email: true } },
       appointmentType: true,

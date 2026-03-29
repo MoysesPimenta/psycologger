@@ -19,11 +19,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface AppointmentType {
   id: string; name: string; color: string;
-  sessionType: string; defaultDurationMin: number;
+  sessionType: string; defaultDurationMin: number; defaultPriceCents: number;
 }
 interface Patient {
   id: string; fullName: string; preferredName: string | null;
   email: string | null; phone: string | null;
+  defaultFeeOverrideCents?: number | null;
+  defaultAppointmentType?: { id: string; name: string; defaultPriceCents: number } | null;
 }
 interface Provider { id: string; name: string; email: string | null }
 interface Recurrence { id: string; rrule: string; occurrences: number | null; startsAt: string }
@@ -144,6 +146,14 @@ export function AppointmentDetailClient({
   const [cancelScope, setCancelScope] = useState<"THIS" | "THIS_AND_FUTURE">("THIS");
   const [cancelling, setCancelling] = useState(false);
 
+  // Charge prompt state — shown after COMPLETED / CANCELED / NO_SHOW if patient has billing defaults
+  const [chargePrompt, setChargePrompt] = useState<{
+    pendingStatus: string;
+    feeCents: number;
+    label: string;
+  } | null>(null);
+  const [creatingCharge, setCreatingCharge] = useState(false);
+
   // Edit form state
   const [editForm, setEditForm] = useState({
     startsAt: toLocalInput(toISO(initialAppt.startsAt)),
@@ -164,6 +174,18 @@ export function AppointmentDetailClient({
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
+  // Effective fee: patient override > patient default type > appointment type default
+  const effectiveFeeCents: number | null =
+    appt.patient.defaultFeeOverrideCents != null
+      ? appt.patient.defaultFeeOverrideCents
+      : appt.patient.defaultAppointmentType?.defaultPriceCents != null
+        ? appt.patient.defaultAppointmentType.defaultPriceCents
+        : appt.appointmentType.defaultPriceCents > 0
+          ? appt.appointmentType.defaultPriceCents
+          : null;
+
+  const hasExistingCharge = appt.charges.length > 0;
+
   async function patch(body: Record<string, unknown>) {
     const res = await fetch(`/api/v1/appointments/${appt.id}`, {
       method: "PATCH",
@@ -177,10 +199,10 @@ export function AppointmentDetailClient({
     return res.json();
   }
 
-  async function handleStatusChange(status: string) {
+  async function applyStatusChange(status: string) {
+    setSaving(true);
+    setError("");
     try {
-      setSaving(true);
-      setError("");
       await patch({ status });
       setAppt((a) => ({ ...a, status: status as Appointment["status"] }));
     } catch (e: unknown) {
@@ -188,6 +210,61 @@ export function AppointmentDetailClient({
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleStatusChange(status: string) {
+    // For statuses that warrant a charge prompt — show it if patient has fee configured
+    if (
+      ["COMPLETED", "CANCELED", "NO_SHOW"].includes(status) &&
+      effectiveFeeCents != null &&
+      !hasExistingCharge
+    ) {
+      const labels: Record<string, string> = {
+        COMPLETED: "Consulta realizada",
+        CANCELED: "Consulta cancelada",
+        NO_SHOW: "Falta registrada",
+      };
+      setChargePrompt({ pendingStatus: status, feeCents: effectiveFeeCents, label: labels[status] });
+      return;
+    }
+    await applyStatusChange(status);
+  }
+
+  async function handleChargeDecision(charge: boolean) {
+    if (!chargePrompt) return;
+    await applyStatusChange(chargePrompt.pendingStatus);
+    if (charge) {
+      setCreatingCharge(true);
+      try {
+        await fetch("/api/v1/charges", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patientId: appt.patient.id,
+            appointmentId: appt.id,
+            providerUserId: appt.provider.id,
+            amountCents: chargePrompt.feeCents,
+            dueDate: new Date().toISOString().split("T")[0],
+            description: chargePrompt.label,
+          }),
+        });
+        setAppt((a) => ({
+          ...a,
+          charges: [...a.charges, {
+            id: crypto.randomUUID(),
+            status: "PENDING",
+            amountCents: chargePrompt.feeCents,
+            discountCents: 0,
+            payments: [],
+          }],
+        }));
+      } catch {
+        // charge failed silently — user can create manually
+      } finally {
+        setCreatingCharge(false);
+      }
+    }
+    setChargePrompt(null);
   }
 
   async function handleSaveEdit() {
@@ -224,9 +301,15 @@ export function AppointmentDetailClient({
     try {
       setCancelling(true);
       setError("");
-      await patch({ status: "CANCELED", cancelScope });
-      setAppt((a) => ({ ...a, status: "CANCELED" }));
-      setCancelDialog(false);
+      // If recurring with scope, do the special cancel — otherwise go through charge prompt
+      if (cancelScope === "THIS_AND_FUTURE" && appt.recurrenceId) {
+        await patch({ status: "CANCELED", cancelScope });
+        setAppt((a) => ({ ...a, status: "CANCELED" }));
+        setCancelDialog(false);
+      } else {
+        setCancelDialog(false);
+        await handleStatusChange("CANCELED");
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro desconhecido.");
     } finally {
@@ -611,6 +694,51 @@ export function AppointmentDetailClient({
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {/* ── Charge prompt modal ── */}
+      {chargePrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
+                <CreditCard className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Cobrar esta sessão?</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {chargePrompt.label} — {appt.patient.preferredName ?? appt.patient.fullName}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-lg bg-gray-50 border px-4 py-3 flex items-center justify-between">
+              <span className="text-sm text-gray-600">Valor a cobrar</span>
+              <span className="text-lg font-bold text-gray-900">
+                R$ {(chargePrompt.feeCents / 100).toFixed(2).replace(".", ",")}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">
+              Uma cobrança com status <strong>pendente</strong> será criada no financeiro do paciente. Você pode ajustar o valor ou aplicar desconto depois.
+            </p>
+            <div className="flex gap-2 justify-end pt-1">
+              <Button
+                variant="outline"
+                onClick={() => handleChargeDecision(false)}
+                disabled={creatingCharge}
+              >
+                Não cobrar
+              </Button>
+              <Button
+                onClick={() => handleChargeDecision(true)}
+                disabled={creatingCharge}
+                className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
+              >
+                <CreditCard className="h-4 w-4" />
+                {creatingCharge ? "Criando..." : `Cobrar R$ ${(chargePrompt.feeCents / 100).toFixed(2).replace(".", ",")}`}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Cancel dialog (modal-style) ── */}

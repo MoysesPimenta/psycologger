@@ -4,6 +4,8 @@ import { getAuthContext } from "@/lib/tenant";
 import { getPatientScope } from "@/lib/rbac";
 import { PatientDetailClient } from "@/components/patients/patient-detail-client";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const patient = await db.patient.findUnique({
     where: { id: params.id },
@@ -25,6 +27,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
     },
     include: {
       assignedUser: { select: { id: true, name: true } },
+      defaultAppointmentType: { select: { id: true, name: true, defaultPriceCents: true } },
       contacts: true,
       appointments: {
         orderBy: { startsAt: "desc" },
@@ -64,6 +67,12 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
 
   if (!patient) notFound();
 
+  const appointmentTypes = await db.appointmentType.findMany({
+    where: { tenantId: ctx.tenantId, isActive: true },
+    select: { id: true, name: true, defaultPriceCents: true },
+    orderBy: { name: "asc" },
+  });
+
   const canViewClinical =
     ctx.role === "PSYCHOLOGIST" ||
     ctx.role === "SUPERADMIN" ||
@@ -76,6 +85,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
       canViewClinical={canViewClinical}
       role={ctx.role}
       userId={ctx.userId}
+      appointmentTypes={appointmentTypes}
     />
   );
 }

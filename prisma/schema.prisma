@@ -279,16 +279,21 @@ model Patient {
   consentGivenAt   DateTime?
   consentFileId    String?   @db.Uuid
 
+  // Billing defaults — used to auto-create pending charges on attended appointments
+  defaultAppointmentTypeId String? @db.Uuid
+  defaultFeeOverrideCents  Int?    // if set, overrides the appointment type's defaultPriceCents
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  assignedUser   User?     @relation("PatientPrimaryProvider", fields: [assignedUserId], references: [id])
-  contacts       PatientContact[]
-  appointments   Appointment[]
-  clinicalSessions ClinicalSession[]
-  files          FileObject[]
-  charges        Charge[]
+  tenant                 Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedUser           User?     @relation("PatientPrimaryProvider", fields: [assignedUserId], references: [id])
+  defaultAppointmentType AppointmentType? @relation("PatientDefaultType", fields: [defaultAppointmentTypeId], references: [id])
+  contacts               PatientContact[]
+  appointments           Appointment[]
+  clinicalSessions       ClinicalSession[]
+  files                  FileObject[]
+  charges                Charge[]
 
   @@index([tenantId])
   @@index([tenantId, assignedUserId])
@@ -330,8 +335,9 @@ model AppointmentType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointments Appointment[]
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  patientDefaults Patient[]     @relation("PatientDefaultType")
 
   @@index([tenantId])
 }

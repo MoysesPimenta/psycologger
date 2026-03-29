@@ -53,7 +53,9 @@ const updateSchema = z.object({
   tags: z.array(z.string()).optional(),
   assignedUserId: z.string().uuid().optional().nullable(),
   consentGiven: z.boolean().optional(),
-  isActive: z.boolean().optional(), // toggle active/inactive status
+  isActive: z.boolean().optional(),
+  defaultAppointmentTypeId: z.string().uuid().optional().nullable(),
+  defaultFeeOverrideCents: z.number().int().min(0).max(100_000_000).optional().nullable(),
 });
 
 export async function PATCH(
@@ -83,11 +85,16 @@ export async function PATCH(
           consentGiven: body.consentGiven,
           consentGivenAt: body.consentGiven ? new Date() : undefined,
         }),
-        // Toggling active/inactive mirrors the archive flow
         ...(body.isActive !== undefined && {
           isActive: body.isActive,
           archivedAt: body.isActive ? null : new Date(),
           archivedBy: body.isActive ? null : ctx.userId,
+        }),
+        ...(body.defaultAppointmentTypeId !== undefined && {
+          defaultAppointmentTypeId: body.defaultAppointmentTypeId,
+        }),
+        ...(body.defaultFeeOverrideCents !== undefined && {
+          defaultFeeOverrideCents: body.defaultFeeOverrideCents,
         }),
       },
     });

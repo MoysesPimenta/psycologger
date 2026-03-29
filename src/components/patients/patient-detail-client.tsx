@@ -5,12 +5,18 @@ import Link from "next/link";
 import {
   User, Calendar, FileText, DollarSign, Phone, Mail,
   Tag, Edit, Plus, Lock, Clock, ChevronLeft, Trash2,
-  ToggleLeft, ToggleRight, RotateCcw, AlertTriangle
+  ToggleLeft, ToggleRight, RotateCcw, AlertTriangle, Check, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatDateTime, formatCurrency, chargeStatusLabel, initials } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+
+interface AppointmentTypeSummary {
+  id: string;
+  name: string;
+  defaultPriceCents: number;
+}
 
 type Tab = "timeline" | "sessions" | "files" | "financial" | "profile";
 
@@ -63,11 +69,13 @@ export function PatientDetailClient({
   canViewClinical,
   role,
   userId,
+  appointmentTypes = [],
 }: {
   patient: Record<string, any>;
   canViewClinical: boolean;
   role: string;
   userId: string;
+  appointmentTypes?: AppointmentTypeSummary[];
 }) {
   const [tab, setTab] = useState<Tab>("timeline");
   const [patient, setPatient] = useState(initialPatient);
@@ -256,7 +264,7 @@ export function PatientDetailClient({
           <FinancialTab charges={patient.charges} patientId={patient.id} />
         )}
         {tab === "profile" && (
-          <ProfileTab patient={patient} />
+          <ProfileTab patient={patient} appointmentTypes={appointmentTypes} onPatientUpdate={(updates) => setPatient((p: any) => ({ ...p, ...updates }))} />
         )}
       </div>
     </div>
@@ -576,24 +584,182 @@ function FinancialTab({ charges, patientId }: { charges: any[]; patientId: strin
 }
 
 /* ─── Profile tab ────────────────────────────────────────────────────────── */
-function ProfileTab({ patient }: { patient: any }) {
+function ProfileTab({
+  patient,
+  appointmentTypes,
+  onPatientUpdate,
+}: {
+  patient: any;
+  appointmentTypes: AppointmentTypeSummary[];
+  onPatientUpdate: (updates: Record<string, any>) => void;
+}) {
+  const [editingBilling, setEditingBilling] = useState(false);
+  const [billingForm, setBillingForm] = useState({
+    defaultAppointmentTypeId: patient.defaultAppointmentTypeId ?? "",
+    defaultFeeOverrideCents: patient.defaultFeeOverrideCents != null
+      ? (patient.defaultFeeOverrideCents / 100).toFixed(2)
+      : "",
+  });
+  const [savingBilling, setSavingBilling] = useState(false);
+
+  const selectedType = appointmentTypes.find((t) => t.id === billingForm.defaultAppointmentTypeId);
+  const effectiveFee = patient.defaultFeeOverrideCents != null
+    ? patient.defaultFeeOverrideCents
+    : patient.defaultAppointmentType?.defaultPriceCents ?? null;
+
+  async function saveBilling() {
+    setSavingBilling(true);
+    try {
+      const feeVal = billingForm.defaultFeeOverrideCents.trim();
+      const feeCents = feeVal ? Math.round(parseFloat(feeVal.replace(",", ".")) * 100) : null;
+      const res = await fetch(`/api/v1/patients/${patient.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          defaultAppointmentTypeId: billingForm.defaultAppointmentTypeId || null,
+          defaultFeeOverrideCents: feeCents,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const type = appointmentTypes.find((t) => t.id === billingForm.defaultAppointmentTypeId);
+      onPatientUpdate({
+        defaultAppointmentTypeId: billingForm.defaultAppointmentTypeId || null,
+        defaultFeeOverrideCents: feeCents,
+        defaultAppointmentType: type ?? null,
+      });
+      setEditingBilling(false);
+    } catch {
+      // silently fail
+    } finally {
+      setSavingBilling(false);
+    }
+  }
+
   return (
-    <div className="bg-white rounded-xl border p-6 space-y-4">
-      {[
-        { label: "Nome completo", value: patient.fullName },
-        { label: "Nome preferido", value: patient.preferredName },
-        { label: "Email", value: patient.email },
-        { label: "Telefone", value: patient.phone },
-        { label: "Data de nascimento", value: patient.dob ? formatDate(patient.dob) : null },
-        { label: "Psicólogo responsável", value: patient.assignedUser?.name },
-        { label: "Observações", value: patient.notes },
-        { label: "Consentimento", value: patient.consentGiven ? `Dado em ${formatDate(patient.consentGivenAt)}` : "Não registrado" },
-      ].map((field) => field.value ? (
-        <div key={field.label}>
-          <p className="text-xs text-gray-500 font-medium">{field.label}</p>
-          <p className="text-sm text-gray-900 mt-0.5">{field.value}</p>
+    <div className="space-y-4">
+      {/* General info */}
+      <div className="bg-white rounded-xl border p-6 space-y-4">
+        {[
+          { label: "Nome completo", value: patient.fullName },
+          { label: "Nome preferido", value: patient.preferredName },
+          { label: "Email", value: patient.email },
+          { label: "Telefone", value: patient.phone },
+          { label: "Data de nascimento", value: patient.dob ? formatDate(patient.dob) : null },
+          { label: "Psicólogo responsável", value: patient.assignedUser?.name },
+          { label: "Observações", value: patient.notes },
+          { label: "Consentimento", value: patient.consentGiven ? `Dado em ${formatDate(patient.consentGivenAt)}` : "Não registrado" },
+        ].map((field) => field.value ? (
+          <div key={field.label}>
+            <p className="text-xs text-gray-500 font-medium">{field.label}</p>
+            <p className="text-sm text-gray-900 mt-0.5">{field.value}</p>
+          </div>
+        ) : null)}
+      </div>
+
+      {/* Billing defaults */}
+      <div className="bg-white rounded-xl border p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+            <DollarSign className="h-4 w-4 text-gray-400" />
+            Cobrança padrão
+          </h3>
+          {!editingBilling && (
+            <button
+              onClick={() => setEditingBilling(true)}
+              className="text-xs text-brand-600 hover:underline"
+            >
+              Editar
+            </button>
+          )}
         </div>
-      ) : null)}
+
+        {!editingBilling ? (
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Tipo de consulta padrão</p>
+              <p className="text-sm text-gray-900 mt-0.5">
+                {patient.defaultAppointmentType?.name ?? (
+                  <span className="text-gray-400 italic">Não definido</span>
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Valor por sessão</p>
+              <p className="text-sm text-gray-900 mt-0.5">
+                {effectiveFee != null ? (
+                  <>
+                    {formatCurrency(effectiveFee)}
+                    {patient.defaultFeeOverrideCents != null && (
+                      <span className="ml-1.5 text-xs text-gray-400">(valor personalizado)</span>
+                    )}
+                    {patient.defaultFeeOverrideCents == null && patient.defaultAppointmentType && (
+                      <span className="ml-1.5 text-xs text-gray-400">(do tipo de consulta)</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-gray-400 italic">Não definido</span>
+                )}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-500 font-medium block mb-1">Tipo de consulta padrão</label>
+              <select
+                value={billingForm.defaultAppointmentTypeId}
+                onChange={(e) => {
+                  const typeId = e.target.value;
+                  const type = appointmentTypes.find((t) => t.id === typeId);
+                  setBillingForm((f) => ({
+                    ...f,
+                    defaultAppointmentTypeId: typeId,
+                    // Pre-fill fee from type if no custom fee yet
+                    defaultFeeOverrideCents: f.defaultFeeOverrideCents || (type ? (type.defaultPriceCents / 100).toFixed(2) : ""),
+                  }));
+                }}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <option value="">— Nenhum —</option>
+                {appointmentTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} · {formatCurrency(t.defaultPriceCents)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 font-medium block mb-1">
+                Valor personalizado (R$) <span className="text-gray-400 font-normal">— deixe vazio para usar o valor do tipo</span>
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder={selectedType ? (selectedType.defaultPriceCents / 100).toFixed(2) : "0,00"}
+                value={billingForm.defaultFeeOverrideCents}
+                onChange={(e) => setBillingForm((f) => ({ ...f, defaultFeeOverrideCents: e.target.value }))}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                onClick={() => setEditingBilling(false)}
+                disabled={savingBilling}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-3.5 w-3.5" /> Cancelar
+              </button>
+              <button
+                onClick={saveBilling}
+                disabled={savingBilling}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+              >
+                <Check className="h-3.5 w-3.5" /> Salvar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
