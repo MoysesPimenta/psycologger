@@ -173,7 +173,7 @@ model Tenant {
 
   // Feature flags / privacy defaults
   sharedPatientPool    Boolean             @default(false)
-  adminCanViewClinical Boolean             @default(false)
+  adminCanViewClinical Boolean             @default(true)
   calendarShowPatient  CalendarShowPatient @default(NONE)
 
   // Appointment defaults
