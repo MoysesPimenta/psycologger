@@ -1,5 +1,10 @@
 /**
  * POST /api/v1/payments — add payment to a charge
+ *
+ * If the payment does not cover the full remaining balance the server
+ * automatically creates a "Saldo restante" charge for the difference and
+ * marks the original charge as PAID in the same DB transaction.  This
+ * makes partial-payment handling atomic and impossible to skip.
  */
 
 import { NextRequest } from "next/server";
@@ -17,6 +22,9 @@ const createSchema = z.object({
   paidAt: z.string().datetime().optional(),
   reference: z.string().max(100).optional(),
   notes: z.string().max(500).optional(),
+  /** Due date for the auto-created "Saldo restante" charge (ISO date string).
+   *  Defaults to the original charge's dueDate, then to today. */
+  remainderDueDate: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -49,7 +57,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const payment = await db.$transaction(async (tx) => {
+    const totalPaid = alreadyPaid + body.amountCents;
+    const isPartial = totalPaid < netAmount;
+    const remainderCents = netAmount - totalPaid;
+
+    // Determine due date for the remainder charge
+    const remainderDueDate =
+      body.remainderDueDate ??
+      (charge.dueDate ? charge.dueDate.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
+
+    const { payment, remainderCharge } = await db.$transaction(async (tx) => {
+      // 1. Record the payment
       const pay = await tx.payment.create({
         data: {
           tenantId: ctx.tenantId,
@@ -63,17 +81,39 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Compute total paid (alreadyPaid computed above, before transaction)
-      const totalPaid = alreadyPaid + body.amountCents;
+      let remainder = null;
 
-      if (totalPaid >= netAmount) {
+      if (isPartial) {
+        // 2a. Partial payment — create remainder charge and close the original
+        // @ts-ignore — stale Prisma client in VM; Vercel regenerates on deploy
+        remainder = await (tx.charge as any).create({
+          data: {
+            tenantId: ctx.tenantId,
+            patientId: charge.patientId,
+            appointmentId: charge.appointmentId,
+            providerUserId: charge.providerUserId,
+            amountCents: remainderCents,
+            discountCents: 0,
+            description: "Saldo restante",
+            dueDate: new Date(remainderDueDate),
+            status: "PENDING",
+          },
+        });
+
+        // 2b. Mark original charge as PAID — obligation transferred to remainder
+        await tx.charge.update({
+          where: { id: body.chargeId },
+          data: { status: "PAID" },
+        });
+      } else {
+        // 3. Full payment — mark charge as PAID
         await tx.charge.update({
           where: { id: body.chargeId },
           data: { status: "PAID" },
         });
       }
 
-      return pay;
+      return { payment: pay, remainderCharge: remainder };
     });
 
     await auditLog({
@@ -82,12 +122,17 @@ export async function POST(req: NextRequest) {
       action: "PAYMENT_CREATE",
       entity: "Payment",
       entityId: payment.id,
-      summary: { chargeId: body.chargeId, amountCents: body.amountCents, method: body.method },
+      summary: {
+        chargeId: body.chargeId,
+        amountCents: body.amountCents,
+        method: body.method,
+        remainderChargeId: remainderCharge?.id ?? null,
+      },
       ipAddress,
       userAgent,
     });
 
-    return created(payment);
+    return created({ payment, remainderCharge });
   } catch (err) {
     return handleApiError(err);
   }

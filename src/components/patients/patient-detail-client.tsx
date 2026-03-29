@@ -595,53 +595,28 @@ function FinancialPaymentModal({
           amountCents,
           method,
           paidAt: new Date(paidAt).toISOString(),
+          remainderDueDate: dueDate || undefined,
         }),
       });
-      if (!res.ok) throw new Error("Erro ao registrar pagamento.");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error?.message ?? "Erro ao registrar pagamento.");
+      }
       const payData = await res.json();
 
-      let remainderCharge: any;
-      if (partial && amountCents < remaining) {
-        const remainderCents = remaining - amountCents;
-        const chargeRes = await fetch("/api/v1/charges", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            patientId,
-            appointmentId: charge.appointmentId,
-            providerUserId: charge.providerUserId,
-            amountCents: remainderCents,
-            discountCents: 0,
-            dueDate,
-            description: "Saldo restante",
-          }),
-        });
-        if (chargeRes.ok) {
-          const cj = await chargeRes.json();
-          remainderCharge = { ...(cj.data ?? {}), payments: [] };
-          // Remainder charge created — mark the original charge as PAID.
-          // The remaining obligation has been transferred to the new charge.
-          await fetch(`/api/v1/charges/${charge.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "PAID" }),
-          });
-        } else {
-          // Payment already succeeded — warn but don't block
-          setError("Pagamento registrado, mas a cobrança de saldo restante não pôde ser criada. Crie-a manualmente.");
-          setSaving(false);
-          onPaid(charge.id, { id: payData.data?.id ?? crypto.randomUUID(), amountCents, method, paidAt: new Date(paidAt).toISOString() }, amountCents >= remaining ? "PAID" : "PENDING", undefined);
-          return;
-        }
-      }
+      // Server handles remainder charge creation atomically — just read the result
+      const serverRemainder = payData.data?.remainderCharge;
+      const remainderCharge: any = serverRemainder
+        ? { ...serverRemainder, payments: [] }
+        : undefined;
 
       const newPayment = {
-        id: payData.data?.id ?? crypto.randomUUID(),
+        id: payData.data?.payment?.id ?? crypto.randomUUID(),
         amountCents,
         method,
         paidAt: new Date(paidAt).toISOString(),
       };
-      // If a remainder charge was created, the original is fully accounted for → PAID
+      // Original charge is PAID whenever server created a remainder or full amount was covered
       const newStatus = remainderCharge ? "PAID" : (amountCents >= remaining ? "PAID" : "PENDING");
       onPaid(charge.id, newPayment, newStatus, remainderCharge);
     } catch (e: unknown) {
