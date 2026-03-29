@@ -332,7 +332,7 @@ function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]
       )}
 
       {sessions.map((s: any) => (
-        <div key={s.id} className="group flex items-center gap-4 bg-white rounded-xl border p-4 hover:shadow-sm transition-shadow">
+        <div key={s.id} className="flex items-center gap-4 bg-white rounded-xl border p-4 hover:shadow-sm transition-shadow">
           <Link href={`/app/sessions/${s.id}`} className="flex items-center gap-4 flex-1 min-w-0">
             <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
@@ -345,7 +345,7 @@ function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]
             disabled={deletingId === s.id}
             title="Excluir sessão"
             className={cn(
-              "opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50",
+              "p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors",
               deletingId === s.id && "opacity-50 cursor-not-allowed"
             )}
           >
@@ -397,7 +397,7 @@ function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: 
       {files.length === 0 && <p className="text-gray-500 text-center py-8">Nenhum arquivo anexado.</p>}
 
       {files.map((f: any) => (
-        <div key={f.id} className="group flex items-center gap-3 bg-white rounded-xl border p-3">
+        <div key={f.id} className="flex items-center gap-3 bg-white rounded-xl border p-3">
           <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{f.fileName}</p>
@@ -409,7 +409,7 @@ function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: 
             disabled={deletingId === f.id}
             title="Excluir arquivo"
             className={cn(
-              "opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50",
+              "p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors",
               deletingId === f.id && "opacity-50 cursor-not-allowed"
             )}
           >

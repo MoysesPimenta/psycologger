@@ -236,6 +236,8 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
   const router = useRouter();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [templateKey, setTemplateKey] = useState<TemplateKey>(session?.templateKey ?? "FREE");
   const [noteText, setNoteText] = useState(session?.noteText ?? "");
   const [tags, setTags] = useState<string[]>(session?.tags ?? []);
@@ -366,8 +368,47 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
     }
   }
 
+  async function handleDeleteSession() {
+    if (!savedSessionId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/v1/sessions/${savedSessionId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast({ title: "Sessão excluída", variant: "success" });
+      router.push(patient ? `/app/patients/${patient.id}` : "/app/today");
+    } catch {
+      toast({ title: "Erro ao excluir sessão", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl">
+      {/* ── Delete confirmation modal ── */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowDeleteModal(false)}>
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-4"
+            onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-base font-semibold text-gray-900">Excluir sessão clínica?</h2>
+            <p className="text-sm text-gray-600">
+              A sessão será removida imediatamente e excluída permanentemente após 30 dias. Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleDeleteSession} disabled={deleting}>
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                Excluir sessão
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -388,6 +429,13 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
             <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
               <History className="h-4 w-4 mr-1" />
               {session.revisions.length} revisõe{session.revisions.length !== 1 ? "s" : ""}
+            </Button>
+          )}
+          {canEdit && savedSessionId && (
+            <Button variant="outline" size="sm" onClick={() => setShowDeleteModal(true)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+              <Trash2 className="h-4 w-4 mr-1" />
+              Excluir
             </Button>
           )}
           {canEdit && (
