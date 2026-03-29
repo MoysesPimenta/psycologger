@@ -36,6 +36,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
         },
       },
       clinicalSessions: {
+        where: { deletedAt: null },
         orderBy: { sessionDate: "desc" },
         take: 10,
         select: {
@@ -54,6 +55,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
         },
       },
       files: {
+        where: { deletedAt: null },
         orderBy: { createdAt: "desc" },
         take: 10,
         select: { id: true, fileName: true, mimeType: true, sizeBytes: true, createdAt: true, isClinical: true },

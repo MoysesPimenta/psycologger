@@ -33,12 +33,15 @@ export async function GET(req: NextRequest) {
     const pagination = parsePagination(searchParams);
     const search = searchParams.get("q") ?? "";
     const tag = searchParams.get("tag") ?? "";
-    const isActive = searchParams.get("active") !== "false";
+    // ?active=true (default) → only active; ?active=false → only inactive; ?active=all → both
+    const activeParam = searchParams.get("active") ?? "true";
+    const activeFilter =
+      activeParam === "all" ? undefined : activeParam !== "false";
 
     const scope = getPatientScope(ctx);
     const whereClause = {
       tenantId: ctx.tenantId,
-      isActive,
+      ...(activeFilter !== undefined && { isActive: activeFilter }),
       ...(scope === "ASSIGNED" && { assignedUserId: ctx.userId }),
       ...(search && {
         OR: [

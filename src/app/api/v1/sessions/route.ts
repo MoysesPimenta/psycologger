@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
     const sessions = await db.clinicalSession.findMany({
       where: {
         tenantId: ctx.tenantId,
+        deletedAt: null, // exclude soft-deleted
         ...(scope === "ASSIGNED" && { providerUserId: ctx.userId }),
         ...(patientId && { patientId }),
       },
@@ -57,6 +58,7 @@ export async function GET(req: NextRequest) {
     const total = await db.clinicalSession.count({
       where: {
         tenantId: ctx.tenantId,
+        deletedAt: null, // exclude soft-deleted
         ...(scope === "ASSIGNED" && { providerUserId: ctx.userId }),
         ...(patientId && { patientId }),
       },

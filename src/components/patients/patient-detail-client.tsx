@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   User, Calendar, FileText, DollarSign, Phone, Mail,
-  Tag, Edit, Plus, Lock, Clock, ChevronLeft
+  Tag, Edit, Plus, Lock, Clock, ChevronLeft, Trash2,
+  ToggleLeft, ToggleRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +14,47 @@ import { cn } from "@/lib/utils";
 
 type Tab = "timeline" | "sessions" | "files" | "financial" | "profile";
 
+/* ─── Reusable confirm modal ─────────────────────────────────────────────── */
+function ConfirmModal({
+  title,
+  description,
+  confirmLabel = "Confirmar",
+  confirmVariant = "destructive",
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  confirmVariant?: "destructive" | "default";
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4 space-y-4">
+        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+        <p className="text-sm text-gray-600">{description}</p>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button
+            size="sm"
+            variant={confirmVariant}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main component ─────────────────────────────────────────────────────── */
 export function PatientDetailClient({
-  patient,
+  patient: initialPatient,
   canViewClinical,
   role,
   userId,
@@ -25,6 +65,9 @@ export function PatientDetailClient({
   userId: string;
 }) {
   const [tab, setTab] = useState<Tab>("timeline");
+  const [patient, setPatient] = useState(initialPatient);
+  const [togglingActive, setTogglingActive] = useState(false);
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
 
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "timeline", label: "Timeline", icon: Clock },
@@ -36,8 +79,49 @@ export function PatientDetailClient({
 
   const displayName = patient.preferredName ?? patient.fullName;
 
+  async function handleToggleActive() {
+    if (patient.isActive) {
+      // Confirm before deactivating
+      setShowDeactivateModal(true);
+      return;
+    }
+    await doToggle(true);
+  }
+
+  async function doToggle(newValue: boolean) {
+    setTogglingActive(true);
+    try {
+      const res = await fetch(`/api/v1/patients/${patient.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: newValue }),
+      });
+      if (!res.ok) throw new Error("Falha ao atualizar status");
+      setPatient((p: Record<string, any>) => ({ ...p, isActive: newValue }));
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setTogglingActive(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* Deactivate confirmation */}
+      {showDeactivateModal && (
+        <ConfirmModal
+          title="Inativar paciente?"
+          description="O paciente será marcado como inativo e não aparecerá nas listagens padrão. Você pode reativá-lo a qualquer momento."
+          confirmLabel="Inativar"
+          confirmVariant="destructive"
+          onConfirm={async () => {
+            setShowDeactivateModal(false);
+            await doToggle(false);
+          }}
+          onCancel={() => setShowDeactivateModal(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
@@ -50,13 +134,37 @@ export function PatientDetailClient({
             {initials(patient.fullName)}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{displayName}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-gray-900">{displayName}</h1>
+              {!patient.isActive && (
+                <Badge variant="secondary" className="text-xs">Inativo</Badge>
+              )}
+            </div>
             {patient.preferredName && (
               <p className="text-sm text-gray-500">{patient.fullName}</p>
             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Active / Inactive toggle */}
+          <button
+            onClick={handleToggleActive}
+            disabled={togglingActive}
+            title={patient.isActive ? "Clique para inativar" : "Clique para reativar"}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+              patient.isActive
+                ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100",
+              togglingActive && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            {patient.isActive
+              ? <><ToggleRight className="h-4 w-4" /> Ativo</>
+              : <><ToggleLeft className="h-4 w-4" /> Inativo</>
+            }
+          </button>
+
           <Button asChild variant="outline" size="sm">
             <Link href={`/app/sessions/new?patientId=${patient.id}`}>
               <Plus className="h-4 w-4" />
@@ -150,6 +258,7 @@ export function PatientDetailClient({
   );
 }
 
+/* ─── Timeline tab ───────────────────────────────────────────────────────── */
 function TimelineTab({ appointments, canViewClinical }: { appointments: any[]; canViewClinical: boolean }) {
   if (!appointments.length) {
     return <p className="text-gray-500 text-center py-8">Nenhuma consulta agendada.</p>;
@@ -177,9 +286,39 @@ function TimelineTab({ appointments, canViewClinical }: { appointments: any[]; c
   );
 }
 
-function SessionsTab({ sessions, patientId }: { sessions: any[]; patientId: string }) {
+/* ─── Sessions tab ───────────────────────────────────────────────────────── */
+function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]; patientId: string }) {
+  const [sessions, setSessions] = useState(initialSessions);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  async function handleDeleteSession(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/v1/sessions/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Falha ao excluir sessão");
+      setSessions((prev: any[]) => prev.filter((s) => s.id !== id));
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setDeletingId(null);
+      setConfirmDelete(null);
+    }
+  }
+
   return (
     <div className="space-y-3">
+      {confirmDelete && (
+        <ConfirmModal
+          title="Excluir sessão clínica?"
+          description="A sessão será removida imediatamente e excluída permanentemente após 30 dias. Esta ação não pode ser desfeita."
+          confirmLabel="Excluir sessão"
+          confirmVariant="destructive"
+          onConfirm={() => handleDeleteSession(confirmDelete)}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+
       <div className="flex justify-end">
         <Button size="sm" asChild>
           <Link href={`/app/sessions/new?patientId=${patientId}`}>
@@ -187,38 +326,102 @@ function SessionsTab({ sessions, patientId }: { sessions: any[]; patientId: stri
           </Link>
         </Button>
       </div>
-      {sessions.map((s: any) => (
-        <Link key={s.id} href={`/app/sessions/${s.id}`}
-          className="flex items-center gap-4 bg-white rounded-xl border p-4 hover:shadow-sm transition-shadow">
-          <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="font-medium">{formatDate(s.sessionDate)}</p>
-            <p className="text-sm text-gray-500">{s.templateKey} · {s.provider.name}</p>
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
 
-function FilesTab({ files, patientId, canViewClinical }: { files: any[]; patientId: string; canViewClinical: boolean }) {
-  return (
-    <div className="space-y-3">
-      {files.filter((f: any) => !f.isClinical || canViewClinical).map((f: any) => (
-        <div key={f.id} className="flex items-center gap-3 bg-white rounded-xl border p-3">
-          <FileText className="h-5 w-5 text-gray-400" />
-          <div className="flex-1">
-            <p className="text-sm font-medium">{f.fileName}</p>
-            <p className="text-xs text-gray-500">{formatDateTime(f.createdAt)} · {(f.sizeBytes / 1024).toFixed(1)} KB</p>
-          </div>
-          <Button size="sm" variant="ghost">Download</Button>
+      {sessions.length === 0 && (
+        <p className="text-gray-500 text-center py-8">Nenhuma sessão registrada.</p>
+      )}
+
+      {sessions.map((s: any) => (
+        <div key={s.id} className="group flex items-center gap-4 bg-white rounded-xl border p-4 hover:shadow-sm transition-shadow">
+          <Link href={`/app/sessions/${s.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+            <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium">{formatDate(s.sessionDate)}</p>
+              <p className="text-sm text-gray-500">{s.templateKey} · {s.provider.name}</p>
+            </div>
+          </Link>
+          <button
+            onClick={() => setConfirmDelete(s.id)}
+            disabled={deletingId === s.id}
+            title="Excluir sessão"
+            className={cn(
+              "opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50",
+              deletingId === s.id && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       ))}
-      {files.length === 0 && <p className="text-gray-500 text-center py-8">Nenhum arquivo anexado.</p>}
     </div>
   );
 }
 
+/* ─── Files tab ──────────────────────────────────────────────────────────── */
+function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: any[]; patientId: string; canViewClinical: boolean }) {
+  const [files, setFiles] = useState(
+    initialFiles.filter((f: any) => !f.isClinical || canViewClinical)
+  );
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  async function handleDeleteFile(id: string) {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/v1/patients/${patientId}/files/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Falha ao excluir arquivo");
+      setFiles((prev: any[]) => prev.filter((f) => f.id !== id));
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setDeletingId(null);
+      setConfirmDelete(null);
+    }
+  }
+
+  const confirmFile = files.find((f: any) => f.id === confirmDelete);
+
+  return (
+    <div className="space-y-3">
+      {confirmDelete && confirmFile && (
+        <ConfirmModal
+          title="Excluir arquivo?"
+          description={`"${confirmFile.fileName}" será removido imediatamente e excluído permanentemente após 30 dias.`}
+          confirmLabel="Excluir arquivo"
+          confirmVariant="destructive"
+          onConfirm={() => handleDeleteFile(confirmDelete)}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+
+      {files.length === 0 && <p className="text-gray-500 text-center py-8">Nenhum arquivo anexado.</p>}
+
+      {files.map((f: any) => (
+        <div key={f.id} className="group flex items-center gap-3 bg-white rounded-xl border p-3">
+          <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{f.fileName}</p>
+            <p className="text-xs text-gray-500">{formatDateTime(f.createdAt)} · {(f.sizeBytes / 1024).toFixed(1)} KB</p>
+          </div>
+          <Button size="sm" variant="ghost" className="flex-shrink-0">Download</Button>
+          <button
+            onClick={() => setConfirmDelete(f.id)}
+            disabled={deletingId === f.id}
+            title="Excluir arquivo"
+            className={cn(
+              "opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50",
+              deletingId === f.id && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Financial tab ──────────────────────────────────────────────────────── */
 function FinancialTab({ charges, patientId }: { charges: any[]; patientId: string }) {
   const totalCharged = charges.reduce((s: number, c: any) => s + c.amountCents - c.discountCents, 0);
   const totalPaid = charges
@@ -265,6 +468,7 @@ function FinancialTab({ charges, patientId }: { charges: any[]; patientId: strin
   );
 }
 
+/* ─── Profile tab ────────────────────────────────────────────────────────── */
 function ProfileTab({ patient }: { patient: any }) {
   return (
     <div className="bg-white rounded-xl border p-6 space-y-4">

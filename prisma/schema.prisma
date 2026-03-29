@@ -449,6 +449,10 @@ model ClinicalSession {
 
   sessionDate DateTime
 
+  // Soft-delete: set by DELETE endpoint; hard-deleted by cleanup job after 30 days
+  deletedAt   DateTime?
+  deletedBy   String?   @db.Uuid
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -497,6 +501,10 @@ model FileObject {
 
   // Access control
   isClinical Boolean @default(false) // if true → restricted like session notes
+
+  // Soft-delete: set by DELETE endpoint; hard-deleted by cleanup job after 30 days
+  deletedAt DateTime?
+  deletedBy String?   @db.Uuid
 
   createdAt DateTime @default(now())
 

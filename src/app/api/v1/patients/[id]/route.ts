@@ -53,6 +53,7 @@ const updateSchema = z.object({
   tags: z.array(z.string()).optional(),
   assignedUserId: z.string().uuid().optional().nullable(),
   consentGiven: z.boolean().optional(),
+  isActive: z.boolean().optional(), // toggle active/inactive status
 });
 
 export async function PATCH(
@@ -82,13 +83,21 @@ export async function PATCH(
           consentGiven: body.consentGiven,
           consentGivenAt: body.consentGiven ? new Date() : undefined,
         }),
+        // Toggling active/inactive mirrors the archive flow
+        ...(body.isActive !== undefined && {
+          isActive: body.isActive,
+          archivedAt: body.isActive ? null : new Date(),
+          archivedBy: body.isActive ? null : ctx.userId,
+        }),
       },
     });
 
     await auditLog({
       tenantId: ctx.tenantId,
       userId: ctx.userId,
-      action: "PATIENT_UPDATE",
+      action: body.isActive !== undefined
+        ? (body.isActive ? "PATIENT_RESTORE" : "PATIENT_ARCHIVE")
+        : "PATIENT_UPDATE",
       entity: "Patient",
       entityId: patient.id,
       summary: { patientId: patient.id, fields: Object.keys(body) },

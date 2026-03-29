@@ -35,6 +35,7 @@ export type AuditAction =
   // Sessions / EMR
   | "SESSION_CREATE"
   | "SESSION_UPDATE"
+  | "SESSION_DELETE"
   | "SESSION_REVISION_RESTORE"
   // Files
   | "FILE_UPLOAD"

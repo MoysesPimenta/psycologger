@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, handleApiError, NotFoundError } from "@/lib/api";
+import { ok, noContent, handleApiError, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
@@ -106,6 +106,47 @@ export async function PATCH(
     });
 
     return ok(updated);
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+/**
+ * DELETE /api/v1/sessions/[id]
+ * Soft-deletes a session. The record is hidden immediately and hard-deleted
+ * by the cleanup job after 30 days.
+ */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const ctx = await getAuthContext(req);
+    requirePermission(ctx, "sessions:edit");
+    const { ipAddress, userAgent } = extractRequestMeta(req);
+
+    const existing = await db.clinicalSession.findFirst({
+      where: { id: params.id, tenantId: ctx.tenantId, deletedAt: null },
+    });
+    if (!existing) throw new NotFoundError("Session");
+
+    await db.clinicalSession.update({
+      where: { id: params.id },
+      data: { deletedAt: new Date(), deletedBy: ctx.userId },
+    });
+
+    await auditLog({
+      tenantId: ctx.tenantId,
+      userId: ctx.userId,
+      action: "SESSION_DELETE",
+      entity: "ClinicalSession",
+      entityId: params.id,
+      summary: { patientId: existing.patientId, scheduledHardDeleteAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
+      ipAddress,
+      userAgent,
+    });
+
+    return noContent();
   } catch (err) {
     return handleApiError(err);
   }

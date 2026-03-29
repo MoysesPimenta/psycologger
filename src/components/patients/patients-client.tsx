@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, User, Phone, Mail, Tag, ChevronRight } from "lucide-react";
+import { Search, User, Phone, Mail, Tag, ChevronRight, EyeOff, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ export function PatientsClient() {
   const [search, setSearch] = useState("");
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [showInactive, setShowInactive] = useState(false);
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
@@ -34,6 +35,7 @@ export function PatientsClient() {
       q: search,
       page: page.toString(),
       pageSize: "20",
+      active: showInactive ? "all" : "true",
     });
     const res = await fetch(`/api/v1/patients?${params}`);
     if (res.ok) {
@@ -42,7 +44,7 @@ export function PatientsClient() {
       setTotal(json.meta?.total ?? 0);
     }
     setLoading(false);
-  }, [search, page]);
+  }, [search, page, showInactive]);
 
   useEffect(() => {
     const t = setTimeout(() => fetch_(), 300);
@@ -51,15 +53,27 @@ export function PatientsClient() {
 
   return (
     <div className="space-y-4">
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          placeholder="Buscar por nome, email ou telefone..."
-          className="pl-9"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-        />
+      {/* Search bar + inactive toggle */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Buscar por nome, email ou telefone..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          />
+        </div>
+        <Button
+          variant={showInactive ? "default" : "outline"}
+          size="sm"
+          onClick={() => { setShowInactive((v) => !v); setPage(1); }}
+          title={showInactive ? "Ocultar inativos" : "Mostrar inativos"}
+          className="flex-shrink-0 gap-1.5"
+        >
+          {showInactive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {showInactive ? "Ocultar inativos" : "Ver inativos"}
+        </Button>
       </div>
 
       {/* Results count */}
