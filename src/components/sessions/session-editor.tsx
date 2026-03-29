@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Save, ChevronLeft, Clock, FileText, Tag, History,
   Paperclip, Upload, Trash2, Download, File, Image,
@@ -257,21 +258,35 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
     templateKey !== savedTemplateKey.current ||
     JSON.stringify(tags) !== JSON.stringify(savedTags.current);
 
-  // Block browser-level navigation (tab close, refresh, external link) when dirty
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (isDirty) { e.preventDefault(); e.returnValue = ""; }
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [isDirty]);
+  const CONFIRM_MSG = "Há alterações não salvas. Deseja sair sem salvar?";
 
-  // Warn before in-app navigation when dirty
-  function confirmLeave(destination: string) {
-    if (!isDirty || confirm("Há alterações não salvas. Deseja sair sem salvar?")) {
-      router.push(destination);
-    }
-  }
+  // Single effect guards ALL navigation when dirty:
+  // - beforeunload  → browser tab close / refresh / external link
+  // - pushState patch → every Next.js Link, sidebar click, router.push
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    const originalPushState = window.history.pushState;
+    window.history.pushState = function (
+      ...args: Parameters<typeof window.history.pushState>
+    ) {
+      if (confirm(CONFIRM_MSG)) {
+        originalPushState.apply(window.history, args);
+      }
+    };
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.history.pushState = originalPushState;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty]);
 
   // Probe storage config once we have a session ID
   function probeStorage(id: string) {
@@ -333,12 +348,10 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => confirmLeave(patient ? `/app/patients/${patient.id}` : "/app/today")}
-          >
-            <ChevronLeft className="h-5 w-5" />
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={patient ? `/app/patients/${patient.id}` : "/app/today"}>
+              <ChevronLeft className="h-5 w-5" />
+            </Link>
           </Button>
           <div>
             <h1 className="text-xl font-bold text-gray-900">{session ? "Nota clínica" : "Nova sessão"}</h1>
@@ -445,12 +458,9 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
               </div>
             )}
             {appointment?.id && (
-              <button
-                onClick={() => confirmLeave(`/app/appointments/${appointment.id}`)}
-                className="text-xs text-brand-600 hover:underline block text-left"
-              >
+              <Link href={`/app/appointments/${appointment.id}`} className="text-xs text-brand-600 hover:underline block">
                 Ver consulta →
-              </button>
+              </Link>
             )}
             {savedSessionId && (
               <div className="flex items-center gap-1.5 text-xs text-green-700">
