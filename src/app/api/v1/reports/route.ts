@@ -83,8 +83,12 @@ export async function GET(req: NextRequest) {
       ]);
 
       // ── Competência (accrual) — charges due this month ────────────────────
-      const totalCharged = charges.reduce((s, c) => s + (c.amountCents - c.discountCents), 0);
-      const totalReceived_competencia = charges
+      // Exclude "Saldo restante" from totalCharged: they are accounting splits of
+      // original charges, not additional billed services. Including them inflates
+      // the charged figure and creates a false gap vs. payments received.
+      const serviceCharges = charges.filter((c) => c.description !== "Saldo restante");
+      const totalCharged = serviceCharges.reduce((s, c) => s + (c.amountCents - c.discountCents), 0);
+      const totalReceived_competencia = serviceCharges
         .filter((c) => c.status === "PAID")
         .reduce((s, c) => s + c.payments.reduce((ps, p) => ps + p.amountCents, 0), 0);
       const totalPending = charges
@@ -101,9 +105,11 @@ export async function GET(req: NextRequest) {
       // ── Caixa (cash) — payments received this month ───────────────────────
       const totalCaixa = payments.reduce((s, p) => s + p.amountCents, 0);
 
-      // ── By provider (competência) ──────────────────────────────────────────
+      // ── By provider (competência) — service charges only ─────────────────
       const byProvider: Record<string, { name: string; received: number; sessions: number; pending: number }> = {};
       for (const charge of charges) {
+        // Skip saldo restante splits — they're already represented by the original charge
+        if (charge.description === "Saldo restante") continue;
         const pid = charge.providerUserId;
         if (!byProvider[pid]) {
           byProvider[pid] = { name: charge.provider.name ?? charge.provider.email ?? pid, received: 0, sessions: 0, pending: 0 };
@@ -166,7 +172,7 @@ export async function GET(req: NextRequest) {
           totalCaixa,
           // Appointments
           completedAppointments: apptStats.completed,
-          chargesCount: charges.length,
+          chargesCount: serviceCharges.length,
           newPatients: allPatients,
         },
         apptStats,

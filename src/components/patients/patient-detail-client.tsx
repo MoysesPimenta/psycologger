@@ -704,10 +704,25 @@ function FinancialTab({ charges: initialCharges, patientId }: { charges: any[]; 
   const [charges, setCharges] = useState(initialCharges);
   const [payModal, setPayModal] = useState<{ charge: any; partial: boolean } | null>(null);
 
-  const totalCharged = charges.reduce((s: number, c: any) => s + c.amountCents - c.discountCents, 0);
+  // "Saldo restante" charges are accounting splits of original charges — exclude
+  // them from totalCharged so the number reflects actual billed services only.
+  const totalCharged = charges
+    .filter((c: any) => c.description !== "Saldo restante")
+    .reduce((s: number, c: any) => s + c.amountCents - c.discountCents, 0);
+  // Total received = all cash actually collected across every charge (including splits).
   const totalPaid = charges.reduce((s: number, c: any) =>
     s + c.payments.reduce((ps: number, p: any) => ps + p.amountCents, 0), 0);
-  const totalPending = totalCharged - totalPaid;
+  // Pending = unpaid balance on PENDING/OVERDUE charges only (both original and splits).
+  // Do NOT use totalCharged - totalPaid: that formula produces a false positive when
+  // partial-payment splits cause the face-value gap to appear as "pending" even though
+  // the corresponding "Saldo restante" charge has already been fully paid.
+  const totalPending = charges
+    .filter((c: any) => c.status === "PENDING" || c.status === "OVERDUE")
+    .reduce((s: number, c: any) => {
+      const net = c.amountCents - c.discountCents;
+      const paid = c.payments.reduce((ps: number, p: any) => ps + p.amountCents, 0);
+      return s + (net - paid);
+    }, 0);
 
   const CHARGE_STATUS_LABELS: Record<string, string> = {
     PENDING: "Pendente", PAID: "Pago", OVERDUE: "Vencido",
