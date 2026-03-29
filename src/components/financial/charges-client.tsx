@@ -31,19 +31,28 @@ const statusVariant: Record<string, "success" | "warning" | "destructive" | "sec
 export function ChargesClient() {
   const [charges, setCharges] = useState<Charge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [filter, setFilter] = useState("");
   const { toast } = useToast();
   const [payingId, setPayingId] = useState<string | null>(null);
 
   const fetchCharges = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ pageSize: "50", ...(filter && { status: filter }) });
-    const res = await fetch(`/api/v1/charges?${params}`);
-    if (res.ok) {
-      const json = await res.json();
-      setCharges(json.data);
+    setFetchError("");
+    try {
+      const params = new URLSearchParams({ pageSize: "50", ...(filter && { status: filter }) });
+      const res = await fetch(`/api/v1/charges?${params}`);
+      if (res.ok) {
+        const json = await res.json();
+        setCharges(json.data);
+      } else {
+        setFetchError("Erro ao carregar cobranças. Tente novamente.");
+      }
+    } catch {
+      setFetchError("Erro de conexão. Tente novamente.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [filter]);
 
   useEffect(() => { fetchCharges(); }, [fetchCharges]);
@@ -56,11 +65,18 @@ export function ChargesClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chargeId, amountCents, method: "PIX" }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error?.message ?? "Erro ao registrar pagamento.");
+      }
       toast({ title: "Pagamento registrado!", variant: "success" });
       fetchCharges();
-    } catch {
-      toast({ title: "Erro ao registrar pagamento", variant: "destructive" });
+    } catch (e: unknown) {
+      toast({
+        title: "Erro ao registrar pagamento",
+        description: e instanceof Error ? e.message : undefined,
+        variant: "destructive",
+      });
     } finally {
       setPayingId(null);
     }
@@ -68,6 +84,12 @@ export function ChargesClient() {
 
   return (
     <div className="space-y-4">
+      {fetchError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
+          <span>{fetchError}</span>
+          <button onClick={() => fetchCharges()} className="text-red-600 underline text-xs ml-4">Tentar novamente</button>
+        </div>
+      )}
       {/* Filter tabs */}
       <div className="flex gap-2 overflow-x-auto">
         {[

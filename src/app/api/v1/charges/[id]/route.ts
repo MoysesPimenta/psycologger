@@ -24,7 +24,7 @@ export async function PATCH(
 ) {
   try {
     const ctx = await getAuthContext(req);
-    requirePermission(ctx, "charges:create");
+    requirePermission(ctx, "charges:edit");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const charge = await db.charge.findFirst({
@@ -74,7 +74,7 @@ export async function DELETE(
 ) {
   try {
     const ctx = await getAuthContext(req);
-    requirePermission(ctx, "charges:create");
+    requirePermission(ctx, "charges:void");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const charge = await db.charge.findFirst({
@@ -93,7 +93,7 @@ export async function DELETE(
     await auditLog({
       tenantId: ctx.tenantId,
       userId: ctx.userId,
-      action: "CHARGE_VOID",
+      action: "CHARGE_DELETE",
       entity: "Charge",
       entityId: params.id,
       summary: { patientId: charge.patientId, amountCents: charge.amountCents },

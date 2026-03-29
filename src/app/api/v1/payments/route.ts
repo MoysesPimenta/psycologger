@@ -6,7 +6,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { created, handleApiError, NotFoundError } from "@/lib/api";
+import { created, handleApiError, NotFoundError, BadRequestError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
@@ -34,6 +34,21 @@ export async function POST(req: NextRequest) {
     });
     if (!charge) throw new NotFoundError("Charge");
 
+    // Guard: charge must not already be fully paid or voided
+    if (charge.status === "PAID" || charge.status === "VOID" || charge.status === "REFUNDED") {
+      throw new BadRequestError(`Cannot add payment to a charge with status ${charge.status}.`);
+    }
+
+    // Guard: payment must not exceed the remaining balance
+    const alreadyPaid = charge.payments.reduce((s, p) => s + p.amountCents, 0);
+    const netAmount = charge.amountCents - charge.discountCents;
+    const remaining = netAmount - alreadyPaid;
+    if (body.amountCents > remaining) {
+      throw new BadRequestError(
+        `Valor do pagamento (R$ ${(body.amountCents / 100).toFixed(2)}) excede o saldo restante (R$ ${(remaining / 100).toFixed(2)}).`
+      );
+    }
+
     const payment = await db.$transaction(async (tx) => {
       const pay = await tx.payment.create({
         data: {
@@ -48,10 +63,8 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Compute total paid
-      const totalPaid =
-        charge.payments.reduce((s, p) => s + p.amountCents, 0) + body.amountCents;
-      const netAmount = charge.amountCents - charge.discountCents;
+      // Compute total paid (alreadyPaid computed above, before transaction)
+      const totalPaid = alreadyPaid + body.amountCents;
 
       if (totalPaid >= netAmount) {
         await tx.charge.update({

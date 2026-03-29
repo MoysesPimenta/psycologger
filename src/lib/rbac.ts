@@ -112,7 +112,8 @@ const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "sessions:view", "sessions:create", "sessions:edit",
     "sessions:viewRevisions", "sessions:restoreRevision",
     "files:upload", "files:download", "files:uploadClinical", "files:downloadClinical",
-    "charges:view", "charges:create", "charges:edit", "payments:create", "payments:view",
+    "charges:view", "charges:create", "charges:edit", "charges:void",
+    "payments:create", "payments:view",
     "reports:view", "reports:export",
     "integrations:view", "nfse:issue", "googleCalendar:connect",
     "audit:view",
@@ -124,7 +125,8 @@ const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "appointments:cancel", "appointments:markNoShow",
     // No sessions:view, sessions:create, sessions:edit — clinical restriction
     "files:upload", "files:download", // but NOT clinical files
-    "charges:view", "charges:create", "charges:edit", "payments:create", "payments:view",
+    "charges:view", "charges:create", "charges:edit", "charges:void",
+    "payments:create", "payments:view",
     "reports:view", "reports:export",
     "nfse:issue",
     "audit:view",

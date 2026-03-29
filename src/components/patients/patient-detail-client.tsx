@@ -580,6 +580,11 @@ function FinancialPaymentModal({
         setSaving(false);
         return;
       }
+      if (amountCents > remaining) {
+        setError(`Valor não pode exceder o saldo restante de R$ ${(remaining / 100).toFixed(2).replace(".", ",")}.`);
+        setSaving(false);
+        return;
+      }
       const res = await fetch("/api/v1/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -612,6 +617,12 @@ function FinancialPaymentModal({
         if (chargeRes.ok) {
           const cj = await chargeRes.json();
           remainderCharge = { ...(cj.data ?? {}), payments: [] };
+        } else {
+          // Payment already succeeded — warn but don't block
+          setError("Pagamento registrado, mas a cobrança de saldo restante não pôde ser criada. Crie-a manualmente.");
+          setSaving(false);
+          onPaid(charge.id, { id: payData.data?.id ?? crypto.randomUUID(), amountCents, method, paidAt: new Date(paidAt).toISOString() }, amountCents >= remaining ? "PAID" : "PENDING", undefined);
+          return;
         }
       }
 

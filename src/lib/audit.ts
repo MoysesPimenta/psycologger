@@ -47,6 +47,7 @@ export type AuditAction =
   // Financial
   | "CHARGE_CREATE"
   | "CHARGE_UPDATE"
+  | "CHARGE_DELETE"
   | "CHARGE_VOID"
   | "PAYMENT_CREATE"
   | "PAYMENT_UPDATE"
