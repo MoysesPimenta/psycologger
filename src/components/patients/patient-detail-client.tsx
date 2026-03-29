@@ -566,7 +566,9 @@ function FinancialPaymentModal({
   const [method, setMethod] = useState("PIX");
   const [amount, setAmount] = useState((remaining / 100).toFixed(2));
   const [paidAt, setPaidAt] = useState(new Date().toISOString().split("T")[0]);
-  const [dueDate, setDueDate] = useState("");
+  const [dueDate, setDueDate] = useState(
+    charge.dueDate ? charge.dueDate.slice(0, 10) : new Date().toISOString().split("T")[0]
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -599,7 +601,7 @@ function FinancialPaymentModal({
       const payData = await res.json();
 
       let remainderCharge: any;
-      if (partial && amountCents < remaining && dueDate) {
+      if (partial && amountCents < remaining) {
         const remainderCents = remaining - amountCents;
         const chargeRes = await fetch("/api/v1/charges", {
           method: "POST",
