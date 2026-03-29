@@ -45,6 +45,7 @@ export function ClinicSettingsClient() {
     workingDays: "1,2,3,4,5",
     defaultAppointmentDurationMin: 50,
     calendarShowPatient: "NONE" as "NONE" | "FIRST_NAME" | "FULL_NAME",
+    adminCanViewClinical: true,
   });
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export function ClinicSettingsClient() {
             workingDays: d.workingDays ?? "1,2,3,4,5",
             defaultAppointmentDurationMin: d.defaultAppointmentDurationMin ?? 50,
             calendarShowPatient: d.calendarShowPatient ?? "NONE",
+            adminCanViewClinical: d.adminCanViewClinical ?? true,
           });
         }
       })
@@ -103,6 +105,7 @@ export function ClinicSettingsClient() {
           workingDays: form.workingDays,
           defaultAppointmentDurationMin: form.defaultAppointmentDurationMin,
           calendarShowPatient: form.calendarShowPatient,
+          adminCanViewClinical: form.adminCanViewClinical,
         }),
       });
 
@@ -303,24 +306,53 @@ export function ClinicSettingsClient() {
       {/* Privacy */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Privacidade na agenda</CardTitle>
+          <CardTitle className="text-base">Privacidade</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <Label>Exibir nome do paciente na agenda</Label>
-          <select
-            className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            value={form.calendarShowPatient}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, calendarShowPatient: e.target.value as "NONE" | "FIRST_NAME" | "FULL_NAME" }))
-            }
-          >
-            <option value="NONE">Não exibir (máxima privacidade)</option>
-            <option value="FIRST_NAME">Apenas o primeiro nome</option>
-            <option value="FULL_NAME">Nome completo</option>
-          </select>
-          <p className="text-xs text-gray-500 mt-1">
-            Controla o que é visível para usuários com permissão de visualizar a agenda.
-          </p>
+        <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <Label>Exibir nome do paciente na agenda</Label>
+            <select
+              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              value={form.calendarShowPatient}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, calendarShowPatient: e.target.value as "NONE" | "FIRST_NAME" | "FULL_NAME" }))
+              }
+            >
+              <option value="NONE">Não exibir (máxima privacidade)</option>
+              <option value="FIRST_NAME">Apenas o primeiro nome</option>
+              <option value="FULL_NAME">Nome completo</option>
+            </select>
+            <p className="text-xs text-gray-500">
+              Controla o que é visível para usuários com permissão de visualizar a agenda.
+            </p>
+          </div>
+
+          <div className="flex items-start gap-3 pt-1">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.adminCanViewClinical}
+              onClick={() => setForm((f) => ({ ...f, adminCanViewClinical: !f.adminCanViewClinical }))}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                form.adminCanViewClinical ? "bg-brand-600" : "bg-gray-200"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                  form.adminCanViewClinical ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+            <div>
+              <Label className="cursor-pointer" onClick={() => setForm((f) => ({ ...f, adminCanViewClinical: !f.adminCanViewClinical }))}>
+                Administrador pode ver prontuários clínicos
+              </Label>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Quando ativado, usuários com papel de Administrador têm acesso às anotações clínicas e sessões.
+                Desative em clínicas onde o admin não é o terapeuta.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
