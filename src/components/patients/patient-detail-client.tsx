@@ -567,7 +567,7 @@ function FinancialPaymentModal({
   const [amount, setAmount] = useState((remaining / 100).toFixed(2));
   const [paidAt, setPaidAt] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(
-    charge.dueDate ? charge.dueDate.slice(0, 10) : new Date().toISOString().split("T")[0]
+    charge.dueDate ? new Date(charge.dueDate).toISOString().slice(0, 10) : new Date().toISOString().split("T")[0]
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");

@@ -169,7 +169,7 @@ function PaymentModal({
   const [method, setMethod] = useState("PIX");
   const [amount, setAmount] = useState((netAmountCents / 100).toFixed(2));
   const [paidAt, setPaidAt] = useState(todayISO());
-  const [dueDate, setDueDate] = useState(chargeDueDate ? chargeDueDate.slice(0, 10) : todayISO());
+  const [dueDate, setDueDate] = useState(chargeDueDate ? new Date(chargeDueDate).toISOString().slice(0, 10) : todayISO());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -1085,7 +1085,7 @@ function ChargesCard({
     setEditForm({
       amountCents: (charge.amountCents / 100).toFixed(2),
       discountCents: ((charge.discountCents ?? 0) / 100).toFixed(2),
-      dueDate: charge.dueDate ? charge.dueDate.slice(0, 10) : todayISO(),
+      dueDate: charge.dueDate ? new Date(charge.dueDate).toISOString().slice(0, 10) : todayISO(),
     });
   }
 
