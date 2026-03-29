@@ -7,6 +7,9 @@ import { TodayClient } from "@/components/appointments/today-client";
 import { startOfDay, endOfDay } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Hoje" };
 
@@ -38,9 +41,15 @@ export default async function TodayPage() {
       ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
     },
     include: {
-      patient: { select: { id: true, fullName: true, preferredName: true, phone: true } },
+      patient: {
+        select: {
+          id: true, fullName: true, preferredName: true, phone: true,
+          defaultFeeOverrideCents: true,
+          defaultAppointmentType: { select: { defaultPriceCents: true } },
+        },
+      },
       provider: { select: { id: true, name: true } },
-      appointmentType: { select: { id: true, name: true, color: true } },
+      appointmentType: { select: { id: true, name: true, color: true, defaultPriceCents: true } },
       clinicalSession: { select: { id: true } },
       charges: { select: { id: true, status: true, amountCents: true } },
     },
@@ -58,11 +67,19 @@ export default async function TodayPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Hoje — {formatDate(from, "EEEE, dd 'de' MMMM")}
-        </h1>
-        <p className="text-gray-500 text-sm mt-1">{tenant?.name}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Hoje — {formatDate(from, "EEEE, dd 'de' MMMM")}
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">{tenant?.name}</p>
+        </div>
+        <Button asChild size="sm">
+          <Link href="/app/calendar?new=1">
+            <Plus className="h-4 w-4" />
+            Nova consulta
+          </Link>
+        </Button>
       </div>
 
       {/* Stats row */}

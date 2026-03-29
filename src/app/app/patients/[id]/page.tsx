@@ -52,9 +52,17 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
       },
       charges: {
         orderBy: { dueDate: "desc" },
-        take: 10,
-        include: {
-          payments: { select: { amountCents: true, method: true, paidAt: true } },
+        take: 50,
+        select: {
+          id: true,
+          status: true,
+          amountCents: true,
+          discountCents: true,
+          dueDate: true,
+          description: true,
+          providerUserId: true,
+          appointmentId: true,
+          payments: { select: { id: true, amountCents: true, method: true, paidAt: true } },
         },
       },
       files: {

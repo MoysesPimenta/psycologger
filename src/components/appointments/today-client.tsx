@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Play, CheckCircle2, XCircle, UserX, DollarSign,
-  CreditCard, ChevronRight, Clock, MapPin, Video
+  CreditCard, ChevronRight, Clock, MapPin, Video, Check, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +13,15 @@ import { formatTime, appointmentStatusLabel, formatCurrency } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-interface Patient { id: string; fullName: string; preferredName: string | null; phone: string | null; }
-interface AppointmentType { id: string; name: string; color: string; }
+interface Patient {
+  id: string;
+  fullName: string;
+  preferredName: string | null;
+  phone: string | null;
+  defaultFeeOverrideCents?: number | null;
+  defaultAppointmentType?: { defaultPriceCents: number } | null;
+}
+interface AppointmentType { id: string; name: string; color: string; defaultPriceCents: number; }
 interface ClinicalSession { id: string; }
 interface Charge { id: string; status: string; amountCents: number; }
 interface Provider { id: string; name: string | null; }
@@ -39,6 +46,15 @@ interface Props {
   role: string;
 }
 
+const PAYMENT_METHODS = [
+  { value: "PIX", label: "PIX" },
+  { value: "CASH", label: "Dinheiro" },
+  { value: "CARD", label: "Cartão" },
+  { value: "TRANSFER", label: "Transferência" },
+  { value: "INSURANCE", label: "Plano de saúde" },
+  { value: "OTHER", label: "Outro" },
+];
+
 const statusColors: Record<string, string> = {
   SCHEDULED: "info",
   CONFIRMED: "success",
@@ -47,11 +63,148 @@ const statusColors: Record<string, string> = {
   NO_SHOW: "warning",
 };
 
+// ─── Charge prompt for "today" view ──────────────────────────────────────────
+
+function TodayChargePrompt({
+  apptId,
+  patient,
+  provider,
+  appointmentType,
+  onDone,
+  onSkip,
+}: {
+  apptId: string;
+  patient: Patient;
+  provider: Provider;
+  appointmentType: AppointmentType;
+  onDone: (chargeId: string) => void;
+  onSkip: () => void;
+}) {
+  // Effective fee: patient override > patient default type > appointment type default
+  const effectiveFee =
+    patient.defaultFeeOverrideCents != null
+      ? patient.defaultFeeOverrideCents
+      : patient.defaultAppointmentType?.defaultPriceCents != null
+        ? patient.defaultAppointmentType.defaultPriceCents
+        : appointmentType.defaultPriceCents > 0
+          ? appointmentType.defaultPriceCents
+          : 0;
+
+  const [amount, setAmount] = useState((effectiveFee / 100).toFixed(2));
+  const [discount, setDiscount] = useState("0,00");
+  const [dueDate, setDueDate] = useState(new Date().toISOString().split("T")[0]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleCharge() {
+    setSaving(true);
+    setError("");
+    try {
+      const amountCents = Math.round(parseFloat(amount.replace(",", ".")) * 100);
+      const discountCents = Math.round(parseFloat((discount || "0").replace(",", ".")) * 100);
+      const res = await fetch("/api/v1/charges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: patient.id,
+          appointmentId: apptId,
+          providerUserId: provider.id,
+          amountCents,
+          discountCents,
+          dueDate,
+          description: "Consulta",
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      onDone(data.data?.id ?? "");
+    } catch {
+      setError("Erro ao criar cobrança.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const net = Math.max(0,
+    (parseFloat(amount.replace(",", ".")) || 0) -
+    (parseFloat(discount.replace(",", ".")) || 0)
+  );
+
+  return (
+    <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 space-y-3">
+      <div className="flex items-center gap-2">
+        <CreditCard className="h-4 w-4 text-green-600" />
+        <span className="text-sm font-medium text-green-800">Cobrar esta sessão?</span>
+      </div>
+      {error && (
+        <p className="text-xs text-red-600 flex items-center gap-1">
+          <AlertTriangle className="h-3 w-3" /> {error}
+        </p>
+      )}
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">Valor (R$)</label>
+          <input
+            type="text" inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-full border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-400"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">Desconto (R$)</label>
+          <input
+            type="text" inputMode="decimal"
+            value={discount}
+            onChange={(e) => setDiscount(e.target.value)}
+            className="w-full border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-400"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">Vencimento</label>
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="w-full border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-400"
+          />
+        </div>
+      </div>
+      {net > 0 && (
+        <p className="text-xs text-green-700 font-medium">
+          Valor líquido: R$ {net.toFixed(2).replace(".", ",")}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <button
+          onClick={handleCharge}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-green-600 hover:bg-green-700 transition-colors disabled:opacity-50"
+        >
+          <Check className="h-3.5 w-3.5" />
+          {saving ? "Criando..." : "Criar cobrança"}
+        </button>
+        <button
+          onClick={onSkip}
+          disabled={saving}
+          className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white border hover:bg-gray-50 transition-colors"
+        >
+          Não cobrar agora
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function TodayClient({ appointments, userId, role }: Props) {
   const router = useRouter();
   const { toast } = useToast();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [localAppts, setLocalAppts] = useState(appointments);
+  // Track which appt is showing the charge prompt
+  const [chargePromptId, setChargePromptId] = useState<string | null>(null);
 
   async function updateStatus(id: string, status: string) {
     setLoadingId(id);
@@ -65,12 +218,41 @@ export function TodayClient({ appointments, userId, role }: Props) {
       setLocalAppts((prev) =>
         prev.map((a) => (a.id === id ? { ...a, status } : a))
       );
+      // Show charge prompt after completing / no-show / cancel if no charge yet
+      const appt = localAppts.find((a) => a.id === id);
+      if (
+        ["COMPLETED", "NO_SHOW", "CANCELED"].includes(status) &&
+        appt &&
+        appt.charges.length === 0
+      ) {
+        const effectiveFee =
+          appt.patient.defaultFeeOverrideCents != null
+            ? appt.patient.defaultFeeOverrideCents
+            : appt.patient.defaultAppointmentType?.defaultPriceCents != null
+              ? appt.patient.defaultAppointmentType.defaultPriceCents
+              : appt.appointmentType.defaultPriceCents;
+        if (effectiveFee > 0) {
+          setChargePromptId(id);
+        }
+      }
       toast({ title: "Status atualizado", variant: "success" });
     } catch {
       toast({ title: "Erro ao atualizar status", variant: "destructive" });
     } finally {
       setLoadingId(null);
     }
+  }
+
+  function handleChargeDone(apptId: string, chargeId: string) {
+    setLocalAppts((prev) =>
+      prev.map((a) =>
+        a.id === apptId
+          ? { ...a, charges: [...a.charges, { id: chargeId, status: "PENDING", amountCents: 0 }] }
+          : a
+      )
+    );
+    setChargePromptId(null);
+    toast({ title: "Cobrança criada!", variant: "success" });
   }
 
   if (localAppts.length === 0) {
@@ -96,6 +278,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
         const hasPaidCharge = appt.charges.some((c) => c.status === "PAID");
         const hasCharge = appt.charges.length > 0;
         const isLoading = loadingId === appt.id;
+        const showChargePrompt = chargePromptId === appt.id;
 
         return (
           <div
@@ -182,6 +365,16 @@ export function TodayClient({ appointments, userId, role }: Props) {
                       <Button
                         size="sm"
                         variant="outline"
+                        onClick={() => updateStatus(appt.id, "COMPLETED")}
+                        disabled={isLoading}
+                        className="border-gray-300 text-gray-700"
+                      >
+                        <Check className="h-3 w-3" />
+                        Realizada
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
                         onClick={() => updateStatus(appt.id, "NO_SHOW")}
                         disabled={isLoading}
                       >
@@ -211,26 +404,15 @@ export function TodayClient({ appointments, userId, role }: Props) {
                     </Button>
                   )}
 
-                  {isCompleted && hasSession && !hasCharge && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => router.push(`/app/financial/charges/new?appointmentId=${appt.id}&patientId=${appt.patient.id}`)}
-                    >
-                      <DollarSign className="h-3 w-3" />
-                      Criar cobrança
-                    </Button>
-                  )}
-
                   {hasCharge && !hasPaidCharge && (
                     <Button
                       size="sm"
                       variant="outline"
                       className="text-green-700 border-green-300 hover:bg-green-50"
-                      onClick={() => router.push(`/app/financial/charges?patientId=${appt.patient.id}`)}
+                      onClick={() => router.push(`/app/patients/${appt.patient.id}?tab=financial`)}
                     >
                       <CreditCard className="h-3 w-3" />
-                      Marcar pago
+                      Ver cobrança
                     </Button>
                   )}
 
@@ -248,6 +430,18 @@ export function TodayClient({ appointments, userId, role }: Props) {
                     </Button>
                   )}
                 </div>
+
+                {/* Inline charge prompt */}
+                {showChargePrompt && (
+                  <TodayChargePrompt
+                    apptId={appt.id}
+                    patient={appt.patient}
+                    provider={appt.provider}
+                    appointmentType={appt.appointmentType}
+                    onDone={(chargeId) => handleChargeDone(appt.id, chargeId)}
+                    onSkip={() => setChargePromptId(null)}
+                  />
+                )}
               </div>
             </div>
           </div>

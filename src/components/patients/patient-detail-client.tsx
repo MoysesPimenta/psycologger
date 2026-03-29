@@ -536,44 +536,294 @@ function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: 
   );
 }
 
+/* ─── Payment modal (reusable for financial tab) ──────────────────────────── */
+const PAYMENT_METHODS_FIN = [
+  { value: "PIX", label: "PIX" },
+  { value: "CASH", label: "Dinheiro" },
+  { value: "CARD", label: "Cartão" },
+  { value: "TRANSFER", label: "Transferência" },
+  { value: "INSURANCE", label: "Plano de saúde" },
+  { value: "OTHER", label: "Outro" },
+];
+
+function FinancialPaymentModal({
+  charge,
+  patientId,
+  partial,
+  onClose,
+  onPaid,
+}: {
+  charge: any;
+  patientId: string;
+  partial: boolean;
+  onClose: () => void;
+  onPaid: (chargeId: string, payment: any, newStatus: string, remainderCharge?: any) => void;
+}) {
+  const net = charge.amountCents - charge.discountCents;
+  const paidSoFar = charge.payments.reduce((s: number, p: any) => s + p.amountCents, 0);
+  const remaining = net - paidSoFar;
+
+  const [method, setMethod] = useState("PIX");
+  const [amount, setAmount] = useState((remaining / 100).toFixed(2));
+  const [paidAt, setPaidAt] = useState(new Date().toISOString().split("T")[0]);
+  const [dueDate, setDueDate] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSave() {
+    setSaving(true);
+    setError("");
+    try {
+      const amountCents = Math.round(parseFloat(amount.replace(",", ".")) * 100);
+      if (!amountCents || amountCents <= 0) {
+        setError("Informe um valor válido.");
+        setSaving(false);
+        return;
+      }
+      const res = await fetch("/api/v1/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chargeId: charge.id,
+          amountCents,
+          method,
+          paidAt: new Date(paidAt).toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error("Erro ao registrar pagamento.");
+      const payData = await res.json();
+
+      let remainderCharge: any;
+      if (partial && amountCents < remaining && dueDate) {
+        const remainderCents = remaining - amountCents;
+        const chargeRes = await fetch("/api/v1/charges", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patientId,
+            appointmentId: charge.appointmentId,
+            providerUserId: charge.providerUserId,
+            amountCents: remainderCents,
+            discountCents: 0,
+            dueDate,
+            description: "Saldo restante",
+          }),
+        });
+        if (chargeRes.ok) {
+          const cj = await chargeRes.json();
+          remainderCharge = { ...(cj.data ?? {}), payments: [] };
+        }
+      }
+
+      const newPayment = {
+        id: payData.data?.id ?? crypto.randomUUID(),
+        amountCents,
+        method,
+        paidAt: new Date(paidAt).toISOString(),
+      };
+      onPaid(charge.id, newPayment, amountCents >= remaining ? "PAID" : "PARTIAL", remainderCharge);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erro ao registrar pagamento.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
+            <Check className="h-5 w-5 text-green-600" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-900">
+              {partial ? "Pagamento parcial" : "Registrar pagamento"}
+            </h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Total: {formatCurrency(net)} · Pendente: {formatCurrency(remaining)}
+            </p>
+          </div>
+        </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Forma de pagamento</label>
+            <select
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+              className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              {PAYMENT_METHODS_FIN.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Valor recebido (R$)</label>
+            <input
+              type="text" inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Data de recebimento</label>
+            <input
+              type="date"
+              value={paidAt}
+              onChange={(e) => setPaidAt(e.target.value)}
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          {partial && (
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Vencimento do saldo restante</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 justify-end pt-1">
+          <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving}
+            className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
+            <Check className="h-4 w-4" />
+            {saving ? "Salvando..." : "Confirmar"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Financial tab ──────────────────────────────────────────────────────── */
-function FinancialTab({ charges, patientId }: { charges: any[]; patientId: string }) {
+function FinancialTab({ charges: initialCharges, patientId }: { charges: any[]; patientId: string }) {
+  const [charges, setCharges] = useState(initialCharges);
+  const [payModal, setPayModal] = useState<{ charge: any; partial: boolean } | null>(null);
+
   const totalCharged = charges.reduce((s: number, c: any) => s + c.amountCents - c.discountCents, 0);
-  const totalPaid = charges
-    .filter((c: any) => c.status === "PAID")
-    .reduce((s: number, c: any) => s + c.payments.reduce((ps: number, p: any) => ps + p.amountCents, 0), 0);
+  const totalPaid = charges.reduce((s: number, c: any) =>
+    s + c.payments.reduce((ps: number, p: any) => ps + p.amountCents, 0), 0);
+  const totalPending = totalCharged - totalPaid;
+
+  const CHARGE_STATUS_LABELS: Record<string, string> = {
+    PENDING: "Pendente", PAID: "Pago", OVERDUE: "Vencido",
+    PARTIAL: "Parcial", VOID: "Cancelado",
+  };
+  const CHARGE_STATUS_COLORS: Record<string, string> = {
+    PENDING: "text-yellow-700 bg-yellow-50 border-yellow-200",
+    PAID: "text-green-700 bg-green-50 border-green-200",
+    OVERDUE: "text-red-700 bg-red-50 border-red-200",
+    PARTIAL: "text-blue-700 bg-blue-50 border-blue-200",
+    VOID: "text-gray-500 bg-gray-50 border-gray-200",
+  };
+
+  function handlePaid(chargeId: string, payment: any, newStatus: string, remainderCharge?: any) {
+    const updated = charges.map((c: any) =>
+      c.id === chargeId
+        ? { ...c, status: newStatus, payments: [...c.payments, payment] }
+        : c
+    );
+    const withRemainder = remainderCharge ? [remainderCharge, ...updated] : updated;
+    setCharges(withRemainder);
+    setPayModal(null);
+  }
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      {payModal && (
+        <FinancialPaymentModal
+          charge={payModal.charge}
+          patientId={patientId}
+          partial={payModal.partial}
+          onClose={() => setPayModal(null)}
+          onPaid={handlePaid}
+        />
+      )}
+
+      <div className="grid grid-cols-3 gap-3">
         <div className="bg-white rounded-xl border p-4">
           <p className="text-xs text-gray-500">Total cobrado</p>
           <p className="text-xl font-bold">{formatCurrency(totalCharged)}</p>
         </div>
         <div className="bg-white rounded-xl border p-4">
-          <p className="text-xs text-gray-500">Total recebido</p>
+          <p className="text-xs text-gray-500">Recebido</p>
           <p className="text-xl font-bold text-green-600">{formatCurrency(totalPaid)}</p>
         </div>
+        <div className="bg-white rounded-xl border p-4">
+          <p className="text-xs text-gray-500">Pendente</p>
+          <p className="text-xl font-bold text-yellow-600">{formatCurrency(totalPending)}</p>
+        </div>
       </div>
+
       <div className="space-y-2">
+        {charges.length === 0 && (
+          <p className="text-gray-500 text-center py-8">Nenhuma cobrança registrada.</p>
+        )}
         {charges.map((c: any) => {
+          const net = c.amountCents - c.discountCents;
           const paidAmount = c.payments.reduce((s: number, p: any) => s + p.amountCents, 0);
+          const isPaid = c.status === "PAID";
+          const canPay = !isPaid && c.status !== "VOID";
+
           return (
-            <div key={c.id} className="flex items-center gap-3 bg-white rounded-xl border p-3">
-              <div className="flex-1">
-                <p className="text-sm font-medium">{formatDate(c.dueDate)}</p>
-                <p className="text-xs text-gray-500">{chargeStatusLabel(c.status)}</p>
+            <div key={c.id} className="bg-white rounded-xl border p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{formatCurrency(net)}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {c.dueDate ? `Venc. ${formatDate(c.dueDate)}` : "Sem vencimento"}
+                    {c.description && ` · ${c.description}`}
+                  </p>
+                </div>
+                <Badge className={`text-xs border ${CHARGE_STATUS_COLORS[c.status] ?? "text-gray-500 bg-gray-50 border-gray-200"}`}>
+                  {CHARGE_STATUS_LABELS[c.status] ?? c.status}
+                </Badge>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-bold">{formatCurrency(c.amountCents - c.discountCents)}</p>
-                {c.status === "PAID" && (
-                  <p className="text-xs text-green-600">Pago: {formatCurrency(paidAmount)}</p>
-                )}
-              </div>
+
+              {/* Payments list */}
+              {c.payments.length > 0 && (
+                <div className="space-y-1 border-t pt-1">
+                  {c.payments.map((p: any, i: number) => (
+                    <div key={p.id ?? i} className="flex items-center justify-between text-xs text-gray-500">
+                      <span>
+                        {PAYMENT_METHODS_FIN.find((m) => m.value === p.method)?.label ?? p.method} ·{" "}
+                        {formatDate(p.paidAt)}
+                      </span>
+                      <span className="font-medium text-green-700">+ {formatCurrency(p.amountCents)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Payment actions */}
+              {canPay && (
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => setPayModal({ charge: c, partial: false })}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Marcar como pago
+                  </button>
+                  <button
+                    onClick={() => setPayModal({ charge: c, partial: true })}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                  >
+                    <span className="font-bold">½</span> Pagamento parcial
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+
       <Button variant="outline" size="sm" asChild>
         <Link href={`/app/financial/charges/new?patientId=${patientId}`}>
           <Plus className="h-3 w-3" /> Nova cobrança

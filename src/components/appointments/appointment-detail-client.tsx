@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Calendar, Clock, MapPin, Video, User, Stethoscope, FileText,
   Edit2, X, Check, AlertTriangle, ChevronLeft, ExternalLink,
-  Repeat, CreditCard, Trash2, RefreshCw,
+  Repeat, CreditCard, Trash2, RefreshCw, DollarSign, Split,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,8 @@ interface Recurrence { id: string; rrule: string; occurrences: number | null; st
 interface Payment { id: string; amountCents: number; method: string; paidAt: string }
 interface Charge {
   id: string; status: string; amountCents: number; discountCents: number | null;
+  dueDate?: string | null;
+  description?: string | null;
   payments: Payment[];
 }
 interface ClinicalSession { id: string }
@@ -86,6 +88,15 @@ const SESSION_TYPE_LABELS: Record<string, string> = {
   GROUP: "Grupo",
 };
 
+const PAYMENT_METHODS = [
+  { value: "PIX", label: "PIX" },
+  { value: "CASH", label: "Dinheiro" },
+  { value: "CARD", label: "Cartão" },
+  { value: "TRANSFER", label: "Transferência" },
+  { value: "INSURANCE", label: "Plano de saúde" },
+  { value: "OTHER", label: "Outro" },
+];
+
 function formatRRule(rrule: string): string {
   if (rrule.includes("FREQ=MONTHLY")) return "Mensal";
   const days: Record<string, string> = {
@@ -100,7 +111,7 @@ function formatRRule(rrule: string): string {
   return `Semanal (${day})`;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Normalize any date value (Date object or string) to an ISO string */
 function toISO(val: unknown): string {
@@ -128,6 +139,187 @@ function toLocalInput(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function todayISO(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+// ─── Payment Modal ────────────────────────────────────────────────────────────
+
+function PaymentModal({
+  chargeId,
+  netAmountCents,
+  patientId,
+  providerId,
+  appointmentId,
+  onClose,
+  onPaid,
+  partial = false,
+}: {
+  chargeId: string;
+  netAmountCents: number;
+  patientId: string;
+  providerId: string;
+  appointmentId: string;
+  onClose: () => void;
+  onPaid: (payment: Payment, newStatus: string, remainderCharge?: Charge) => void;
+  partial?: boolean;
+}) {
+  const [method, setMethod] = useState("PIX");
+  const [amount, setAmount] = useState((netAmountCents / 100).toFixed(2));
+  const [paidAt, setPaidAt] = useState(todayISO());
+  const [dueDate, setDueDate] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSave() {
+    setSaving(true);
+    setError("");
+    try {
+      const amountCents = Math.round(parseFloat(amount.replace(",", ".")) * 100);
+      if (!amountCents || amountCents <= 0) {
+        setError("Informe um valor válido.");
+        setSaving(false);
+        return;
+      }
+
+      const res = await fetch("/api/v1/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chargeId,
+          amountCents,
+          method,
+          paidAt: new Date(paidAt).toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error("Erro ao registrar pagamento.");
+      const payData = await res.json();
+
+      // If partial and remainder > 0, create a new pending charge for the balance
+      let remainderCharge: Charge | undefined;
+      if (partial && amountCents < netAmountCents && dueDate) {
+        const remainderCents = netAmountCents - amountCents;
+        const chargeRes = await fetch("/api/v1/charges", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patientId,
+            appointmentId,
+            providerUserId: providerId,
+            amountCents: remainderCents,
+            discountCents: 0,
+            dueDate,
+            description: "Saldo restante",
+          }),
+        });
+        if (chargeRes.ok) {
+          const chargeJson = await chargeRes.json();
+          remainderCharge = { ...(chargeJson.data ?? {}), payments: [] };
+        }
+      }
+
+      const newPayment: Payment = {
+        id: payData.data?.id ?? crypto.randomUUID(),
+        amountCents,
+        method,
+        paidAt: new Date(paidAt).toISOString(),
+      };
+
+      onPaid(newPayment, amountCents >= netAmountCents ? "PAID" : "PARTIAL", remainderCharge);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erro ao registrar pagamento.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
+            <CreditCard className="h-5 w-5 text-green-600" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-900">
+              {partial ? "Pagamento parcial" : "Registrar pagamento"}
+            </h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Total da cobrança: R$ {(netAmountCents / 100).toFixed(2).replace(".", ",")}
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <p className="text-sm text-red-600 flex items-center gap-1.5">
+            <AlertTriangle className="h-4 w-4" /> {error}
+          </p>
+        )}
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Forma de pagamento</label>
+            <select
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+              className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              {PAYMENT_METHODS.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Valor recebido (R$)</label>
+            <input
+              type="text" inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Data de recebimento</label>
+            <input
+              type="date"
+              value={paidAt}
+              onChange={(e) => setPaidAt(e.target.value)}
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          {partial && (
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">
+                Vencimento do saldo restante
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 justify-end pt-1">
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
+          >
+            <Check className="h-4 w-4" />
+            {saving ? "Salvando..." : "Confirmar pagamento"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function AppointmentDetailClient({
   appointment: initialAppt,
   role,
@@ -149,8 +341,10 @@ export function AppointmentDetailClient({
   // Charge prompt state — shown after COMPLETED / CANCELED / NO_SHOW if patient has billing defaults
   const [chargePrompt, setChargePrompt] = useState<{
     pendingStatus: string;
-    feeCents: number;
     label: string;
+    editAmount: string;
+    editDiscount: string;
+    editDueDate: string;
   } | null>(null);
   const [creatingCharge, setCreatingCharge] = useState(false);
 
@@ -224,7 +418,13 @@ export function AppointmentDetailClient({
         CANCELED: "Consulta cancelada",
         NO_SHOW: "Falta registrada",
       };
-      setChargePrompt({ pendingStatus: status, feeCents: effectiveFeeCents, label: labels[status] });
+      setChargePrompt({
+        pendingStatus: status,
+        label: labels[status],
+        editAmount: (effectiveFeeCents / 100).toFixed(2),
+        editDiscount: "0,00",
+        editDueDate: todayISO(),
+      });
       return;
     }
     await applyStatusChange(status);
@@ -236,28 +436,36 @@ export function AppointmentDetailClient({
     if (charge) {
       setCreatingCharge(true);
       try {
-        await fetch("/api/v1/charges", {
+        const amountCents = Math.round(parseFloat(chargePrompt.editAmount.replace(",", ".")) * 100);
+        const discountCents = Math.round(parseFloat((chargePrompt.editDiscount || "0").replace(",", ".")) * 100);
+        const res = await fetch("/api/v1/charges", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             patientId: appt.patient.id,
             appointmentId: appt.id,
             providerUserId: appt.provider.id,
-            amountCents: chargePrompt.feeCents,
-            dueDate: new Date().toISOString().split("T")[0],
+            amountCents,
+            discountCents: discountCents || 0,
+            dueDate: chargePrompt.editDueDate || todayISO(),
             description: chargePrompt.label,
           }),
         });
-        setAppt((a) => ({
-          ...a,
-          charges: [...a.charges, {
-            id: crypto.randomUUID(),
-            status: "PENDING",
-            amountCents: chargePrompt.feeCents,
-            discountCents: 0,
-            payments: [],
-          }],
-        }));
+        if (res.ok) {
+          const data = await res.json();
+          setAppt((a) => ({
+            ...a,
+            charges: [...a.charges, {
+              id: data.data?.id ?? crypto.randomUUID(),
+              status: "PENDING",
+              amountCents,
+              discountCents,
+              dueDate: chargePrompt.editDueDate || todayISO(),
+              description: chargePrompt.label,
+              payments: [],
+            }],
+          }));
+        }
       } catch {
         // charge failed silently — user can create manually
       } finally {
@@ -663,14 +871,15 @@ export function AppointmentDetailClient({
       )}
 
       {/* ── Financial ── */}
-      {appt.charges.length > 0 && (
-        <ChargesCard
-          charges={appt.charges}
-          totalCharged={totalCharged}
-          totalPaid={totalPaid}
-          onChargesChange={(charges) => setAppt((a) => ({ ...a, charges }))}
-        />
-      )}
+      <ChargesCard
+        charges={appt.charges}
+        totalCharged={totalCharged}
+        totalPaid={totalPaid}
+        patientId={appt.patient.id}
+        providerId={appt.provider.id}
+        appointmentId={appt.id}
+        onChargesChange={(charges) => setAppt((a) => ({ ...a, charges }))}
+      />
 
       {/* ── Charge prompt modal ── */}
       {chargePrompt && (
@@ -687,15 +896,53 @@ export function AppointmentDetailClient({
                 </p>
               </div>
             </div>
-            <div className="rounded-lg bg-gray-50 border px-4 py-3 flex items-center justify-between">
-              <span className="text-sm text-gray-600">Valor a cobrar</span>
-              <span className="text-lg font-bold text-gray-900">
-                R$ {(chargePrompt.feeCents / 100).toFixed(2).replace(".", ",")}
-              </span>
+
+            {/* Editable charge fields */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Valor (R$)</label>
+                  <input
+                    type="text" inputMode="decimal"
+                    value={chargePrompt.editAmount}
+                    onChange={(e) => setChargePrompt((p) => p ? { ...p, editAmount: e.target.value } : p)}
+                    className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Desconto (R$)</label>
+                  <input
+                    type="text" inputMode="decimal"
+                    value={chargePrompt.editDiscount}
+                    onChange={(e) => setChargePrompt((p) => p ? { ...p, editDiscount: e.target.value } : p)}
+                    className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Vencimento</label>
+                <input
+                  type="date"
+                  value={chargePrompt.editDueDate}
+                  onChange={(e) => setChargePrompt((p) => p ? { ...p, editDueDate: e.target.value } : p)}
+                  className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              {(() => {
+                const amt = parseFloat(chargePrompt.editAmount.replace(",", ".")) || 0;
+                const disc = parseFloat(chargePrompt.editDiscount.replace(",", ".")) || 0;
+                const net = Math.max(0, amt - disc);
+                return (
+                  <div className="rounded-lg bg-gray-50 border px-3 py-2 flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Valor líquido</span>
+                    <span className="font-bold text-gray-900">
+                      R$ {net.toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
-            <p className="text-xs text-gray-500">
-              Uma cobrança com status <strong>pendente</strong> será criada no financeiro do paciente. Você pode ajustar o valor ou aplicar desconto depois.
-            </p>
+
             <div className="flex gap-2 justify-end pt-1">
               <Button
                 variant="outline"
@@ -710,7 +957,7 @@ export function AppointmentDetailClient({
                 className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
               >
                 <CreditCard className="h-4 w-4" />
-                {creatingCharge ? "Criando..." : `Cobrar R$ ${(chargePrompt.feeCents / 100).toFixed(2).replace(".", ",")}`}
+                {creatingCharge ? "Criando..." : "Criar cobrança"}
               </Button>
             </div>
           </div>
@@ -810,24 +1057,39 @@ function ChargesCard({
   charges: initialCharges,
   totalCharged,
   totalPaid,
+  patientId,
+  providerId,
+  appointmentId,
   onChargesChange,
 }: {
   charges: Charge[];
   totalCharged: number;
   totalPaid: number;
+  patientId: string;
+  providerId: string;
+  appointmentId: string;
   onChargesChange: (charges: Charge[]) => void;
 }) {
   const [charges, setCharges] = useState(initialCharges);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ amountCents: "", discountCents: "" });
+  const [editForm, setEditForm] = useState({ amountCents: "", discountCents: "", dueDate: "" });
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Payment modal
+  const [payModal, setPayModal] = useState<{ chargeId: string; netAmountCents: number; partial: boolean } | null>(null);
+
+  // New charge form
+  const [showNewCharge, setShowNewCharge] = useState(false);
+  const [newChargeForm, setNewChargeForm] = useState({ amountCents: "", discountCents: "0,00", dueDate: todayISO(), description: "" });
+  const [creatingNew, setCreatingNew] = useState(false);
 
   function startEdit(charge: Charge) {
     setEditingId(charge.id);
     setEditForm({
       amountCents: (charge.amountCents / 100).toFixed(2),
       discountCents: ((charge.discountCents ?? 0) / 100).toFixed(2),
+      dueDate: charge.dueDate ? charge.dueDate.slice(0, 10) : todayISO(),
     });
   }
 
@@ -839,11 +1101,11 @@ function ChargesCard({
       const res = await fetch(`/api/v1/charges/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountCents: amount, discountCents: discount }),
+        body: JSON.stringify({ amountCents: amount, discountCents: discount, dueDate: editForm.dueDate }),
       });
       if (!res.ok) throw new Error();
       const updated = charges.map((c) =>
-        c.id === id ? { ...c, amountCents: amount, discountCents: discount } : c
+        c.id === id ? { ...c, amountCents: amount, discountCents: discount, dueDate: editForm.dueDate } : c
       );
       setCharges(updated);
       onChargesChange(updated);
@@ -870,115 +1132,318 @@ function ChargesCard({
     }
   }
 
-  const STATUS_LABELS: Record<string, string> = {
+  async function createNewCharge() {
+    setCreatingNew(true);
+    try {
+      const amount = Math.round(parseFloat(newChargeForm.amountCents.replace(",", ".")) * 100);
+      const discount = Math.round(parseFloat((newChargeForm.discountCents || "0").replace(",", ".")) * 100);
+      const res = await fetch("/api/v1/charges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId,
+          appointmentId,
+          providerUserId: providerId,
+          amountCents: amount,
+          discountCents: discount,
+          dueDate: newChargeForm.dueDate,
+          description: newChargeForm.description || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const newCharge: Charge = {
+        id: data.data?.id ?? crypto.randomUUID(),
+        status: "PENDING",
+        amountCents: amount,
+        discountCents: discount,
+        dueDate: newChargeForm.dueDate,
+        description: newChargeForm.description || null,
+        payments: [],
+      };
+      const updated = [...charges, newCharge];
+      setCharges(updated);
+      onChargesChange(updated);
+      setShowNewCharge(false);
+      setNewChargeForm({ amountCents: "", discountCents: "0,00", dueDate: todayISO(), description: "" });
+    } catch {
+      // silently fail
+    } finally {
+      setCreatingNew(false);
+    }
+  }
+
+  function handlePaid(chargeId: string, payment: Payment, newStatus: string, remainderCharge?: Charge) {
+    const updated = charges.map((c) =>
+      c.id === chargeId
+        ? { ...c, status: newStatus, payments: [...c.payments, payment] }
+        : c
+    );
+    const withRemainder = remainderCharge ? [...updated, remainderCharge] : updated;
+    setCharges(withRemainder);
+    onChargesChange(withRemainder);
+    setPayModal(null);
+  }
+
+  const CHARGE_STATUS_LABELS: Record<string, string> = {
     PENDING: "Pendente", PAID: "Pago", OVERDUE: "Vencido",
     PARTIAL: "Parcial", VOID: "Cancelado",
   };
 
-  if (charges.length === 0) return null;
+  const CHARGE_STATUS_COLORS: Record<string, string> = {
+    PENDING: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    PAID: "bg-green-50 text-green-700 border-green-200",
+    OVERDUE: "bg-red-50 text-red-700 border-red-200",
+    PARTIAL: "bg-blue-50 text-blue-700 border-blue-200",
+    VOID: "bg-gray-50 text-gray-500 border-gray-200",
+  };
 
   const computedTotal = charges.reduce((s, c) => s + c.amountCents - (c.discountCents ?? 0), 0);
   const computedPaid  = charges.flatMap((c) => c.payments).reduce((s, p) => s + p.amountCents, 0);
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-base">Financeiro</CardTitle>
-        <div className="text-sm font-medium text-gray-600">
-          {computedPaid >= computedTotal ? (
-            <span className="text-green-700">Pago</span>
-          ) : (
-            <span className="text-orange-700">
-              Pendente · R$ {((computedTotal - computedPaid) / 100).toFixed(2).replace(".", ",")}
-            </span>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {charges.map((charge) => (
-          <div key={charge.id} className="rounded-lg border border-gray-100 p-3 space-y-2">
-            {editingId === charge.id ? (
-              // ── Edit mode ──
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">Valor (R$)</label>
-                    <input
-                      type="text" inputMode="decimal"
-                      value={editForm.amountCents}
-                      onChange={(e) => setEditForm((f) => ({ ...f, amountCents: e.target.value }))}
-                      className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">Desconto (R$)</label>
-                    <input
-                      type="text" inputMode="decimal"
-                      value={editForm.discountCents}
-                      onChange={(e) => setEditForm((f) => ({ ...f, discountCents: e.target.value }))}
-                      className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-                </div>
-                {editForm.discountCents && parseFloat(editForm.discountCents.replace(",", ".")) > 0 && (
-                  <p className="text-xs text-gray-500">
-                    Valor final: R$ {Math.max(0, (parseFloat(editForm.amountCents.replace(",", ".")) - parseFloat(editForm.discountCents.replace(",", ".")))).toFixed(2).replace(".", ",")}
-                  </p>
-                )}
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" size="sm" onClick={() => setEditingId(null)} disabled={saving}>
-                    Cancelar
-                  </Button>
-                  <Button size="sm" onClick={() => saveEdit(charge.id)} disabled={saving}>
-                    {saving ? "Salvando..." : "Salvar"}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              // ── View mode ──
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm">
-                  <CreditCard className="h-3.5 w-3.5 text-gray-400" />
-                  <span className="font-medium text-gray-800">
-                    R$ {((charge.amountCents - (charge.discountCents ?? 0)) / 100).toFixed(2).replace(".", ",")}
-                  </span>
-                  {(charge.discountCents ?? 0) > 0 && (
-                    <span className="text-xs text-gray-400 line-through">
-                      R$ {(charge.amountCents / 100).toFixed(2).replace(".", ",")}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Badge variant="outline" className="text-xs">
-                    {STATUS_LABELS[charge.status] ?? charge.status}
-                  </Badge>
-                  {/* Only allow edit/delete if no payments yet */}
-                  {charge.payments.length === 0 && (
-                    <>
-                      <button
-                        onClick={() => startEdit(charge)}
-                        title="Editar cobrança"
-                        className="p-1 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => deleteCharge(charge.id)}
-                        disabled={deletingId === charge.id}
-                        title="Excluir cobrança"
-                        className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
+    <>
+      {payModal && (
+        <PaymentModal
+          chargeId={payModal.chargeId}
+          netAmountCents={payModal.netAmountCents}
+          partial={payModal.partial}
+          patientId={patientId}
+          providerId={providerId}
+          appointmentId={appointmentId}
+          onClose={() => setPayModal(null)}
+          onPaid={(payment, newStatus, remainderCharge) =>
+            handlePaid(payModal.chargeId, payment, newStatus, remainderCharge)
+          }
+        />
+      )}
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-base">Financeiro</CardTitle>
+          <div className="flex items-center gap-2">
+            {computedTotal > 0 && (
+              <span className={`text-sm font-medium ${computedPaid >= computedTotal ? "text-green-700" : "text-orange-700"}`}>
+                {computedPaid >= computedTotal
+                  ? "Pago"
+                  : `Pendente · R$ ${((computedTotal - computedPaid) / 100).toFixed(2).replace(".", ",")}`}
+              </span>
             )}
+            <button
+              onClick={() => setShowNewCharge(true)}
+              title="Adicionar cobrança"
+              className="p-1.5 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+            >
+              <DollarSign className="h-4 w-4" />
+            </button>
           </div>
-        ))}
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {charges.length === 0 && !showNewCharge && (
+            <p className="text-sm text-gray-400 text-center py-2">Nenhuma cobrança registrada.</p>
+          )}
+
+          {charges.map((charge) => {
+            const net = charge.amountCents - (charge.discountCents ?? 0);
+            const paidSoFar = charge.payments.reduce((s, p) => s + p.amountCents, 0);
+            const isPaid = charge.status === "PAID";
+            const canModify = charge.payments.length === 0;
+            const canPay = !isPaid && charge.status !== "VOID";
+
+            return (
+              <div key={charge.id} className="rounded-lg border border-gray-100 p-3 space-y-2">
+                {editingId === charge.id ? (
+                  // ── Edit mode ──
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">Valor (R$)</label>
+                        <input
+                          type="text" inputMode="decimal"
+                          value={editForm.amountCents}
+                          onChange={(e) => setEditForm((f) => ({ ...f, amountCents: e.target.value }))}
+                          className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">Desconto (R$)</label>
+                        <input
+                          type="text" inputMode="decimal"
+                          value={editForm.discountCents}
+                          onChange={(e) => setEditForm((f) => ({ ...f, discountCents: e.target.value }))}
+                          className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">Vencimento</label>
+                      <input
+                        type="date"
+                        value={editForm.dueDate}
+                        onChange={(e) => setEditForm((f) => ({ ...f, dueDate: e.target.value }))}
+                        className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      />
+                    </div>
+                    {parseFloat(editForm.discountCents.replace(",", ".")) > 0 && (
+                      <p className="text-xs text-gray-500">
+                        Valor final: R$ {Math.max(0,
+                          parseFloat(editForm.amountCents.replace(",", ".")) -
+                          parseFloat(editForm.discountCents.replace(",", "."))
+                        ).toFixed(2).replace(".", ",")}
+                      </p>
+                    )}
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => setEditingId(null)} disabled={saving}>
+                        Cancelar
+                      </Button>
+                      <Button size="sm" onClick={() => saveEdit(charge.id)} disabled={saving}>
+                        {saving ? "Salvando..." : "Salvar"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  // ── View mode ──
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        <CreditCard className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="font-medium text-gray-800">
+                          R$ {(net / 100).toFixed(2).replace(".", ",")}
+                        </span>
+                        {(charge.discountCents ?? 0) > 0 && (
+                          <span className="text-xs text-gray-400 line-through">
+                            R$ {(charge.amountCents / 100).toFixed(2).replace(".", ",")}
+                          </span>
+                        )}
+                        {charge.dueDate && (
+                          <span className="text-xs text-gray-400">
+                            · venc. {new Date(charge.dueDate).toLocaleDateString("pt-BR")}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Badge className={`text-xs border ${CHARGE_STATUS_COLORS[charge.status] ?? "bg-gray-50 text-gray-500"}`}>
+                          {CHARGE_STATUS_LABELS[charge.status] ?? charge.status}
+                        </Badge>
+                        {canModify && (
+                          <>
+                            <button
+                              onClick={() => startEdit(charge)}
+                              title="Editar cobrança"
+                              className="p-1 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => deleteCharge(charge.id)}
+                              disabled={deletingId === charge.id}
+                              title="Excluir cobrança"
+                              className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Payment actions */}
+                    {canPay && (
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={() => setPayModal({ chargeId: charge.id, netAmountCents: net - paidSoFar, partial: false })}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                        >
+                          <Check className="h-3.5 w-3.5" /> Marcar como pago
+                        </button>
+                        <button
+                          onClick={() => setPayModal({ chargeId: charge.id, netAmountCents: net - paidSoFar, partial: true })}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
+                        >
+                          <Split className="h-3.5 w-3.5" /> Pagamento parcial
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Payments list */}
+                    {charge.payments.length > 0 && (
+                      <div className="space-y-1 pt-1 border-t border-gray-50">
+                        {charge.payments.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between text-xs text-gray-500">
+                            <span>
+                              {PAYMENT_METHODS.find((m) => m.value === p.method)?.label ?? p.method} ·{" "}
+                              {new Date(p.paidAt).toLocaleDateString("pt-BR")}
+                            </span>
+                            <span className="font-medium text-green-700">
+                              + R$ {(p.amountCents / 100).toFixed(2).replace(".", ",")}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* New charge inline form */}
+          {showNewCharge && (
+            <div className="rounded-lg border border-brand-200 bg-brand-50/30 p-3 space-y-2">
+              <p className="text-xs font-medium text-gray-700">Nova cobrança</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Valor (R$)</label>
+                  <input
+                    type="text" inputMode="decimal"
+                    placeholder="0,00"
+                    value={newChargeForm.amountCents}
+                    onChange={(e) => setNewChargeForm((f) => ({ ...f, amountCents: e.target.value }))}
+                    className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Desconto (R$)</label>
+                  <input
+                    type="text" inputMode="decimal"
+                    value={newChargeForm.discountCents}
+                    onChange={(e) => setNewChargeForm((f) => ({ ...f, discountCents: e.target.value }))}
+                    className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Vencimento</label>
+                <input
+                  type="date"
+                  value={newChargeForm.dueDate}
+                  onChange={(e) => setNewChargeForm((f) => ({ ...f, dueDate: e.target.value }))}
+                  className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Descrição (opcional)</label>
+                <input
+                  type="text"
+                  value={newChargeForm.description}
+                  onChange={(e) => setNewChargeForm((f) => ({ ...f, description: e.target.value }))}
+                  className="w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setShowNewCharge(false)} disabled={creatingNew}>
+                  Cancelar
+                </Button>
+                <Button size="sm" onClick={createNewCharge} disabled={creatingNew || !newChargeForm.amountCents}>
+                  {creatingNew ? "Salvando..." : "Adicionar"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }
 

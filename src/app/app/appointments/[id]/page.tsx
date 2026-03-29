@@ -35,7 +35,8 @@ export default async function AppointmentDetailPage({ params }: Props) {
       clinicalSession: { select: { id: true } },
       charges: {
         select: {
-          id: true, status: true, amountCents: true, discountCents: true,
+          id: true, status: true, amountCents: true, discountCents: true, dueDate: true,
+          description: true,
           payments: { select: { id: true, amountCents: true, method: true, paidAt: true } },
         },
       },

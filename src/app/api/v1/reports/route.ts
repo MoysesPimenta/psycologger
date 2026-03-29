@@ -1,6 +1,8 @@
 /**
  * GET /api/v1/reports?type=monthly&year=2026&month=3
- * GET /api/v1/reports/export?type=charges&from=...&to=...
+ * GET /api/v1/reports?type=dashboard&year=2026&month=3
+ * GET /api/v1/reports?type=cashflow&year=2026&months=6
+ * GET /api/v1/reports?type=patients|appointments|charges (CSV export)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -8,8 +10,7 @@ import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
 import { ok, handleApiError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
-import { formatCurrency } from "@/lib/utils";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,51 +23,111 @@ export async function GET(req: NextRequest) {
     const month = parseInt(searchParams.get("month") ?? (new Date().getMonth() + 1).toString());
     const exportCsv = searchParams.get("export") === "true";
 
-    if (type === "monthly") {
+    // ── Monthly / Dashboard ──────────────────────────────────────────────────
+
+    if (type === "monthly" || type === "dashboard") {
       const from = startOfMonth(new Date(year, month - 1));
       const to = endOfMonth(new Date(year, month - 1));
 
-      const [charges, appointments] = await Promise.all([
+      const providerFilter = ctx.role === "PSYCHOLOGIST" ? { providerUserId: ctx.userId } : {};
+
+      const [charges, payments, appointments, allPatients] = await Promise.all([
         db.charge.findMany({
           where: {
             tenantId: ctx.tenantId,
             dueDate: { gte: from, lte: to },
-            ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+            ...providerFilter,
           },
           include: {
             payments: true,
             provider: { select: { id: true, name: true } },
+            patient: { select: { fullName: true } },
           },
         }),
-        db.appointment.count({
+        // Cash basis: payments received in this month (regardless of charge due date)
+        db.payment.findMany({
+          where: {
+            tenantId: ctx.tenantId,
+            paidAt: { gte: from, lte: to },
+            charge: { ...providerFilter },
+          },
+          include: {
+            charge: {
+              include: {
+                provider: { select: { id: true, name: true } },
+              },
+            },
+          },
+        }),
+        db.appointment.findMany({
           where: {
             tenantId: ctx.tenantId,
             startsAt: { gte: from, lte: to },
-            status: "COMPLETED",
-            ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+            ...providerFilter,
+          },
+          select: {
+            id: true, status: true, startsAt: true,
+            provider: { select: { id: true, name: true } },
+          },
+        }),
+        // New patients this month
+        db.patient.count({
+          where: {
+            tenantId: ctx.tenantId,
+            createdAt: { gte: from, lte: to },
           },
         }),
       ]);
 
+      // ── Competência (accrual) — charges due this month ────────────────────
       const totalCharged = charges.reduce((s, c) => s + (c.amountCents - c.discountCents), 0);
-      const totalReceived = charges
+      const totalReceived_competencia = charges
         .filter((c) => c.status === "PAID")
         .reduce((s, c) => s + c.payments.reduce((ps, p) => ps + p.amountCents, 0), 0);
       const totalPending = charges
-        .filter((c) => c.status === "PENDING" || c.status === "OVERDUE")
+        .filter((c) => ["PENDING", "OVERDUE", "PARTIAL"].includes(c.status))
+        .reduce((s, c) => {
+          const net = c.amountCents - c.discountCents;
+          const paid = c.payments.reduce((ps, p) => ps + p.amountCents, 0);
+          return s + (net - paid);
+        }, 0);
+      const totalOverdue = charges
+        .filter((c) => c.status === "OVERDUE")
         .reduce((s, c) => s + (c.amountCents - c.discountCents), 0);
 
-      // Revenue by provider
-      const byProvider: Record<string, { name: string; received: number; sessions: number }> = {};
+      // ── Caixa (cash) — payments received this month ───────────────────────
+      const totalCaixa = payments.reduce((s, p) => s + p.amountCents, 0);
+
+      // ── By provider (competência) ──────────────────────────────────────────
+      const byProvider: Record<string, { name: string; received: number; sessions: number; pending: number }> = {};
       for (const charge of charges) {
         const pid = charge.providerUserId;
         if (!byProvider[pid]) {
-          byProvider[pid] = { name: charge.provider.name ?? pid, received: 0, sessions: 0 };
+          byProvider[pid] = { name: charge.provider.name ?? pid, received: 0, sessions: 0, pending: 0 };
         }
         if (charge.status === "PAID") {
           byProvider[pid].received += charge.payments.reduce((s, p) => s + p.amountCents, 0);
           byProvider[pid].sessions++;
+        } else if (["PENDING", "OVERDUE", "PARTIAL"].includes(charge.status)) {
+          const net = charge.amountCents - charge.discountCents;
+          const paid = charge.payments.reduce((s, p) => s + p.amountCents, 0);
+          byProvider[pid].pending += net - paid;
         }
+      }
+
+      // ── Appointment stats ─────────────────────────────────────────────────
+      const apptStats = {
+        total: appointments.length,
+        completed: appointments.filter((a) => a.status === "COMPLETED").length,
+        canceled: appointments.filter((a) => a.status === "CANCELED").length,
+        noShow: appointments.filter((a) => a.status === "NO_SHOW").length,
+        scheduled: appointments.filter((a) => ["SCHEDULED", "CONFIRMED"].includes(a.status)).length,
+      };
+
+      // ── Payment methods breakdown ─────────────────────────────────────────
+      const byMethod: Record<string, number> = {};
+      for (const p of payments) {
+        byMethod[p.method] = (byMethod[p.method] ?? 0) + p.amountCents;
       }
 
       if (exportCsv) {
@@ -74,8 +135,8 @@ export async function GET(req: NextRequest) {
           ["Data", "Paciente", "Profissional", "Valor", "Status", "Método de Pagamento"].join(","),
           ...charges.map((c) => [
             c.dueDate.toISOString().slice(0, 10),
-            c.patientId,
-            c.provider.name ?? "",
+            `"${c.patient.fullName}"`,
+            `"${c.provider.name ?? ""}"`,
             (c.amountCents / 100).toFixed(2).replace(".", ","),
             c.status,
             c.payments[0]?.method ?? "",
@@ -93,30 +154,136 @@ export async function GET(req: NextRequest) {
       return ok({
         period: { year, month, from, to },
         summary: {
+          // Competência (accrual basis)
           totalCharged,
-          totalReceived,
+          totalReceived_competencia,
           totalPending,
-          completedAppointments: appointments,
+          totalOverdue,
+          // Caixa (cash basis)
+          totalCaixa,
+          // Appointments
+          completedAppointments: apptStats.completed,
           chargesCount: charges.length,
+          newPatients: allPatients,
         },
+        apptStats,
         byProvider: Object.values(byProvider),
+        byMethod,
       });
     }
 
-    // ── CSV exports for the Settings → Export page ──────────────────────────
+    // ── Cash flow (last N months) ────────────────────────────────────────────
+
+    if (type === "cashflow") {
+      const months = parseInt(searchParams.get("months") ?? "6");
+      const providerFilter = ctx.role === "PSYCHOLOGIST" ? { providerUserId: ctx.userId } : {};
+
+      const monthlyData = await Promise.all(
+        Array.from({ length: months }, (_, i) => {
+          const d = subMonths(new Date(year, month - 1), months - 1 - i);
+          const from = startOfMonth(d);
+          const to = endOfMonth(d);
+          return Promise.all([
+            // Competência
+            db.charge.aggregate({
+              where: {
+                tenantId: ctx.tenantId,
+                dueDate: { gte: from, lte: to },
+                ...providerFilter,
+              },
+              _sum: { amountCents: true, discountCents: true },
+            }),
+            // Caixa
+            db.payment.aggregate({
+              where: {
+                tenantId: ctx.tenantId,
+                paidAt: { gte: from, lte: to },
+                charge: { ...providerFilter },
+              },
+              _sum: { amountCents: true },
+            }),
+            // Sessions count
+            db.appointment.count({
+              where: {
+                tenantId: ctx.tenantId,
+                startsAt: { gte: from, lte: to },
+                status: "COMPLETED",
+                ...providerFilter,
+              },
+            }),
+          ]).then(([chargeAgg, payAgg, sessionCount]) => ({
+            month: format(d, "MMM/yy"),
+            year: d.getFullYear(),
+            monthNum: d.getMonth() + 1,
+            competencia: (chargeAgg._sum.amountCents ?? 0) - (chargeAgg._sum.discountCents ?? 0),
+            caixa: payAgg._sum.amountCents ?? 0,
+            sessions: sessionCount,
+          }));
+        })
+      );
+
+      return ok({ cashflow: monthlyData });
+    }
+
+    // ── Previsibilidade (upcoming pending charges) ────────────────────────────
+
+    if (type === "previsibility") {
+      const providerFilter = ctx.role === "PSYCHOLOGIST" ? { providerUserId: ctx.userId } : {};
+      const now = new Date();
+      const futureMonths = 3;
+
+      const upcoming = await Promise.all(
+        Array.from({ length: futureMonths }, (_, i) => {
+          const d = new Date(now.getFullYear(), now.getMonth() + i);
+          const from = startOfMonth(d);
+          const to = endOfMonth(d);
+          return db.charge.aggregate({
+            where: {
+              tenantId: ctx.tenantId,
+              dueDate: { gte: from, lte: to },
+              status: { in: ["PENDING", "PARTIAL", "OVERDUE"] },
+              ...providerFilter,
+            },
+            _sum: { amountCents: true, discountCents: true },
+            _count: { id: true },
+          }).then((agg) => ({
+            month: format(d, "MMMM yyyy"),
+            monthShort: format(d, "MMM/yy"),
+            expected: (agg._sum.amountCents ?? 0) - (agg._sum.discountCents ?? 0),
+            count: agg._count.id,
+          }));
+        })
+      );
+
+      // Also get overdue
+      const overdue = await db.charge.aggregate({
+        where: {
+          tenantId: ctx.tenantId,
+          dueDate: { lt: startOfMonth(now) },
+          status: { in: ["PENDING", "PARTIAL", "OVERDUE"] },
+          ...providerFilter,
+        },
+        _sum: { amountCents: true, discountCents: true },
+        _count: { id: true },
+      });
+
+      return ok({
+        upcoming,
+        overdue: {
+          total: (overdue._sum.amountCents ?? 0) - (overdue._sum.discountCents ?? 0),
+          count: overdue._count.id,
+        },
+      });
+    }
+
+    // ── CSV exports ──────────────────────────────────────────────────────────
 
     if (type === "patients") {
       const patients = await db.patient.findMany({
         where: { tenantId: ctx.tenantId, isActive: true },
         select: {
-          fullName: true,
-          preferredName: true,
-          email: true,
-          phone: true,
-          dob: true,
-          tags: true,
-          consentGiven: true,
-          createdAt: true,
+          fullName: true, preferredName: true, email: true, phone: true,
+          dob: true, tags: true, consentGiven: true, createdAt: true,
         },
         orderBy: { fullName: "asc" },
       });
