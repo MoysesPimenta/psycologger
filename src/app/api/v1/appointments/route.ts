@@ -85,8 +85,16 @@ export async function GET(req: NextRequest) {
 
     const where = {
       tenantId: ctx.tenantId,
-      ...(from && { startsAt: { gte: new Date(from) } }),
-      ...(to && { endsAt: { lte: new Date(to) } }),
+      // Filter on startsAt for both bounds so appointments that start within the
+      // requested window are always included, even if they end past the boundary
+      // (e.g. a 21:00 appointment that ends at 00:50 UTC the next day).
+      ...(from && to
+        ? { startsAt: { gte: new Date(from), lte: new Date(to) } }
+        : from
+        ? { startsAt: { gte: new Date(from) } }
+        : to
+        ? { startsAt: { lte: new Date(to) } }
+        : {}),
       ...(providerUserId && { providerUserId }),
       ...(patientId && { patientId }),
       // If a specific status is requested return it; otherwise exclude CANCELED

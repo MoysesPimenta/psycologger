@@ -5,7 +5,7 @@ import { getAuthContext } from "@/lib/tenant";
 import { formatDate } from "@/lib/utils";
 import { TodayClient } from "@/components/appointments/today-client";
 import { startOfDay, endOfDay } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -29,15 +29,20 @@ export default async function TodayPage() {
   });
   const tz = tenant?.timezone ?? "America/Sao_Paulo";
 
+  // Compute today's bounds in the tenant timezone and convert to UTC for the DB query.
+  // Using fromZonedTime is critical — without it, startOfDay/endOfDay operate in the
+  // server's local timezone (UTC) instead of the tenant's timezone, causing evening
+  // appointments (e.g. 21:00 BRT = 00:01 UTC next day) to be missed.
   const nowInTz = toZonedTime(new Date(), tz);
-  const from = startOfDay(nowInTz);
-  const to = endOfDay(nowInTz);
+  const from = fromZonedTime(startOfDay(nowInTz), tz);
+  const to = fromZonedTime(endOfDay(nowInTz), tz);
 
   const appointments = await db.appointment.findMany({
     where: {
       tenantId: ctx.tenantId,
-      startsAt: { gte: from },
-      endsAt: { lte: to },
+      // Filter on startsAt only — using endsAt as upper bound excludes appointments
+      // that start today but end past midnight UTC.
+      startsAt: { gte: from, lte: to },
       ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
     },
     include: {
