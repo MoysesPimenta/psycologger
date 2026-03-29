@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest) {
 
     await auditLog({
       userId: ctx.userId,
-      action: "PROFILE_UPDATE",
+      action: "USER_PROFILE_UPDATE",
       entity: "User",
       entityId: ctx.userId,
       summary: { fields: Object.keys(body) },

@@ -21,6 +21,7 @@ export type AuditAction =
   | "USER_INVITE_ACCEPT"
   | "USER_ROLE_CHANGE"
   | "USER_SUSPEND"
+  | "USER_PROFILE_UPDATE"
   // Patients
   | "PATIENT_CREATE"
   | "PATIENT_UPDATE"
