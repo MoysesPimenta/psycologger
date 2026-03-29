@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
 import { can } from "@/lib/rbac";
@@ -15,10 +15,23 @@ export default async function SessionPage({
   params: { id: string };
   searchParams: { appointmentId?: string; patientId?: string };
 }) {
-  const ctx = await getAuthContext().catch(() => null);
-  if (!ctx) notFound();
+  const ctx = await getAuthContext().catch((err) => {
+    console.error("[sessions/[id]] getAuthContext failed:", err);
+    return null;
+  });
+  if (!ctx) {
+    console.error("[sessions/[id]] No auth context — redirecting to login");
+    redirect("/login");
+  }
 
-  if (!can(ctx, "sessions:view")) notFound();
+  if (!can(ctx!, "sessions:view")) {
+    console.error(
+      `[sessions/[id]] sessions:view denied for role=${ctx!.role} ` +
+        `canViewClinicalNotes=${ctx!.membership.canViewClinicalNotes} ` +
+        `adminCanViewClinical=${ctx!.tenant.adminCanViewClinical}`
+    );
+    redirect("/app?error=no-session-access");
+  }
 
   if (params.id === "new") {
     const patient = searchParams.patientId

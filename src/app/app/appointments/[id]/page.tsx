@@ -61,6 +61,7 @@ export default async function AppointmentDetailPage({ params }: Props) {
     <AppointmentDetailClient
       appointment={appointment as never}
       role={ctx.role}
+      canViewSessions={can(ctx, "sessions:view")}
       recurrenceTotal={recurrenceTotal}
       recurrenceFutureCount={recurrenceFutureCount}
     />

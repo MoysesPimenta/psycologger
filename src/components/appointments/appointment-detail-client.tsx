@@ -54,6 +54,7 @@ interface Appointment {
 interface Props {
   appointment: Appointment;
   role: string;
+  canViewSessions?: boolean;
   recurrenceTotal: number;
   recurrenceFutureCount: number;
 }
@@ -128,6 +129,7 @@ function toLocalInput(iso: string): string {
 export function AppointmentDetailClient({
   appointment: initialAppt,
   role,
+  canViewSessions = true,
   recurrenceTotal,
   recurrenceFutureCount,
 }: Props) {
@@ -550,7 +552,7 @@ export function AppointmentDetailClient({
       )}
 
       {/* ── Clinical session ── */}
-      {appt.status === "COMPLETED" && (
+      {appt.status === "COMPLETED" && canViewSessions && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base">Prontuário</CardTitle>
