@@ -258,59 +258,57 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
     templateKey !== savedTemplateKey.current ||
     JSON.stringify(tags) !== JSON.stringify(savedTags.current);
 
-  // When the user tries to navigate away with unsaved changes, we intercept the
-  // pushState call, store its args here, and show a React modal instead of
-  // window.confirm() (which causes hydration errors in Next.js App Router).
-  const [pendingNavArgs, setPendingNavArgs] =
-    useState<Parameters<typeof history.pushState> | null>(null);
+  // When the user tries to navigate away with unsaved changes we show a modal.
+  // We store the destination href here; null = modal is hidden.
+  const [pendingNavUrl, setPendingNavUrl] = useState<string | null>(null);
 
-  // When true, the patched pushState lets navigation through without prompting.
-  const bypassNavGuard = useRef(false);
-
-  // Single effect guards ALL navigation when dirty:
-  // - beforeunload  → browser tab close / refresh / external link
-  // - pushState patch → every Next.js Link, sidebar click, router.push
+  // Guards ALL navigation when dirty.
+  // Strategy: intercept link CLICKS in the capture phase, before Next.js
+  // App Router starts any transition (patching pushState is too late —
+  // the App Router drives route changes via startTransition independently
+  // of the URL update, so blocking pushState doesn't stop the navigation).
   useEffect(() => {
     if (!isDirty) return;
 
+    // Warn on tab-close / hard refresh
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
 
-    const originalPushState = window.history.pushState.bind(window.history);
-    window.history.pushState = function (
-      ...args: Parameters<typeof window.history.pushState>
-    ) {
-      if (bypassNavGuard.current) {
-        // User confirmed leaving — let the navigation through.
-        originalPushState(...args);
-        return;
-      }
-      // Intercept: show modal instead of navigating.
-      setPendingNavArgs(args);
+    // Intercept every <a href> click before Next.js sees it
+    const handleClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest("a[href]") as HTMLAnchorElement | null;
+      if (!anchor) return;
+      const href = anchor.getAttribute("href") ?? "";
+      // Ignore: hash-only, external (new tab), mailto/tel
+      if (!href || href.startsWith("#") || anchor.target === "_blank") return;
+      if (href.startsWith("mailto:") || href.startsWith("tel:")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingNavUrl(href);
     };
+    document.addEventListener("click", handleClick, true /* capture */);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.history.pushState = originalPushState;
+      document.removeEventListener("click", handleClick, true);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDirty]);
 
   /** User chose to stay — dismiss the modal, keep changes. */
   function handleNavCancel() {
-    setPendingNavArgs(null);
+    setPendingNavUrl(null);
   }
 
-  /** User chose to leave — replay the intercepted navigation. */
+  /** User chose to leave — navigate programmatically (bypasses click guard). */
   function handleNavConfirm() {
-    if (!pendingNavArgs) return;
-    bypassNavGuard.current = true;
-    window.history.pushState(...pendingNavArgs);
-    bypassNavGuard.current = false;
-    setPendingNavArgs(null);
+    if (!pendingNavUrl) return;
+    const url = pendingNavUrl;
+    setPendingNavUrl(null);
+    router.push(url);
   }
 
   // Probe storage config once we have a session ID
@@ -535,7 +533,7 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
       </div>
 
       {/* ── Unsaved-changes confirmation modal ── */}
-      {pendingNavArgs && (
+      {pendingNavUrl && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           onClick={handleNavCancel}
