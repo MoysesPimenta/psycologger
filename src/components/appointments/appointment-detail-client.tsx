@@ -1247,8 +1247,9 @@ function ChargesCard({
             const net = charge.amountCents - (charge.discountCents ?? 0);
             const paidSoFar = charge.payments.reduce((s, p) => s + p.amountCents, 0);
             const isPaid = charge.status === "PAID";
+            const isPartiallyPaid = !isPaid && charge.payments.length > 0 && charge.status !== "VOID";
             const canModify = charge.payments.length === 0;
-            const canPay = !isPaid && charge.status !== "VOID";
+            const canPay = !isPaid && !isPartiallyPaid && charge.status !== "VOID";
 
             return (
               <div key={charge.id} className="rounded-lg border border-gray-100 p-3 space-y-2">
@@ -1362,6 +1363,15 @@ function ChargesCard({
                         >
                           <Split className="h-3.5 w-3.5" /> Pagamento parcial
                         </button>
+                      </div>
+                    )}
+
+                    {/* Partially paid badge */}
+                    {isPartiallyPaid && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">
+                          <Split className="h-3.5 w-3.5" /> Pago parcialmente · R$ {(paidSoFar / 100).toFixed(2).replace(".", ",")} de R$ {(net / 100).toFixed(2).replace(".", ",")}
+                        </span>
                       </div>
                     )}
 

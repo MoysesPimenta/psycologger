@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
           },
           include: {
             payments: true,
-            provider: { select: { id: true, name: true } },
+            provider: { select: { id: true, name: true, email: true } },
             patient: { select: { fullName: true } },
           },
         }),
@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
       for (const charge of charges) {
         const pid = charge.providerUserId;
         if (!byProvider[pid]) {
-          byProvider[pid] = { name: charge.provider.name ?? pid, received: 0, sessions: 0, pending: 0 };
+          byProvider[pid] = { name: charge.provider.name ?? charge.provider.email ?? pid, received: 0, sessions: 0, pending: 0 };
         }
         if (charge.status === "PAID") {
           byProvider[pid].received += charge.payments.reduce((s, p) => s + p.amountCents, 0);
@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
           ...charges.map((c) => [
             c.dueDate.toISOString().slice(0, 10),
             `"${c.patient.fullName}"`,
-            `"${c.provider.name ?? ""}"`,
+            `"${c.provider.name ?? c.provider.email ?? ""}"`,
             (c.amountCents / 100).toFixed(2).replace(".", ","),
             c.status,
             c.payments[0]?.method ?? "",
@@ -326,7 +326,7 @@ export async function GET(req: NextRequest) {
         },
         include: {
           patient: { select: { fullName: true } },
-          provider: { select: { name: true } },
+          provider: { select: { name: true, email: true } },
           appointmentType: { select: { name: true } },
         },
         orderBy: { startsAt: "desc" },
@@ -340,7 +340,7 @@ export async function GET(req: NextRequest) {
             a.startsAt.toISOString().slice(11, 16),
             a.endsAt.toISOString().slice(11, 16),
             `"${a.patient.fullName}"`,
-            `"${a.provider.name ?? ""}"`,
+            `"${a.provider.name ?? a.provider.email ?? ""}"`,
             `"${a.appointmentType.name}"`,
             a.status,
             `"${a.location ?? ""}"`,
@@ -364,7 +364,7 @@ export async function GET(req: NextRequest) {
         },
         include: {
           patient: { select: { fullName: true } },
-          provider: { select: { name: true } },
+          provider: { select: { name: true, email: true } },
           payments: { select: { amountCents: true, method: true, paidAt: true } },
         },
         orderBy: { dueDate: "desc" },
@@ -377,7 +377,7 @@ export async function GET(req: NextRequest) {
           return [
             c.dueDate.toISOString().slice(0, 10),
             `"${c.patient.fullName}"`,
-            `"${c.provider.name ?? ""}"`,
+            `"${c.provider.name ?? c.provider.email ?? ""}"`,
             (c.amountCents / 100).toFixed(2).replace(".", ","),
             (c.discountCents / 100).toFixed(2).replace(".", ","),
             c.status,
