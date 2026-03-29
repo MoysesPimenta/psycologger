@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   Save, ChevronLeft, Clock, FileText, Tag, History,
   Paperclip, Upload, Trash2, Download, File, Image,
@@ -247,6 +246,33 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
   // undefined = not yet checked, true/false = result
   const [storageOk, setStorageOk] = useState<boolean | undefined>(undefined);
 
+  // ── Unsaved-changes tracking ───────────────────────────────────────────────
+  // Refs hold the last-saved snapshot; isDirty compares current state against them.
+  const savedNoteText   = useRef(session?.noteText ?? "");
+  const savedTemplateKey = useRef<TemplateKey>(session?.templateKey ?? "FREE");
+  const savedTags       = useRef<string[]>(session?.tags ?? []);
+
+  const isDirty =
+    noteText !== savedNoteText.current ||
+    templateKey !== savedTemplateKey.current ||
+    JSON.stringify(tags) !== JSON.stringify(savedTags.current);
+
+  // Block browser-level navigation (tab close, refresh, external link) when dirty
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) { e.preventDefault(); e.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // Warn before in-app navigation when dirty
+  function confirmLeave(destination: string) {
+    if (!isDirty || confirm("Há alterações não salvas. Deseja sair sem salvar?")) {
+      router.push(destination);
+    }
+  }
+
   // Probe storage config once we have a session ID
   function probeStorage(id: string) {
     if (storageOk !== undefined) return;
@@ -284,6 +310,11 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
       const data = await res.json();
       toast({ title: isNew ? "Sessão criada!" : "Sessão salva!", variant: "success" });
 
+      // Reset dirty baseline so the guard clears after save
+      savedNoteText.current    = noteText;
+      savedTemplateKey.current = templateKey;
+      savedTags.current        = [...tags];
+
       if (isNew) {
         const newId: string = data.data.id;
         setSavedSessionId(newId);
@@ -302,10 +333,12 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={patient ? `/app/patients/${patient.id}` : "/app/today"}>
-              <ChevronLeft className="h-5 w-5" />
-            </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => confirmLeave(patient ? `/app/patients/${patient.id}` : "/app/today")}
+          >
+            <ChevronLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-xl font-bold text-gray-900">{session ? "Nota clínica" : "Nova sessão"}</h1>
@@ -412,9 +445,12 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
               </div>
             )}
             {appointment?.id && (
-              <Link href={`/app/appointments/${appointment.id}`} className="text-xs text-brand-600 hover:underline block">
+              <button
+                onClick={() => confirmLeave(`/app/appointments/${appointment.id}`)}
+                className="text-xs text-brand-600 hover:underline block text-left"
+              >
                 Ver consulta →
-              </Link>
+              </button>
             )}
             {savedSessionId && (
               <div className="flex items-center gap-1.5 text-xs text-green-700">
