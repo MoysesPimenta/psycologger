@@ -32,7 +32,7 @@ export async function GET(
 }
 
 const acceptSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
+  name: z.string().min(2, "Nome deve ter ao menos 2 caracteres").max(100),
 });
 
 export async function POST(
@@ -42,7 +42,7 @@ export async function POST(
   try {
     const { ipAddress, userAgent } = extractRequestMeta(req);
     const session = await getServerSession(authOptions);
-    const body = acceptSchema.safeParse(await req.json()).data ?? {};
+    const body = acceptSchema.parse(await req.json());
 
     const invite = await db.invite.findUnique({
       where: { token: params.token },
@@ -59,7 +59,7 @@ export async function POST(
         user = await tx.user.create({
           data: {
             email: invite.email,
-            name: (body as { name?: string }).name ?? null,
+            name: body.name,
           },
         });
       }

@@ -2,11 +2,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Building2, Users, Calendar, Bell, Puzzle, Download, Shield } from "lucide-react";
+import { ArrowRight, Building2, Users, Calendar, Bell, Puzzle, Download, UserCircle } from "lucide-react";
 
 export const metadata = { title: "Configurações" };
 
 const settingSections = [
+  { href: "/app/settings/profile", icon: UserCircle, label: "Meu Perfil", desc: "Nome, telefone e dados pessoais" },
   { href: "/app/settings/clinic", icon: Building2, label: "Clínica", desc: "Nome, endereço e informações fiscais" },
   { href: "/app/settings/users", icon: Users, label: "Usuários & Papéis", desc: "Convide e gerencie a equipe" },
   { href: "/app/settings/appointment-types", icon: Calendar, label: "Tipos de consulta", desc: "Configure tipos, durações e preços" },

@@ -123,6 +123,7 @@ model User {
   email         String    @unique
   emailVerified DateTime? // required by NextAuth PrismaAdapter
   name          String?
+  phone         String?
   image         String?   // required by NextAuth PrismaAdapter (maps to avatar URL)
   imageUrl      String?   // app-level alias kept for compatibility
   lastLoginAt   DateTime?

@@ -113,16 +113,17 @@ export default function InvitePage({ params }: { params: { token: string } }) {
                   <p className="text-sm text-gray-700 bg-gray-50 border rounded-md px-3 py-2">{invite.email}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Seu nome (opcional)</Label>
+                  <Label htmlFor="name">Seu nome completo</Label>
                   <Input
                     id="name"
                     placeholder="Dra. Ana Silva"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    required
                     autoFocus
                   />
                 </div>
-                <Button type="submit" className="w-full" loading={accepting}>
+                <Button type="submit" className="w-full" loading={accepting} disabled={!name.trim()}>
                   {accepting ? "Ativando conta..." : "Aceitar convite"}
                 </Button>
               </form>
