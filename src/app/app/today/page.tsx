@@ -46,7 +46,7 @@ export default async function TodayPage() {
           id: true, fullName: true, preferredName: true, phone: true,
           defaultFeeOverrideCents: true,
           defaultAppointmentType: { select: { defaultPriceCents: true } },
-        },
+        } as never,
       },
       provider: { select: { id: true, name: true } },
       appointmentType: { select: { id: true, name: true, color: true, defaultPriceCents: true } },

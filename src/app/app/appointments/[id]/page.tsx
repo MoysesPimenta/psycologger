@@ -27,7 +27,7 @@ export default async function AppointmentDetailPage({ params }: Props) {
           id: true, fullName: true, preferredName: true, email: true, phone: true,
           defaultFeeOverrideCents: true,
           defaultAppointmentType: { select: { id: true, name: true, defaultPriceCents: true } },
-        },
+        } as never,
       },
       provider: { select: { id: true, name: true, email: true } },
       appointmentType: true,

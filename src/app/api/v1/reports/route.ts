@@ -11,6 +11,9 @@ import { getAuthContext } from "@/lib/tenant";
 import { ok, handleApiError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
+import type { ChargeStatus } from "@prisma/client";
+
+const PENDING_STATUSES: ChargeStatus[] = ["PENDING", "OVERDUE"];
 
 export async function GET(req: NextRequest) {
   try {
@@ -85,7 +88,7 @@ export async function GET(req: NextRequest) {
         .filter((c) => c.status === "PAID")
         .reduce((s, c) => s + c.payments.reduce((ps, p) => ps + p.amountCents, 0), 0);
       const totalPending = charges
-        .filter((c) => ["PENDING", "OVERDUE", "PARTIAL"].includes(c.status))
+        .filter((c) => ["PENDING", "OVERDUE"].includes(c.status))
         .reduce((s, c) => {
           const net = c.amountCents - c.discountCents;
           const paid = c.payments.reduce((ps, p) => ps + p.amountCents, 0);
@@ -108,7 +111,7 @@ export async function GET(req: NextRequest) {
         if (charge.status === "PAID") {
           byProvider[pid].received += charge.payments.reduce((s, p) => s + p.amountCents, 0);
           byProvider[pid].sessions++;
-        } else if (["PENDING", "OVERDUE", "PARTIAL"].includes(charge.status)) {
+        } else if (["PENDING", "OVERDUE"].includes(charge.status)) {
           const net = charge.amountCents - charge.discountCents;
           const paid = charge.payments.reduce((s, p) => s + p.amountCents, 0);
           byProvider[pid].pending += net - paid;
@@ -233,45 +236,48 @@ export async function GET(req: NextRequest) {
       const futureMonths = 3;
 
       const upcoming = await Promise.all(
-        Array.from({ length: futureMonths }, (_, i) => {
+        Array.from({ length: futureMonths }, async (_, i) => {
           const d = new Date(now.getFullYear(), now.getMonth() + i);
           const from = startOfMonth(d);
           const to = endOfMonth(d);
-          return db.charge.aggregate({
-            where: {
-              tenantId: ctx.tenantId,
-              dueDate: { gte: from, lte: to },
-              status: { in: ["PENDING", "PARTIAL", "OVERDUE"] },
-              ...providerFilter,
-            },
-            _sum: { amountCents: true, discountCents: true },
-            _count: { id: true },
-          }).then((agg) => ({
+          const where = {
+            tenantId: ctx.tenantId,
+            dueDate: { gte: from, lte: to },
+            status: { in: PENDING_STATUSES },
+            ...providerFilter,
+          };
+          const [agg, count] = await Promise.all([
+            db.charge.aggregate({ where, _sum: { amountCents: true, discountCents: true } }),
+            db.charge.count({ where }),
+          ]);
+          const sumAmount = agg._sum?.amountCents ?? 0;
+          const sumDiscount = agg._sum?.discountCents ?? 0;
+          return {
             month: format(d, "MMMM yyyy"),
             monthShort: format(d, "MMM/yy"),
-            expected: (agg._sum.amountCents ?? 0) - (agg._sum.discountCents ?? 0),
-            count: agg._count.id,
-          }));
+            expected: sumAmount - sumDiscount,
+            count,
+          };
         })
       );
 
-      // Also get overdue
-      const overdue = await db.charge.aggregate({
-        where: {
-          tenantId: ctx.tenantId,
-          dueDate: { lt: startOfMonth(now) },
-          status: { in: ["PENDING", "PARTIAL", "OVERDUE"] },
-          ...providerFilter,
-        },
-        _sum: { amountCents: true, discountCents: true },
-        _count: { id: true },
-      });
+      // Also get overdue (past months)
+      const overdueWhere = {
+        tenantId: ctx.tenantId,
+        dueDate: { lt: startOfMonth(now) },
+        status: { in: PENDING_STATUSES },
+        ...providerFilter,
+      };
+      const [overdueAgg, overdueCount] = await Promise.all([
+        db.charge.aggregate({ where: overdueWhere, _sum: { amountCents: true, discountCents: true } }),
+        db.charge.count({ where: overdueWhere }),
+      ]);
 
       return ok({
         upcoming,
         overdue: {
-          total: (overdue._sum.amountCents ?? 0) - (overdue._sum.discountCents ?? 0),
-          count: overdue._count.id,
+          total: (overdueAgg._sum?.amountCents ?? 0) - (overdueAgg._sum?.discountCents ?? 0),
+          count: overdueCount,
         },
       });
     }

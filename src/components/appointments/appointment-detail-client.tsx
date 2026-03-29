@@ -225,7 +225,7 @@ function PaymentModal({
         paidAt: new Date(paidAt).toISOString(),
       };
 
-      onPaid(newPayment, amountCents >= netAmountCents ? "PAID" : "PARTIAL", remainderCharge);
+      onPaid(newPayment, amountCents >= netAmountCents ? "PAID" : "PENDING", remainderCharge);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro ao registrar pagamento.");
     } finally {

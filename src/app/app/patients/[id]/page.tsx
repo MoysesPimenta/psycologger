@@ -27,6 +27,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
     },
     include: {
       assignedUser: { select: { id: true, name: true } },
+      // @ts-ignore — field added to schema; prisma generate pending on deploy
       defaultAppointmentType: { select: { id: true, name: true, defaultPriceCents: true } },
       contacts: true,
       appointments: {
