@@ -249,16 +249,23 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
 
   // ── Unsaved-changes tracking ───────────────────────────────────────────────
   // Refs hold the last-saved snapshot; isDirty compares current state against them.
-  const savedNoteText   = useRef(session?.noteText ?? "");
+  const savedNoteText    = useRef(session?.noteText ?? "");
   const savedTemplateKey = useRef<TemplateKey>(session?.templateKey ?? "FREE");
-  const savedTags       = useRef<string[]>(session?.tags ?? []);
+  const savedTags        = useRef<string[]>(session?.tags ?? []);
 
   const isDirty =
     noteText !== savedNoteText.current ||
     templateKey !== savedTemplateKey.current ||
     JSON.stringify(tags) !== JSON.stringify(savedTags.current);
 
-  const CONFIRM_MSG = "Há alterações não salvas. Deseja sair sem salvar?";
+  // When the user tries to navigate away with unsaved changes, we intercept the
+  // pushState call, store its args here, and show a React modal instead of
+  // window.confirm() (which causes hydration errors in Next.js App Router).
+  const [pendingNavArgs, setPendingNavArgs] =
+    useState<Parameters<typeof history.pushState> | null>(null);
+
+  // When true, the patched pushState lets navigation through without prompting.
+  const bypassNavGuard = useRef(false);
 
   // Single effect guards ALL navigation when dirty:
   // - beforeunload  → browser tab close / refresh / external link
@@ -272,13 +279,17 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
 
-    const originalPushState = window.history.pushState;
+    const originalPushState = window.history.pushState.bind(window.history);
     window.history.pushState = function (
       ...args: Parameters<typeof window.history.pushState>
     ) {
-      if (confirm(CONFIRM_MSG)) {
-        originalPushState.apply(window.history, args);
+      if (bypassNavGuard.current) {
+        // User confirmed leaving — let the navigation through.
+        originalPushState(...args);
+        return;
       }
+      // Intercept: show modal instead of navigating.
+      setPendingNavArgs(args);
     };
 
     return () => {
@@ -287,6 +298,20 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDirty]);
+
+  /** User chose to stay — dismiss the modal, keep changes. */
+  function handleNavCancel() {
+    setPendingNavArgs(null);
+  }
+
+  /** User chose to leave — replay the intercepted navigation. */
+  function handleNavConfirm() {
+    if (!pendingNavArgs) return;
+    bypassNavGuard.current = true;
+    window.history.pushState(...pendingNavArgs);
+    bypassNavGuard.current = false;
+    setPendingNavArgs(null);
+  }
 
   // Probe storage config once we have a session ID
   function probeStorage(id: string) {
@@ -508,6 +533,37 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
           )}
         </div>
       </div>
+
+      {/* ── Unsaved-changes confirmation modal ── */}
+      {pendingNavArgs && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={handleNavCancel}
+        >
+          <div
+            className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900">Alterações não salvas</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Você tem alterações que ainda não foram salvas. Se sair agora, elas serão perdidas.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={handleNavCancel}>
+                Ficar na página
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleNavConfirm}>
+                Sair sem salvar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
