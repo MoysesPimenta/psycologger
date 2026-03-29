@@ -5,7 +5,7 @@ import { formatDate, formatCurrency, chargeStatusLabel, paymentMethodLabel } fro
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, CheckCircle2 } from "lucide-react";
+import { CreditCard, CheckCircle2, SplitSquareHorizontal } from "lucide-react";
 
 interface Charge {
   id: string;
@@ -102,7 +102,9 @@ export function ChargesClient() {
         <div className="space-y-2">
           {charges.map((charge) => {
             const netAmount = charge.amountCents - charge.discountCents;
-            const isPending = charge.status === "PENDING" || charge.status === "OVERDUE";
+            const isPaid = charge.status === "PAID";
+            const isPartiallyPaid = !isPaid && charge.payments.length > 0 && charge.status !== "VOID";
+            const isPending = !isPaid && !isPartiallyPaid && (charge.status === "PENDING" || charge.status === "OVERDUE");
             return (
               <div key={charge.id} className="bg-white rounded-xl border p-4">
                 <div className="flex items-center justify-between gap-4">
@@ -138,7 +140,13 @@ export function ChargesClient() {
                         Marcar pago
                       </Button>
                     )}
-                    {charge.status === "PAID" && (
+                    {isPartiallyPaid && (
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 whitespace-nowrap">
+                        <SplitSquareHorizontal className="h-3.5 w-3.5" />
+                        Pago parcialmente · {formatCurrency(charge.paidAmountCents)}
+                      </span>
+                    )}
+                    {isPaid && (
                       <CheckCircle2 className="h-5 w-5 text-green-500" />
                     )}
                   </div>

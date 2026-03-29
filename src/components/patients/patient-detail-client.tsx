@@ -770,7 +770,8 @@ function FinancialTab({ charges: initialCharges, patientId }: { charges: any[]; 
           const net = c.amountCents - c.discountCents;
           const paidAmount = c.payments.reduce((s: number, p: any) => s + p.amountCents, 0);
           const isPaid = c.status === "PAID";
-          const canPay = !isPaid && c.status !== "VOID";
+          const isPartiallyPaid = !isPaid && c.payments.length > 0 && c.status !== "VOID";
+          const canPay = !isPaid && !isPartiallyPaid && c.status !== "VOID";
 
           return (
             <div key={c.id} className="bg-white rounded-xl border p-3 space-y-2">
@@ -817,6 +818,15 @@ function FinancialTab({ charges: initialCharges, patientId }: { charges: any[]; 
                   >
                     <span className="font-bold">½</span> Pagamento parcial
                   </button>
+                </div>
+              )}
+
+              {/* Partially paid badge */}
+              {isPartiallyPaid && (
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">
+                    <span className="font-bold">½</span> Pago parcialmente · {formatCurrency(paidAmount)} de {formatCurrency(net)}
+                  </span>
                 </div>
               )}
             </div>
