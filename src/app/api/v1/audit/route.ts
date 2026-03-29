@@ -37,11 +37,12 @@ export async function GET(req: NextRequest) {
 
     if (exportCsv) {
       requirePermission(ctx, "audit:export");
+      // Cap at 50,000 rows; callers should filter by date range for large exports.
       const logs = await db.auditLog.findMany({
         where,
         include: { user: { select: { name: true, email: true } } },
         orderBy: { createdAt: "desc" },
-        take: 10000,
+        take: 50_000,
       });
 
       const rows = [

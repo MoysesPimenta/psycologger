@@ -265,7 +265,7 @@ model Patient {
   email         String?
   phone         String?
   dob           DateTime? @db.Date
-  cpf           String?   // Brazilian tax ID (encrypted at app layer)
+  cpf           String?   // Brazilian tax ID — store only if needed for billing; treat as sensitive PII
   notes         String?   // non-clinical header notes
   tags          String[]  @default([])
 
@@ -446,9 +446,6 @@ model ClinicalSession {
   templateKey String  @default("FREE") // FREE | SOAP | BIRP
   noteText    String  @db.Text
   tags        String[] @default([])
-
-  // Encryption flag (noteText encrypted at app layer when true)
-  isEncrypted Boolean @default(false)
 
   sessionDate DateTime
 

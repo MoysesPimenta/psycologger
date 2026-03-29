@@ -15,8 +15,8 @@ const createSchema = z.object({
   patientId: z.string().uuid(),
   appointmentId: z.string().uuid().optional(),
   sessionId: z.string().uuid().optional(),
-  amountCents: z.number().int().positive(),
-  discountCents: z.number().int().min(0).default(0),
+  amountCents: z.number().int().positive().max(100_000_000), // max R$1,000,000.00
+  discountCents: z.number().int().min(0).max(100_000_000).default(0),
   currency: z.string().length(3).default("BRL"),
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   description: z.string().max(200).optional(),

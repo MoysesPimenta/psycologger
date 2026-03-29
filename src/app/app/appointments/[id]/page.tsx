@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { getAuthContext } from "@/lib/tenant";
+import { can } from "@/lib/rbac";
 import { db } from "@/lib/db";
 import { AppointmentDetailClient } from "@/components/appointments/appointment-detail-client";
 

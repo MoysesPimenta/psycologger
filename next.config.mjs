@@ -1,12 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    // Type errors are caught locally; skip during CI/CD build for now
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   serverExternalPackages: ["@prisma/client", "prisma"],
   images: {
     remotePatterns: [
@@ -36,9 +29,13 @@ const nextConfig = {
           },
           {
             key: "Content-Security-Policy",
+            // unsafe-eval removed: Next.js 14 does not require it.
+            // unsafe-inline kept for script-src only because Next.js inline scripts
+            // (hydration bootstrapping) require it until nonce-based CSP is configured.
+            // style-src unsafe-inline is required by Tailwind and Radix UI.
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self'",

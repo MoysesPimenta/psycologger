@@ -15,21 +15,10 @@ export default async function SessionPage({
   params: { id: string };
   searchParams: { appointmentId?: string; patientId?: string };
 }) {
-  const ctx = await getAuthContext().catch((err) => {
-    console.error("[sessions/[id]] getAuthContext failed:", err);
-    return null;
-  });
-  if (!ctx) {
-    console.error("[sessions/[id]] No auth context — redirecting to login");
-    redirect("/login");
-  }
+  const ctx = await getAuthContext().catch(() => null);
+  if (!ctx) redirect("/login");
 
-  if (!can(ctx!, "sessions:view")) {
-    console.error(
-      `[sessions/[id]] sessions:view denied for role=${ctx!.role} ` +
-        `canViewClinicalNotes=${ctx!.membership.canViewClinicalNotes} ` +
-        `adminCanViewClinical=${ctx!.tenant.adminCanViewClinical}`
-    );
+  if (!can(ctx, "sessions:view")) {
     redirect("/app?error=no-session-access");
   }
 

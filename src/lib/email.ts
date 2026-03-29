@@ -10,6 +10,20 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.EMAIL_FROM ?? "Psycologger <noreply@psycologger.com>";
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
+// ─── HTML escaping ────────────────────────────────────────────────────────────
+// All user-supplied values interpolated into HTML must go through esc() to
+// prevent XSS in email clients.
+
+function esc(value: string | undefined | null): string {
+  if (!value) return "";
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 // ─── Magic Link ───────────────────────────────────────────────────────────────
 
 export async function sendMagicLink({
@@ -24,10 +38,10 @@ export async function sendMagicLink({
   const subject = "Seu link de acesso ao Psycologger";
   const html = `
     <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
-      <img src="${APP_URL}/logo.png" alt="Psycologger" style="height:40px; margin-bottom:24px;" />
+      <img src="${esc(APP_URL)}/logo.png" alt="Psycologger" style="height:40px; margin-bottom:24px;" />
       <h2 style="color:#1e3a8a;">Acesso ao Psycologger</h2>
-      <p>Olá${name ? `, ${name}` : ""}! Clique no botão abaixo para entrar na sua conta.</p>
-      <a href="${url}" style="
+      <p>Olá${name ? `, ${esc(name)}` : ""}! Clique no botão abaixo para entrar na sua conta.</p>
+      <a href="${esc(url)}" style="
         display:inline-block;
         padding:12px 28px;
         background:#2563eb;
@@ -66,12 +80,12 @@ export async function sendInviteEmail({
   role: string;
   inviterName?: string;
 }) {
-  const subject = `Convite para ${tenantName} no Psycologger`;
+  const subject = `Convite para ${esc(tenantName)} no Psycologger`;
   const html = `
     <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
       <h2 style="color:#1e3a8a;">Você foi convidado!</h2>
-      <p>${inviterName ? `<strong>${inviterName}</strong> convidou você` : "Você foi convidado"} para ingressar em <strong>${tenantName}</strong> no Psycologger como <strong>${roleLabel(role)}</strong>.</p>
-      <a href="${inviteUrl}" style="
+      <p>${inviterName ? `<strong>${esc(inviterName)}</strong> convidou você` : "Você foi convidado"} para ingressar em <strong>${esc(tenantName)}</strong> no Psycologger como <strong>${esc(roleLabel(role))}</strong>.</p>
+      <a href="${esc(inviteUrl)}" style="
         display:inline-block;
         padding:12px 28px;
         background:#2563eb;
@@ -110,21 +124,21 @@ export async function sendAppointmentConfirmation({
   location?: string;
   videoLink?: string;
 }) {
-  const subject = `Confirmação de consulta — ${clinicName}`;
+  const subject = `Confirmação de consulta — ${esc(clinicName)}`;
   const locationHtml = videoLink
-    ? `<p>Link para consulta online: <a href="${videoLink}">${videoLink}</a></p>`
+    ? `<p>Link para consulta online: <a href="${esc(videoLink)}">${esc(videoLink)}</a></p>`
     : location
-    ? `<p>Local: ${location}</p>`
+    ? `<p>Local: ${esc(location)}</p>`
     : "";
 
   const html = `
     <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
       <h2 style="color:#1e3a8a;">Consulta confirmada</h2>
-      <p>Olá, ${patientName}!</p>
-      <p>Sua consulta em <strong>${clinicName}</strong> está confirmada:</p>
+      <p>Olá, ${esc(patientName)}!</p>
+      <p>Sua consulta em <strong>${esc(clinicName)}</strong> está confirmada:</p>
       <div style="background:#f1f5f9; padding:16px; border-radius:8px; margin:16px 0;">
-        <p style="margin:4px 0;"><strong>Data:</strong> ${appointmentDate}</p>
-        <p style="margin:4px 0;"><strong>Horário:</strong> ${appointmentTime}</p>
+        <p style="margin:4px 0;"><strong>Data:</strong> ${esc(appointmentDate)}</p>
+        <p style="margin:4px 0;"><strong>Horário:</strong> ${esc(appointmentTime)}</p>
         ${locationHtml}
       </div>
       <p style="color:#6b7280; font-size:13px;">Em caso de dúvidas ou necessidade de reagendamento, entre em contato com a clínica.</p>
@@ -147,17 +161,17 @@ export async function sendAppointmentReminder({
   appointmentTime: string;
   clinicName: string;
 }) {
-  const subject = `Lembrete: consulta amanhã — ${clinicName}`;
+  const subject = `Lembrete: consulta amanhã — ${esc(clinicName)}`;
   const html = `
     <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
       <h2 style="color:#1e3a8a;">Lembrete de consulta</h2>
-      <p>Olá, ${patientName}!</p>
+      <p>Olá, ${esc(patientName)}!</p>
       <p>Lembramos que você tem uma consulta agendada <strong>amanhã</strong>:</p>
       <div style="background:#f1f5f9; padding:16px; border-radius:8px; margin:16px 0;">
-        <p style="margin:4px 0;"><strong>Data:</strong> ${appointmentDate}</p>
-        <p style="margin:4px 0;"><strong>Horário:</strong> ${appointmentTime}</p>
+        <p style="margin:4px 0;"><strong>Data:</strong> ${esc(appointmentDate)}</p>
+        <p style="margin:4px 0;"><strong>Horário:</strong> ${esc(appointmentTime)}</p>
       </div>
-      <p style="color:#6b7280; font-size:13px;">Em caso de necessidade de cancelamento ou reagendamento, entre em contato com ${clinicName}.</p>
+      <p style="color:#6b7280; font-size:13px;">Em caso de necessidade de cancelamento ou reagendamento, entre em contato com ${esc(clinicName)}.</p>
     </div>
   `;
 
