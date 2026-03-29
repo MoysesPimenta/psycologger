@@ -22,22 +22,42 @@ export default async function FinancialPage() {
   const from = startOfMonth(now);
   const to = endOfMonth(now);
 
-  const charges = await db.charge.findMany({
-    where: {
-      tenantId: ctx.tenantId,
-      dueDate: { gte: from, lte: to },
-      ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
-    },
-    include: { payments: { select: { amountCents: true } } },
-  });
+  const providerFilter = ctx.role === "PSYCHOLOGIST" ? { providerUserId: ctx.userId } : {};
 
-  const totalCharged = charges.reduce((s, c) => s + (c.amountCents - c.discountCents), 0);
-  const totalReceived = charges
-    .filter((c) => c.status === "PAID")
-    .reduce((s, c) => s + c.payments.reduce((ps, p) => ps + p.amountCents, 0), 0);
+  const [charges, receivedAgg] = await Promise.all([
+    db.charge.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        dueDate: { gte: from, lte: to },
+        ...providerFilter,
+      },
+      include: { payments: { select: { amountCents: true } } },
+    }),
+    // Cash basis: all payments received this month, regardless of charge due date.
+    // This correctly captures saldo restante payments whose parent charge may be
+    // due in a future month.
+    db.payment.aggregate({
+      where: {
+        tenantId: ctx.tenantId,
+        paidAt: { gte: from, lte: to },
+        charge: { ...providerFilter },
+      },
+      _sum: { amountCents: true },
+    }),
+  ]);
+
+  // Exclude "Saldo restante" splits from totalCharged so the figure reflects
+  // actual billed services only (not double-counted remainder carry-overs).
+  const serviceCharges = charges.filter((c) => c.description !== "Saldo restante");
+  const totalCharged = serviceCharges.reduce((s, c) => s + (c.amountCents - c.discountCents), 0);
+  const totalReceived = receivedAgg._sum.amountCents ?? 0;
   const totalPending = charges
     .filter((c) => ["PENDING", "OVERDUE"].includes(c.status))
-    .reduce((s, c) => s + (c.amountCents - c.discountCents), 0);
+    .reduce((s, c) => {
+      const net = c.amountCents - c.discountCents;
+      const paid = c.payments.reduce((ps, p) => ps + p.amountCents, 0);
+      return s + (net - paid);
+    }, 0);
 
   return (
     <div className="space-y-6">
@@ -58,12 +78,12 @@ export default async function FinancialPage() {
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs font-medium text-gray-500">Total cobrado</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">{formatCurrency(totalCharged)}</p>
-          <p className="text-xs text-gray-400 mt-1">{charges.length} cobranças</p>
+          <p className="text-xs text-gray-400 mt-1">{serviceCharges.length} cobranças</p>
         </div>
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs font-medium text-gray-500">Recebido</p>
           <p className="text-3xl font-bold text-green-600 mt-2">{formatCurrency(totalReceived)}</p>
-          <p className="text-xs text-gray-400 mt-1">{charges.filter((c) => c.status === "PAID").length} pagas</p>
+          <p className="text-xs text-gray-400 mt-1">{serviceCharges.filter((c) => c.status === "PAID").length} pagas</p>
         </div>
         <div className="bg-white rounded-xl border p-5">
           <p className="text-xs font-medium text-gray-500">Pendente</p>
