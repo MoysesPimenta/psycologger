@@ -193,11 +193,12 @@ export async function GET(req: NextRequest) {
           const from = startOfMonth(d);
           const to = endOfMonth(d);
           return Promise.all([
-            // Competência
+            // Competência — exclude "Saldo restante" splits (same rule as monthly report)
             db.charge.aggregate({
               where: {
                 tenantId: ctx.tenantId,
                 dueDate: { gte: from, lte: to },
+                description: { not: "Saldo restante" },
                 ...providerFilter,
               },
               _sum: { amountCents: true, discountCents: true },
