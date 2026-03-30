@@ -5,7 +5,7 @@ import { formatDate, formatCurrency, chargeStatusLabel, paymentMethodLabel } fro
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, CheckCircle2, SplitSquareHorizontal } from "lucide-react";
+import { CreditCard, CheckCircle2, SplitSquareHorizontal, X } from "lucide-react";
 
 interface Charge {
   id: string;
@@ -36,6 +36,9 @@ export function ChargesClient() {
   const { toast } = useToast();
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payMethodMap, setPayMethodMap] = useState<Record<string, string>>({});
+  // Track which charge has the partial payment form open + custom amount
+  const [partialFormId, setPartialFormId] = useState<string | null>(null);
+  const [partialAmount, setPartialAmount] = useState("");
 
   const fetchCharges = useCallback(async () => {
     setLoading(true);
@@ -180,12 +183,16 @@ export function ChargesClient() {
           {charges.map((charge) => {
             const netAmount = charge.amountCents - charge.discountCents;
             const isPaid = charge.status === "PAID";
-            const isPartiallyPaid = !isPaid && charge.payments.length > 0 && charge.status !== "VOID";
-            const isPending = !isPaid && !isPartiallyPaid && (charge.status === "PENDING" || charge.status === "OVERDUE");
+            const isVoid = charge.status === "VOID" || charge.status === "REFUNDED";
+            const isPartiallyPaid = !isPaid && charge.payments.length > 0 && !isVoid;
+            const isPending = !isPaid && !isPartiallyPaid && !isVoid && (charge.status === "PENDING" || charge.status === "OVERDUE");
             const remaining = netAmount - charge.paidAmountCents;
+            // PAID charges where less was paid than the net (partial payment → saldo restante flow)
+            const wasPaidPartially = isPaid && charge.paidAmountCents > 0 && charge.paidAmountCents < netAmount;
             // For overdue display: treat PENDING past-due as overdue
             const isOverdue = charge.status === "OVERDUE" || (charge.status === "PENDING" && new Date(charge.dueDate) < new Date(new Date().toDateString()));
             const displayStatus = isOverdue && charge.status === "PENDING" ? "OVERDUE" : charge.status;
+            const showPartialForm = partialFormId === charge.id;
             return (
               <div key={charge.id} className="bg-white rounded-xl border p-4">
                 <div className="flex items-center justify-between gap-4">
@@ -208,18 +215,20 @@ export function ChargesClient() {
                     )}
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    {/* Amount display: show paid amount for partially paid, full amount otherwise */}
-                    {isPartiallyPaid ? (
+                    {/* Amount display */}
+                    {isPartiallyPaid || wasPaidPartially ? (
                       <div className="text-right">
                         <span className="font-bold text-green-700">{formatCurrency(charge.paidAmountCents)}</span>
                         <span className="text-xs text-gray-400 block">
-                          de {formatCurrency(netAmount)} · resta {formatCurrency(remaining)}
+                          de {formatCurrency(netAmount)}
+                          {remaining > 0 && ` · resta ${formatCurrency(remaining)}`}
                         </span>
                       </div>
                     ) : (
                       <span className="font-bold text-gray-900">{formatCurrency(netAmount)}</span>
                     )}
-                    {isPending && (
+                    {/* Actions for pending charges (no payments yet) */}
+                    {isPending && !showPartialForm && (
                       <div className="flex items-center gap-1.5">
                         <select
                           className="text-xs border rounded-md px-2 py-1 h-8 bg-white focus:outline-none focus:ring-1 focus:ring-green-400"
@@ -245,9 +254,22 @@ export function ChargesClient() {
                           <CreditCard className="h-3 w-3" />
                           Marcar pago
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-blue-700 border-blue-300"
+                          onClick={() => {
+                            setPartialFormId(charge.id);
+                            setPartialAmount("");
+                          }}
+                        >
+                          <SplitSquareHorizontal className="h-3 w-3" />
+                          Pagamento parcial
+                        </Button>
                       </div>
                     )}
-                    {isPartiallyPaid && (
+                    {/* Actions for partially paid charges */}
+                    {isPartiallyPaid && !showPartialForm && (
                       <div className="flex items-center gap-1.5">
                         <select
                           className="text-xs border rounded-md px-2 py-1 h-8 bg-white focus:outline-none focus:ring-1 focus:ring-orange-400"
@@ -270,8 +292,20 @@ export function ChargesClient() {
                           loading={payingId === charge.id}
                           onClick={() => markPaid(charge.id, remaining)}
                         >
-                          <SplitSquareHorizontal className="h-3 w-3" />
+                          <CreditCard className="h-3 w-3" />
                           Pagar resto
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-blue-700 border-blue-300"
+                          onClick={() => {
+                            setPartialFormId(charge.id);
+                            setPartialAmount("");
+                          }}
+                        >
+                          <SplitSquareHorizontal className="h-3 w-3" />
+                          Pagamento parcial
                         </Button>
                       </div>
                     )}
@@ -280,6 +314,62 @@ export function ChargesClient() {
                     )}
                   </div>
                 </div>
+                {/* Inline partial payment form */}
+                {showPartialForm && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <select
+                      className="text-xs border rounded-md px-2 py-1 h-8 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      value={payMethodMap[charge.id] ?? "PIX"}
+                      onChange={(e) => setPayMethodMap((m) => ({ ...m, [charge.id]: e.target.value }))}
+                      disabled={payingId === charge.id}
+                    >
+                      <option value="PIX">PIX</option>
+                      <option value="CASH">Dinheiro</option>
+                      <option value="CARD">Cartão</option>
+                      <option value="TRANSFER">Transferência</option>
+                      <option value="INSURANCE">Convênio</option>
+                      <option value="OTHER">Outro</option>
+                    </select>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-500">R$</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder={(remaining / 100).toFixed(2).replace(".", ",")}
+                        value={partialAmount}
+                        onChange={(e) => setPartialAmount(e.target.value)}
+                        className="w-24 border rounded-md px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-blue-700 border-blue-300"
+                      loading={payingId === charge.id}
+                      onClick={() => {
+                        const cents = Math.round(parseFloat((partialAmount || "0").replace(",", ".")) * 100);
+                        if (cents <= 0 || cents > remaining) {
+                          toast({ title: `Valor deve ser entre R$ 0,01 e ${formatCurrency(remaining)}`, variant: "destructive" });
+                          return;
+                        }
+                        markPaid(charge.id, cents);
+                        setPartialFormId(null);
+                      }}
+                    >
+                      <CreditCard className="h-3 w-3" />
+                      Confirmar
+                    </Button>
+                    <button
+                      onClick={() => setPartialFormId(null)}
+                      className="text-gray-400 hover:text-gray-600 p-1"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <span className="text-xs text-gray-500 ml-auto">
+                      Pendente: {formatCurrency(remaining)}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}
