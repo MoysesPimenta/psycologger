@@ -10,6 +10,7 @@ import { getAuthContext } from "@/lib/tenant";
 import { ok, created, handleApiError, parsePagination, buildMeta } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { sendPaymentCreatedNotification } from "@/lib/email";
 
 const createSchema = z.object({
   patientId: z.string().uuid(),
@@ -129,6 +130,61 @@ export async function POST(req: NextRequest) {
       ipAddress,
       userAgent,
     });
+
+    // ─── Send payment created reminder (fire-and-forget) ─────────────
+    try {
+      const patient = await db.patient.findUnique({
+        where: { id: body.patientId },
+        select: { email: true, fullName: true },
+      });
+      const tenant = await db.tenant.findUnique({
+        where: { id: ctx.tenantId },
+        select: { name: true },
+      });
+
+      // Check if PAYMENT_CREATED template is active (default: yes)
+      const template = await db.reminderTemplate.findFirst({
+        where: { tenantId: ctx.tenantId, type: "PAYMENT_CREATED" },
+      });
+      const isActive = template ? template.isActive : true;
+
+      if (patient?.email && tenant && isActive) {
+        const net = body.amountCents - (body.discountCents ?? 0);
+        const amountFormatted = new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(net / 100);
+        const dueDate = new Intl.DateTimeFormat("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(new Date(body.dueDate));
+
+        await sendPaymentCreatedNotification({
+          to: patient.email,
+          patientName: patient.fullName,
+          clinicName: tenant.name,
+          amountFormatted,
+          dueDate,
+          description: body.description,
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (db as any).paymentReminderLog.create({
+          data: {
+            tenantId: ctx.tenantId,
+            chargeId: charge.id,
+            type: "PAYMENT_CREATED",
+            channel: "EMAIL",
+            recipient: patient.email,
+            status: "SENT",
+          },
+        });
+      }
+    } catch (emailErr) {
+      // Don't fail charge creation if email fails — log and continue
+      console.error("[charges] Payment reminder email failed:", emailErr);
+    }
 
     return created(charge);
   } catch (err) {

@@ -297,8 +297,9 @@ codebase. It MUST be kept accurate at all times.
 - `issuedAt`, `rawResponseRedacted`
 
 #### **ReminderTemplate & ReminderLog**
-- **ReminderTemplate**: `type` (CONFIRMATION, REMINDER_24H, REMINDER_1H), `subject`, `body`
-- **ReminderLog**: Audit trail of reminders sent (EMAIL, SMS, WHATSAPP)
+- **ReminderTemplate**: `type` (CONFIRMATION, REMINDER_24H, REMINDER_1H, PAYMENT_CREATED, PAYMENT_DUE_24H, PAYMENT_OVERDUE), `subject`, `body`
+- **ReminderLog**: Audit trail of appointment reminders sent (EMAIL, SMS, WHATSAPP)
+- **PaymentReminderLog**: Audit trail of payment reminders sent — tracks `type` (PAYMENT_CREATED, PAYMENT_DUE_24H, PAYMENT_OVERDUE), `channel`, `recipient`, `status`
 
 #### **Recurrence**
 - `rrule` (RFC 5545 string)
@@ -1043,11 +1044,18 @@ See RBAC section above for complete permission matrix
 
 #### src/app/api/v1/charges/route.ts
 - **GET**: List charges with filters, pagination, OVERDUE logic
-- **POST**: Create new charge
+- **POST**: Create new charge + sends PAYMENT_CREATED email reminder (fire-and-forget)
 - **RBAC Check**: `requirePermission(ctx, "charges:view")`, `requirePermission(ctx, "charges:create")`
 - **Query Filters**: tenantId, patientId, provider (if PSYCHOLOGIST), dueDate range, status
 - **Pagination**: `parsePagination(searchParams)`, `buildMeta(...)`
 - **Audit**: `auditLog(...)` on POST
+
+#### src/app/api/v1/cron/payment-reminders/route.ts
+- **POST**: Daily cron (Vercel Cron at 9 AM BRT) for payment reminders
+- **Protected by**: `CRON_SECRET` env var (Bearer token)
+- **Sends**: PAYMENT_DUE_24H (charges due tomorrow), PAYMENT_OVERDUE (past due, once only)
+- **Deduplication**: Checks PaymentReminderLog before sending
+- **Auto-status**: Flips PENDING → OVERDUE for past-due charges
 
 #### src/app/api/v1/payments/route.ts
 - **POST**: Record payment, handle partial/full payment, create remainder charge

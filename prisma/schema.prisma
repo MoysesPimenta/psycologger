@@ -203,6 +203,7 @@ model Tenant {
   integrations     IntegrationCredential[]
   nfseInvoices     NfseInvoice[]
   reminderTemplates ReminderTemplate[]
+  paymentReminderLogs PaymentReminderLog[]
 
   @@index([createdAt])
   @@index([slug])
@@ -440,6 +441,25 @@ model ReminderLog {
   @@index([tenantId, appointmentId])
 }
 
+model PaymentReminderLog {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  chargeId String @db.Uuid
+
+  type      String   // PAYMENT_CREATED | PAYMENT_DUE_24H | PAYMENT_OVERDUE
+  channel   String   // EMAIL | SMS | WHATSAPP
+  recipient String
+  sentAt    DateTime @default(now())
+  status    String   // SENT | FAILED | BOUNCED
+  errorMsg  String?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge Charge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, chargeId])
+  @@index([tenantId, type, sentAt])
+}
+
 // ─── EMR / Clinical Sessions ──────────────────────────────────────────────────
 
 model ClinicalSession {
@@ -555,6 +575,7 @@ model Charge {
   provider    User             @relation("ChargeProvider", fields: [providerUserId], references: [id])
   payments    Payment[]
   nfseInvoice NfseInvoice?
+  paymentReminderLogs PaymentReminderLog[]
 
   @@index([tenantId])
   @@index([tenantId, patientId])

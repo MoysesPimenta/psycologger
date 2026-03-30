@@ -12,7 +12,14 @@ import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
 const saveSchema = z.object({
-  type: z.enum(["CONFIRMATION", "REMINDER_24H", "REMINDER_1H"]),
+  type: z.enum([
+    "CONFIRMATION",
+    "REMINDER_24H",
+    "REMINDER_1H",
+    "PAYMENT_CREATED",
+    "PAYMENT_DUE_24H",
+    "PAYMENT_OVERDUE",
+  ]),
   subject: z.string().min(1).max(200),
   body: z.string().min(1).max(5000),
   isActive: z.boolean().default(true),

@@ -178,6 +178,105 @@ export async function sendAppointmentReminder({
   return sendEmail({ to, subject, html });
 }
 
+// ─── Payment Reminders ───────────────────────────────────────────────────
+
+export async function sendPaymentCreatedNotification({
+  to,
+  patientName,
+  clinicName,
+  amountFormatted,
+  dueDate,
+  description,
+}: {
+  to: string;
+  patientName: string;
+  clinicName: string;
+  amountFormatted: string;
+  dueDate: string;
+  description?: string;
+}) {
+  const subject = `Nova cobrança — ${esc(clinicName)}`;
+  const descHtml = description
+    ? `<p style="margin:4px 0;"><strong>Descrição:</strong> ${esc(description)}</p>`
+    : "";
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+      <h2 style="color:#1e3a8a;">Nova cobrança</h2>
+      <p>Olá, ${esc(patientName)}!</p>
+      <p>Uma nova cobrança foi registrada em <strong>${esc(clinicName)}</strong>:</p>
+      <div style="background:#f1f5f9; padding:16px; border-radius:8px; margin:16px 0;">
+        <p style="margin:4px 0;"><strong>Valor:</strong> ${esc(amountFormatted)}</p>
+        <p style="margin:4px 0;"><strong>Vencimento:</strong> ${esc(dueDate)}</p>
+        ${descHtml}
+      </div>
+      <p style="color:#6b7280; font-size:13px;">Em caso de dúvidas, entre em contato com a clínica.</p>
+    </div>
+  `;
+
+  return sendEmail({ to, subject, html });
+}
+
+export async function sendPaymentDueReminder({
+  to,
+  patientName,
+  clinicName,
+  amountFormatted,
+  dueDate,
+}: {
+  to: string;
+  patientName: string;
+  clinicName: string;
+  amountFormatted: string;
+  dueDate: string;
+}) {
+  const subject = `Lembrete: cobrança vence amanhã — ${esc(clinicName)}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+      <h2 style="color:#1e3a8a;">Lembrete de pagamento</h2>
+      <p>Olá, ${esc(patientName)}!</p>
+      <p>Lembramos que você tem uma cobrança com vencimento <strong>amanhã</strong>:</p>
+      <div style="background:#f1f5f9; padding:16px; border-radius:8px; margin:16px 0;">
+        <p style="margin:4px 0;"><strong>Valor:</strong> ${esc(amountFormatted)}</p>
+        <p style="margin:4px 0;"><strong>Vencimento:</strong> ${esc(dueDate)}</p>
+      </div>
+      <p style="color:#6b7280; font-size:13px;">Em caso de dúvidas, entre em contato com ${esc(clinicName)}.</p>
+    </div>
+  `;
+
+  return sendEmail({ to, subject, html });
+}
+
+export async function sendPaymentOverdueNotification({
+  to,
+  patientName,
+  clinicName,
+  amountFormatted,
+  dueDate,
+}: {
+  to: string;
+  patientName: string;
+  clinicName: string;
+  amountFormatted: string;
+  dueDate: string;
+}) {
+  const subject = `Cobrança em atraso — ${esc(clinicName)}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+      <h2 style="color:#c2410c;">Cobrança em atraso</h2>
+      <p>Olá, ${esc(patientName)}!</p>
+      <p>Identificamos uma cobrança em atraso:</p>
+      <div style="background:#fff7ed; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #ea580c;">
+        <p style="margin:4px 0;"><strong>Valor:</strong> ${esc(amountFormatted)}</p>
+        <p style="margin:4px 0;"><strong>Vencimento:</strong> ${esc(dueDate)}</p>
+      </div>
+      <p style="color:#6b7280; font-size:13px;">Por favor, entre em contato com ${esc(clinicName)} para regularizar.</p>
+    </div>
+  `;
+
+  return sendEmail({ to, subject, html });
+}
+
 // ─── Base send ────────────────────────────────────────────────────────────────
 
 async function sendEmail({
