@@ -63,6 +63,9 @@ export default function LandingPage() {
             <span className="font-bold text-lg">Psycologger</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-gray-600">
+            <Link href="/docs" className="hover:text-gray-900">
+              Documentação
+            </Link>
             <Link href="/pricing" className="hover:text-gray-900">
               Planos
             </Link>
