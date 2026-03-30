@@ -35,10 +35,27 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
 
+    // When filtering for OVERDUE, also include PENDING charges past their due date
+    // (a cron job may not have flipped their status yet).
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const statusFilter =
+      status === "OVERDUE"
+        ? {
+            OR: [
+              { status: "OVERDUE" as never },
+              { status: "PENDING" as never, dueDate: { lt: today } },
+            ],
+          }
+        : status
+        ? { status: status as never }
+        : {};
+
     const where = {
       tenantId: ctx.tenantId,
       ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
-      ...(status && { status: status as never }),
+      ...statusFilter,
       ...(patientId && { patientId }),
       ...((from || to) && {
         dueDate: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { formatDate, formatCurrency, chargeStatusLabel, paymentMethodLabel } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,22 @@ export function ChargesClient() {
 
   useEffect(() => { fetchCharges(); }, [fetchCharges]);
 
+  // ── Summary totals for the current view ───────────────────────────────────
+  const summary = useMemo(() => {
+    let totalNet = 0;
+    let totalPaid = 0;
+    let totalRemaining = 0;
+    for (const c of charges) {
+      const net = c.amountCents - c.discountCents;
+      totalNet += net;
+      totalPaid += c.paidAmountCents;
+      if (c.status !== "PAID" && c.status !== "VOID" && c.status !== "REFUNDED") {
+        totalRemaining += net - c.paidAmountCents;
+      }
+    }
+    return { totalNet, totalPaid, totalRemaining, count: charges.length };
+  }, [charges]);
+
   async function markPaid(chargeId: string, amountCents: number) {
     setPayingId(chargeId);
     const method = payMethodMap[chargeId] ?? "PIX";
@@ -82,6 +98,14 @@ export function ChargesClient() {
     } finally {
       setPayingId(null);
     }
+  }
+
+  // ── Summary label varies by active tab ────────────────────────────────────
+  function summaryLabel() {
+    if (filter === "PAID") return "Total recebido";
+    if (filter === "OVERDUE") return "Total vencido";
+    if (filter === "PENDING") return "Total pendente";
+    return "Total cobrado";
   }
 
   return (
@@ -114,6 +138,35 @@ export function ChargesClient() {
         ))}
       </div>
 
+      {/* Summary bar */}
+      {!loading && charges.length > 0 && (
+        <div className="flex items-center gap-4 bg-white rounded-xl border px-4 py-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 font-medium">{summaryLabel()}</span>
+            <span className="text-sm font-bold text-gray-900">
+              {filter === "PAID"
+                ? formatCurrency(summary.totalPaid)
+                : filter === "OVERDUE" || filter === "PENDING"
+                ? formatCurrency(summary.totalRemaining)
+                : formatCurrency(summary.totalNet)}
+            </span>
+          </div>
+          {filter === "" && summary.totalPaid > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 font-medium">Recebido</span>
+              <span className="text-sm font-bold text-green-700">{formatCurrency(summary.totalPaid)}</span>
+            </div>
+          )}
+          {filter === "" && summary.totalRemaining > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 font-medium">A receber</span>
+              <span className="text-sm font-bold text-yellow-700">{formatCurrency(summary.totalRemaining)}</span>
+            </div>
+          )}
+          <span className="text-xs text-gray-400 ml-auto">{summary.count} cobrança{summary.count !== 1 ? "s" : ""}</span>
+        </div>
+      )}
+
       {loading ? (
         Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="bg-white rounded-xl border p-4 animate-pulse h-16" />
@@ -129,14 +182,18 @@ export function ChargesClient() {
             const isPaid = charge.status === "PAID";
             const isPartiallyPaid = !isPaid && charge.payments.length > 0 && charge.status !== "VOID";
             const isPending = !isPaid && !isPartiallyPaid && (charge.status === "PENDING" || charge.status === "OVERDUE");
+            const remaining = netAmount - charge.paidAmountCents;
+            // For overdue display: treat PENDING past-due as overdue
+            const isOverdue = charge.status === "OVERDUE" || (charge.status === "PENDING" && new Date(charge.dueDate) < new Date(new Date().toDateString()));
+            const displayStatus = isOverdue && charge.status === "PENDING" ? "OVERDUE" : charge.status;
             return (
               <div key={charge.id} className="bg-white rounded-xl border p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-gray-900">{charge.patient.fullName}</span>
-                      <Badge variant={statusVariant[charge.status] ?? "secondary"} className="text-xs">
-                        {chargeStatusLabel(charge.status)}
+                      <Badge variant={statusVariant[displayStatus] ?? "secondary"} className="text-xs">
+                        {chargeStatusLabel(displayStatus)}
                       </Badge>
                     </div>
                     <div className="text-sm text-gray-500 mt-0.5">
@@ -151,7 +208,17 @@ export function ChargesClient() {
                     )}
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="font-bold text-gray-900">{formatCurrency(netAmount)}</span>
+                    {/* Amount display: show paid amount for partially paid, full amount otherwise */}
+                    {isPartiallyPaid ? (
+                      <div className="text-right">
+                        <span className="font-bold text-green-700">{formatCurrency(charge.paidAmountCents)}</span>
+                        <span className="text-xs text-gray-400 block">
+                          de {formatCurrency(netAmount)} · resta {formatCurrency(remaining)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-bold text-gray-900">{formatCurrency(netAmount)}</span>
+                    )}
                     {isPending && (
                       <div className="flex items-center gap-1.5">
                         <select
@@ -181,10 +248,32 @@ export function ChargesClient() {
                       </div>
                     )}
                     {isPartiallyPaid && (
-                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 whitespace-nowrap">
-                        <SplitSquareHorizontal className="h-3.5 w-3.5" />
-                        Pago parcialmente · {formatCurrency(charge.paidAmountCents)}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <select
+                          className="text-xs border rounded-md px-2 py-1 h-8 bg-white focus:outline-none focus:ring-1 focus:ring-orange-400"
+                          value={payMethodMap[charge.id] ?? "PIX"}
+                          onChange={(e) => setPayMethodMap((m) => ({ ...m, [charge.id]: e.target.value }))}
+                          disabled={payingId === charge.id}
+                          title="Forma de pagamento"
+                        >
+                          <option value="PIX">PIX</option>
+                          <option value="CASH">Dinheiro</option>
+                          <option value="CARD">Cartão</option>
+                          <option value="TRANSFER">Transferência</option>
+                          <option value="INSURANCE">Convênio</option>
+                          <option value="OTHER">Outro</option>
+                        </select>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-orange-700 border-orange-300"
+                          loading={payingId === charge.id}
+                          onClick={() => markPaid(charge.id, remaining)}
+                        >
+                          <SplitSquareHorizontal className="h-3 w-3" />
+                          Pagar resto
+                        </Button>
+                      </div>
                     )}
                     {isPaid && (
                       <CheckCircle2 className="h-5 w-5 text-green-500" />
