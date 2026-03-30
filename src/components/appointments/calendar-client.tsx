@@ -161,30 +161,32 @@ export function CalendarClient({
       {/* Week view */}
       {view === "week" && (
         <div className="bg-white border rounded-xl overflow-hidden">
-          {/* Day headers */}
-          <div className="grid grid-cols-8 border-b">
-            <div className="p-3 text-xs text-gray-400 border-r" />
-            {weekDays.map((day) => (
-              <div
-                key={day.toISOString()}
-                className={cn(
-                  "p-3 text-center border-r last:border-r-0",
-                  isSameDay(day, new Date()) && "bg-brand-50"
-                )}
-              >
-                <p className="text-xs text-gray-500 uppercase">{format(day, "EEE", { locale: ptBR })}</p>
-                <p className={cn(
-                  "text-lg font-bold mt-0.5",
-                  isSameDay(day, new Date()) ? "text-brand-600" : "text-gray-900"
-                )}>
-                  {format(day, "d")}
-                </p>
-              </div>
-            ))}
+          {/* Day headers — overflow-y-scroll keeps the same scrollbar gutter as the body */}
+          <div className="overflow-y-scroll [scrollbar-gutter:stable]" style={{ maxHeight: "unset" }}>
+            <div className="grid grid-cols-8 border-b">
+              <div className="p-3 text-xs text-gray-400 border-r" />
+              {weekDays.map((day) => (
+                <div
+                  key={day.toISOString()}
+                  className={cn(
+                    "p-3 text-center border-r last:border-r-0",
+                    isSameDay(day, new Date()) && "bg-brand-50"
+                  )}
+                >
+                  <p className="text-xs text-gray-500 uppercase">{format(day, "EEE", { locale: ptBR })}</p>
+                  <p className={cn(
+                    "text-lg font-bold mt-0.5",
+                    isSameDay(day, new Date()) ? "text-brand-600" : "text-gray-900"
+                  )}>
+                    {format(day, "d")}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Time slots */}
-          <div className="overflow-y-auto max-h-[600px] scrollbar-thin">
+          <div className="overflow-y-auto max-h-[600px] scrollbar-thin [scrollbar-gutter:stable]">
             {hours.map((hour) => (
               <div key={hour} id={`calendar-hour-${hour}`} className="grid grid-cols-8 border-b min-h-[60px]">
                 <div className="p-2 text-xs text-gray-400 border-r text-right pr-3 pt-2">
