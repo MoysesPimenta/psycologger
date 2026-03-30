@@ -24,6 +24,7 @@ interface Patient {
 export function PatientsClient() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [search, setSearch] = useState("");
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -31,17 +32,24 @@ export function PatientsClient() {
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
+    setFetchError("");
     const params = new URLSearchParams({
       q: search,
       page: page.toString(),
       pageSize: "20",
       active: showInactive ? "all" : "true",
     });
-    const res = await fetch(`/api/v1/patients?${params}`);
-    if (res.ok) {
-      const json = await res.json();
-      setPatients(json.data);
-      setTotal(json.meta?.total ?? 0);
+    try {
+      const res = await fetch(`/api/v1/patients?${params}`);
+      if (res.ok) {
+        const json = await res.json();
+        setPatients(json.data);
+        setTotal(json.meta?.total ?? 0);
+      } else {
+        setFetchError("Erro ao carregar pacientes. Tente novamente.");
+      }
+    } catch {
+      setFetchError("Erro de conexão. Tente novamente.");
     }
     setLoading(false);
   }, [search, page, showInactive]);
@@ -75,6 +83,13 @@ export function PatientsClient() {
           {showInactive ? "Ocultar inativos" : "Ver inativos"}
         </Button>
       </div>
+
+      {fetchError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
+          <span>{fetchError}</span>
+          <button onClick={() => fetch_()} className="text-red-600 underline text-xs ml-4">Tentar novamente</button>
+        </div>
+      )}
 
       {/* Results count */}
       <p className="text-sm text-gray-500">{total} paciente{total !== 1 ? "s" : ""} encontrado{total !== 1 ? "s" : ""}</p>

@@ -95,14 +95,23 @@ function FileAttachmentPanel({
   sessionId,
   initialFiles,
   canEdit,
+  onCountChange,
 }: {
   sessionId: string;
   initialFiles: FileAttachment[];
   canEdit: boolean;
+  onCountChange?: (count: number) => void;
 }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<FileAttachment[]>(initialFiles);
+  const updateFiles = (updater: (prev: FileAttachment[]) => FileAttachment[]) => {
+    setFiles((prev) => {
+      const next = updater(prev);
+      onCountChange?.(next.length);
+      return next;
+    });
+  };
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -120,7 +129,7 @@ function FileAttachmentPanel({
         const res = await fetch(`/api/v1/sessions/${sessionId}/files`, { method: "POST", body: formData });
         const json = await res.json();
         if (!res.ok) { toast({ title: json.error ?? "Erro ao enviar arquivo", variant: "destructive" }); continue; }
-        setFiles((prev) => [json.data, ...prev]);
+        updateFiles((prev) => [json.data, ...prev]);
         toast({ title: `${file.name} enviado`, variant: "success" });
       } catch {
         toast({ title: `Erro ao enviar ${file.name}`, variant: "destructive" });
@@ -137,7 +146,7 @@ function FileAttachmentPanel({
     try {
       const res = await fetch(`/api/v1/sessions/${sessionId}/files/${fileId}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      setFiles((prev) => prev.filter((f) => f.id !== fileId));
+      updateFiles((prev) => prev.filter((f) => f.id !== fileId));
       toast({ title: "Arquivo excluído", variant: "success" });
     } catch {
       toast({ title: "Erro ao excluir arquivo", variant: "destructive" });
@@ -248,6 +257,8 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
   const [savedSessionId, setSavedSessionId] = useState<string | null>(session?.id ?? null);
   // undefined = not yet checked, true/false = result
   const [storageOk, setStorageOk] = useState<boolean | undefined>(undefined);
+  // Tracks the live file count (synced by FileAttachmentPanel via onCountChange)
+  const [fileCount, setFileCount] = useState<number>(session?.files?.length ?? 0);
 
   // ── Unsaved-changes tracking ───────────────────────────────────────────────
   // Refs hold the last-saved snapshot; isDirty compares current state against them.
@@ -487,7 +498,7 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
               <span className="text-xs text-gray-500 font-medium">Anexos</span>
               {savedSessionId && (
                 <span className="ml-auto text-xs text-gray-400">
-                  {(session?.files ?? []).length} arquivo{(session?.files ?? []).length !== 1 ? "s" : ""}
+                  {fileCount} arquivo{fileCount !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
@@ -512,6 +523,7 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
                   sessionId={savedSessionId}
                   initialFiles={session?.files ?? []}
                   canEdit={canEdit}
+                  onCountChange={setFileCount}
                 />
               )}
             </div>

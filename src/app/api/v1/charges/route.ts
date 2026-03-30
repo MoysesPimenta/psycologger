@@ -40,8 +40,12 @@ export async function GET(req: NextRequest) {
       ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
       ...(status && { status: status as never }),
       ...(patientId && { patientId }),
-      ...(from && { dueDate: { gte: new Date(from) } }),
-      ...(to && { dueDate: { lte: new Date(to) } }),
+      ...((from || to) && {
+        dueDate: {
+          ...(from && { gte: new Date(from) }),
+          ...(to && { lte: new Date(to) }),
+        },
+      }),
     };
 
     const [charges, total] = await Promise.all([

@@ -26,6 +26,7 @@ const roles = [
 export function UsersSettingsClient() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("PSYCHOLOGIST");
   const [inviting, setInviting] = useState(false);
@@ -33,8 +34,13 @@ export function UsersSettingsClient() {
 
   useEffect(() => {
     fetch("/api/v1/users")
-      .then((r) => r.json())
-      .then((d) => { setMembers(d.data); setLoading(false); });
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Erro ao carregar membros.");
+        return r.json();
+      })
+      .then((d) => { setMembers(d.data ?? []); })
+      .catch((err) => { setLoadError(err.message ?? "Erro ao carregar membros."); })
+      .finally(() => setLoading(false));
   }, []);
 
   async function handleInvite(e: React.FormEvent) {
@@ -99,7 +105,9 @@ export function UsersSettingsClient() {
           <h2 className="font-semibold text-gray-900">Membros da equipe</h2>
         </div>
         <div className="divide-y">
-          {loading ? (
+          {loadError ? (
+            <div className="p-4 text-sm text-red-600">{loadError}</div>
+          ) : loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="p-4 animate-pulse h-16 bg-gray-50" />
             ))

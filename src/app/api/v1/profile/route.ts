@@ -49,6 +49,7 @@ export async function PATCH(req: NextRequest) {
     });
 
     await auditLog({
+      tenantId: ctx.tenantId,
       userId: ctx.userId,
       action: "USER_PROFILE_UPDATE",
       entity: "User",

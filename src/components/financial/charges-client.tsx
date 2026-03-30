@@ -35,6 +35,7 @@ export function ChargesClient() {
   const [filter, setFilter] = useState("");
   const { toast } = useToast();
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [payMethodMap, setPayMethodMap] = useState<Record<string, string>>({});
 
   const fetchCharges = useCallback(async () => {
     setLoading(true);
@@ -59,11 +60,12 @@ export function ChargesClient() {
 
   async function markPaid(chargeId: string, amountCents: number) {
     setPayingId(chargeId);
+    const method = payMethodMap[chargeId] ?? "PIX";
     try {
       const res = await fetch("/api/v1/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chargeId, amountCents, method: "PIX" }),
+        body: JSON.stringify({ chargeId, amountCents, method }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -151,16 +153,32 @@ export function ChargesClient() {
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <span className="font-bold text-gray-900">{formatCurrency(netAmount)}</span>
                     {isPending && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-green-700 border-green-300"
-                        loading={payingId === charge.id}
-                        onClick={() => markPaid(charge.id, netAmount - charge.paidAmountCents)}
-                      >
-                        <CreditCard className="h-3 w-3" />
-                        Marcar pago
-                      </Button>
+                      <div className="flex items-center gap-1.5">
+                        <select
+                          className="text-xs border rounded-md px-2 py-1 h-8 bg-white focus:outline-none focus:ring-1 focus:ring-green-400"
+                          value={payMethodMap[charge.id] ?? "PIX"}
+                          onChange={(e) => setPayMethodMap((m) => ({ ...m, [charge.id]: e.target.value }))}
+                          disabled={payingId === charge.id}
+                          title="Forma de pagamento"
+                        >
+                          <option value="PIX">PIX</option>
+                          <option value="CASH">Dinheiro</option>
+                          <option value="CARD">Cartão</option>
+                          <option value="TRANSFER">Transferência</option>
+                          <option value="INSURANCE">Convênio</option>
+                          <option value="OTHER">Outro</option>
+                        </select>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-green-700 border-green-300"
+                          loading={payingId === charge.id}
+                          onClick={() => markPaid(charge.id, netAmount - charge.paidAmountCents)}
+                        >
+                          <CreditCard className="h-3 w-3" />
+                          Marcar pago
+                        </Button>
+                      </div>
                     )}
                     {isPartiallyPaid && (
                       <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 whitespace-nowrap">

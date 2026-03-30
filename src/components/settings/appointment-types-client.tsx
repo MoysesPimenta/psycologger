@@ -54,6 +54,7 @@ export function AppointmentTypesClient() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   async function load() {
     setLoading(true);
@@ -134,24 +135,40 @@ export function AppointmentTypesClient() {
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Desativar o tipo "${name}"? As consultas existentes não serão afetadas.`)) return;
-
+    setActionError("");
     const res = await fetch(`/api/v1/appointment-types/${id}`, { method: "DELETE" });
-    if (res.ok) await load();
+    if (res.ok) {
+      await load();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setActionError(data?.error?.message ?? "Erro ao desativar tipo de consulta.");
+    }
   }
 
   async function handleToggle(type: AppointmentType) {
-    await fetch(`/api/v1/appointment-types/${type.id}`, {
+    setActionError("");
+    const res = await fetch(`/api/v1/appointment-types/${type.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !type.isActive }),
     });
-    await load();
+    if (res.ok) {
+      await load();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setActionError(data?.error?.message ?? "Erro ao atualizar tipo de consulta.");
+    }
   }
 
   if (loading) return <div className="animate-pulse h-32 bg-gray-100 rounded-xl" />;
 
   return (
     <div className="space-y-4">
+      {actionError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {actionError}
+        </div>
+      )}
       {/* List */}
       {types.length === 0 && !showForm && (
         <Card>

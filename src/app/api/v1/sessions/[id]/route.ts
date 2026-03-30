@@ -20,7 +20,7 @@ export async function GET(
     requirePermission(ctx, "sessions:view");
 
     const session = await db.clinicalSession.findFirst({
-      where: { id: params.id, tenantId: ctx.tenantId },
+      where: { id: params.id, tenantId: ctx.tenantId, deletedAt: null },
       include: {
         patient: { select: { id: true, fullName: true, preferredName: true } },
         provider: { select: { id: true, name: true } },
