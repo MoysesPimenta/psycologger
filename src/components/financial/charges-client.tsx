@@ -68,7 +68,11 @@ export function ChargesClient() {
     let totalRemaining = 0;
     for (const c of charges) {
       const net = c.amountCents - c.discountCents;
-      totalNet += net;
+      // Exclude "Saldo restante" from totalNet — they are accounting splits
+      // of original charges, not additional billed services
+      if (c.description !== "Saldo restante") {
+        totalNet += net;
+      }
       totalPaid += c.paidAmountCents;
       if (c.status !== "PAID" && c.status !== "VOID" && c.status !== "REFUNDED") {
         totalRemaining += net - c.paidAmountCents;
