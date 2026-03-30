@@ -80,7 +80,7 @@ export default async function TodayPage() {
           <p className="text-gray-500 text-sm mt-1">{tenant?.name}</p>
         </div>
         <Button asChild size="sm">
-          <Link href="/app/calendar?new=1">
+          <Link href="/app/appointments/new">
             <Plus className="h-4 w-4" />
             Nova consulta
           </Link>

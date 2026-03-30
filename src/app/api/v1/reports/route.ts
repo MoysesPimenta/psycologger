@@ -105,17 +105,27 @@ export async function GET(req: NextRequest) {
       // ── Caixa (cash) — payments received this month ───────────────────────
       const totalCaixa = payments.reduce((s, p) => s + p.amountCents, 0);
 
-      // ── By provider (competência) — service charges only ─────────────────
+      // ── By provider (cash basis for received, competência for pending) ──
       const byProvider: Record<string, { name: string; received: number; sessions: number; pending: number }> = {};
+
+      // Cash basis: sum payments received this month, grouped by provider
+      for (const p of payments) {
+        const pid = p.charge.provider?.id;
+        if (!pid) continue;
+        if (!byProvider[pid]) {
+          byProvider[pid] = { name: p.charge.provider.name ?? pid, received: 0, sessions: 0, pending: 0 };
+        }
+        byProvider[pid].received += p.amountCents;
+      }
+
+      // Count paid sessions and pending amounts from charges due this month
       for (const charge of charges) {
-        // Skip saldo restante splits — they're already represented by the original charge
         if (charge.description === "Saldo restante") continue;
         const pid = charge.providerUserId;
         if (!byProvider[pid]) {
           byProvider[pid] = { name: charge.provider.name ?? charge.provider.email ?? pid, received: 0, sessions: 0, pending: 0 };
         }
         if (charge.status === "PAID") {
-          byProvider[pid].received += charge.payments.reduce((s, p) => s + p.amountCents, 0);
           byProvider[pid].sessions++;
         } else if (["PENDING", "OVERDUE"].includes(charge.status)) {
           const net = charge.amountCents - charge.discountCents;
