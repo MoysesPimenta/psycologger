@@ -13,6 +13,14 @@ import { requirePermission } from "@/lib/rbac";
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 import type { ChargeStatus } from "@prisma/client";
 
+/** Escape a string for safe CSV output (prevents formula injection and quote issues) */
+function csvSafe(value: string): string {
+  let v = value.replace(/"/g, '""');
+  // Prevent formula injection: prefix with single quote if starts with =, +, -, @, \t, \r
+  if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
+  return `"${v}"`;
+}
+
 const PENDING_STATUSES: ChargeStatus[] = ["PENDING", "OVERDUE"];
 
 export async function GET(req: NextRequest) {
@@ -154,8 +162,8 @@ export async function GET(req: NextRequest) {
           ["Data", "Paciente", "Profissional", "Valor", "Status", "Método de Pagamento"].join(","),
           ...charges.map((c) => [
             c.dueDate.toISOString().slice(0, 10),
-            `"${c.patient.fullName}"`,
-            `"${c.provider.name ?? c.provider.email ?? ""}"`,
+            csvSafe(c.patient.fullName),
+            csvSafe(c.provider.name ?? c.provider.email ?? ""),
             (c.amountCents / 100).toFixed(2).replace(".", ","),
             c.status,
             c.payments[0]?.method ?? "",

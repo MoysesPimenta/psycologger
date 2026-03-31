@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, created, handleApiError, parsePagination, buildMeta } from "@/lib/api";
+import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError } from "@/lib/api";
 import { requirePermission, getPatientScope } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
@@ -78,6 +78,22 @@ export async function POST(req: NextRequest) {
 
     const body = createSchema.parse(await req.json());
 
+    // ── Validate patient belongs to this tenant ──
+    const patient = await db.patient.findFirst({
+      where: { id: body.patientId, tenantId: ctx.tenantId },
+      select: { id: true },
+    });
+    if (!patient) throw new NotFoundError("Patient");
+
+    // ── Validate appointment belongs to this tenant (if provided) ──
+    if (body.appointmentId) {
+      const appt = await db.appointment.findFirst({
+        where: { id: body.appointmentId, tenantId: ctx.tenantId },
+        select: { id: true },
+      });
+      if (!appt) throw new NotFoundError("Appointment");
+    }
+
     const session = await db.$transaction(async (tx) => {
       const sess = await tx.clinicalSession.create({
         data: {
@@ -104,9 +120,9 @@ export async function POST(req: NextRequest) {
 
       // Mark appointment as completed if linked
       if (body.appointmentId) {
-        await tx.appointment.update({
-          where: { id: body.appointmentId },
-          data: { status: "COMPLETED" },
+        await tx.appointment.updateMany({
+          where: { id: body.appointmentId, tenantId: ctx.tenantId },
+          data: { status: "COMPLETED" as never },
         });
       }
 

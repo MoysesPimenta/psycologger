@@ -19,7 +19,7 @@ export default async function SessionPage({
   if (!ctx) redirect("/login");
 
   if (!can(ctx, "sessions:view")) {
-    redirect("/app?error=no-session-access");
+    redirect("/app/today?error=no-session-access");
   }
 
   if (params.id === "new") {

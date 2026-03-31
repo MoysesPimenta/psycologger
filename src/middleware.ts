@@ -43,6 +43,8 @@ export default withAuth(
           pathname.startsWith("/signup") ||
           pathname.startsWith("/invite/") ||
           pathname.startsWith("/docs") ||
+          pathname.startsWith("/terms") ||
+          pathname.startsWith("/privacy") ||
           pathname.startsWith("/api/auth") ||
           pathname.startsWith("/_next") ||
           pathname.startsWith("/favicon")

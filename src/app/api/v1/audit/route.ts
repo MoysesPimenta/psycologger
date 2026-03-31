@@ -8,6 +8,13 @@ import { getAuthContext } from "@/lib/tenant";
 import { ok, handleApiError, parsePagination, buildMeta } from "@/lib/api";
 import { requirePermission, can } from "@/lib/rbac";
 
+/** Escape a string for safe CSV output (prevents formula injection and quote issues) */
+function csvSafe(value: string): string {
+  let v = value.replace(/"/g, '""');
+  if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
+  return `"${v}"`;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
@@ -49,12 +56,12 @@ export async function GET(req: NextRequest) {
         ["Data/Hora", "Usuário", "Email", "Ação", "Entidade", "ID Entidade", "IP"].join(","),
         ...logs.map((l) => [
           l.createdAt.toISOString(),
-          l.user?.name ?? "",
-          l.user?.email ?? "",
-          l.action,
-          l.entity ?? "",
+          csvSafe(l.user?.name ?? ""),
+          csvSafe(l.user?.email ?? ""),
+          csvSafe(l.action),
+          csvSafe(l.entity ?? ""),
           l.entityId ?? "",
-          l.ipAddress ?? "",
+          csvSafe(l.ipAddress ?? ""),
         ].join(",")),
       ].join("\n");
 

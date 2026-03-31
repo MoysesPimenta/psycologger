@@ -35,38 +35,45 @@ export async function POST(req: NextRequest) {
 
     const body = createSchema.parse(await req.json());
 
-    // Verify charge belongs to tenant
-    const charge = await db.charge.findFirst({
+    // Verify charge belongs to tenant (quick check before transaction)
+    const chargeCheck = await db.charge.findFirst({
       where: { id: body.chargeId, tenantId: ctx.tenantId },
-      include: { payments: true },
+      select: { id: true },
     });
-    if (!charge) throw new NotFoundError("Charge");
-
-    // Guard: charge must not already be fully paid or voided
-    if (charge.status === "PAID" || charge.status === "VOID" || charge.status === "REFUNDED") {
-      throw new BadRequestError(`Cannot add payment to a charge with status ${charge.status}.`);
-    }
-
-    // Guard: payment must not exceed the remaining balance
-    const alreadyPaid = charge.payments.reduce((s, p) => s + p.amountCents, 0);
-    const netAmount = charge.amountCents - charge.discountCents;
-    const remaining = netAmount - alreadyPaid;
-    if (body.amountCents > remaining) {
-      throw new BadRequestError(
-        `Valor do pagamento (R$ ${(body.amountCents / 100).toFixed(2)}) excede o saldo restante (R$ ${(remaining / 100).toFixed(2)}).`
-      );
-    }
-
-    const totalPaid = alreadyPaid + body.amountCents;
-    const isPartial = totalPaid < netAmount;
-    const remainderCents = netAmount - totalPaid;
-
-    // Determine due date for the remainder charge
-    const remainderDueDate =
-      body.remainderDueDate ??
-      (charge.dueDate ? charge.dueDate.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
+    if (!chargeCheck) throw new NotFoundError("Charge");
 
     const { payment, remainderCharge } = await db.$transaction(async (tx) => {
+      // Re-fetch charge inside transaction for consistency (prevents race conditions)
+      const charge = await tx.charge.findFirst({
+        where: { id: body.chargeId, tenantId: ctx.tenantId },
+        include: { payments: true },
+      });
+      if (!charge) throw new NotFoundError("Charge");
+
+      // Guard: charge must not already be fully paid or voided
+      if (charge.status === "PAID" || charge.status === "VOID" || charge.status === "REFUNDED") {
+        throw new BadRequestError(`Cannot add payment to a charge with status ${charge.status}.`);
+      }
+
+      // Guard: payment must not exceed the remaining balance
+      const alreadyPaid = charge.payments.reduce((s, p) => s + p.amountCents, 0);
+      const netAmount = charge.amountCents - charge.discountCents;
+      const remaining = netAmount - alreadyPaid;
+      if (body.amountCents > remaining) {
+        throw new BadRequestError(
+          `Valor do pagamento (R$ ${(body.amountCents / 100).toFixed(2)}) excede o saldo restante (R$ ${(remaining / 100).toFixed(2)}).`
+        );
+      }
+
+      const totalPaid = alreadyPaid + body.amountCents;
+      const isPartial = totalPaid < netAmount;
+      const remainderCents = netAmount - totalPaid;
+
+      // Determine due date for the remainder charge
+      const remainderDueDate =
+        body.remainderDueDate ??
+        (charge.dueDate ? charge.dueDate.toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10));
+
       // 1. Record the payment
       const pay = await tx.payment.create({
         data: {

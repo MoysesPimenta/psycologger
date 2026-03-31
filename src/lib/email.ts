@@ -310,9 +310,10 @@ async function sendEmail({
 
 function roleLabel(role: string): string {
   const labels: Record<string, string> = {
+    SUPERADMIN: "Super Administrador",
     TENANT_ADMIN: "Administrador",
     PSYCHOLOGIST: "Psicólogo(a)",
-    ASSISTANT: "Assistente/Faturamento",
+    ASSISTANT: "Assistente",
     READONLY: "Leitor",
   };
   return labels[role] ?? role;

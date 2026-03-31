@@ -82,11 +82,12 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // Use UTC dates to avoid timezone ambiguity — dueDate is stored as @db.Date (UTC midnight)
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
   const dayAfterTomorrow = new Date(tomorrow);
-  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+  dayAfterTomorrow.setUTCDate(dayAfterTomorrow.getUTCDate() + 1);
 
   let sentCount = 0;
   let errorCount = 0;

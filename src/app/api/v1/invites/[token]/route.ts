@@ -8,8 +8,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { ok, created, handleApiError, apiError, NotFoundError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+// Note: invite acceptance is public — no auth imports needed
 
 export async function GET(
   req: NextRequest,
@@ -41,7 +40,7 @@ export async function POST(
 ) {
   try {
     const { ipAddress, userAgent } = extractRequestMeta(req);
-    const session = await getServerSession(authOptions);
+    // Note: invite acceptance is public (no auth required — user may not have account yet)
     const body = acceptSchema.parse(await req.json());
 
     const invite = await db.invite.findUnique({
