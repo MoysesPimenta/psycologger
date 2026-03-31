@@ -1393,6 +1393,57 @@ const membership = await db.membership.findFirst({
 
 **Recommendation**: Add middleware to auto-convert dates based on tenant.timezone.
 
+### Bug #5: Tenant Isolation Breach in Sessions API (March 31, 2026)
+
+**Issue**: POST /api/v1/sessions accepted any patientId/appointmentId without validating they belong to the current tenant.
+
+**Root Cause**: Missing tenant validation before transaction.
+
+**Fix**:
+- Added `db.patient.findFirst({ where: { id, tenantId } })` check before session creation
+- Added same check for appointmentId
+- Changed `appointment.update` to `appointment.updateMany` with tenantId filter
+
+**File**: `src/app/api/v1/sessions/route.ts`
+
+### Bug #6: Race Condition in Payment Processing (March 31, 2026)
+
+**Issue**: Concurrent payments could both pass balance validation (checked outside transaction).
+
+**Root Cause**: Balance check was outside `db.$transaction`, allowing two requests to read the same state.
+
+**Fix**: Moved charge fetch + balance validation inside the transaction for atomicity.
+
+**File**: `src/app/api/v1/payments/route.ts`
+
+### Bug #7: CSV Formula Injection in Exports (March 31, 2026)
+
+**Issue**: User-supplied data (names, emails) in CSV exports were not escaped, allowing Excel formula injection.
+
+**Fix**: Added `csvSafe()` helper that escapes quotes and prefixes formula-start characters.
+
+**Files**: `src/app/api/v1/reports/route.ts`, `src/app/api/v1/audit/route.ts`
+
+### Bug #8: Cron Timezone Ambiguity (March 31, 2026)
+
+**Issue**: Payment reminder cron used local time constructor, which is ambiguous across server timezones.
+
+**Fix**: Changed to UTC date construction (`Date.UTC()`, `setUTCDate()`).
+
+**File**: `src/app/api/v1/cron/payment-reminders/route.ts`
+
+### Bug #9: Missing SA Pages (March 31, 2026)
+
+**Issue**: /sa/login, /sa/tenants, /sa/users, /sa/impersonate, /sa/tenants/[id] returned 404.
+
+**Fix**: Created all missing pages.
+
+### Bug #10: Missing Legal Pages (March 31, 2026)
+
+**Issue**: /terms and /privacy linked from landing page and login but didn't exist.
+
+**Fix**: Created LGPD-compliant pages, added to middleware public routes.
+
 ---
 
 ## Deployment
