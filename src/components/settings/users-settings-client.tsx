@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserPlus, Mail, Shield } from "lucide-react";
+import { UserPlus, Mail, Shield, Copy, Check, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +30,16 @@ export function UsersSettingsClient() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("PSYCHOLOGIST");
   const [inviting, setInviting] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+
+  async function copyLink() {
+    if (!inviteLink) return;
+    await navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   useEffect(() => {
     fetch("/api/v1/users")
@@ -58,14 +67,12 @@ export function UsersSettingsClient() {
       }
       const result = await res.json();
       if (result.data?.emailSent === false) {
-        // Email failed but invite was created — show the link so the user can share it manually
-        toast({
-          title: `Convite criado! O email não pôde ser enviado. Compartilhe o link manualmente:`,
-          description: result.data.inviteUrl,
-          variant: "default",
-          duration: 15000,
-        });
+        // Email failed but invite was created — show the link for manual sharing
+        setInviteLink(result.data.inviteUrl);
+        setCopied(false);
+        toast({ title: "Convite criado! Copie o link abaixo para compartilhar.", variant: "default" });
       } else {
+        setInviteLink(null);
         toast({ title: `Convite enviado para ${inviteEmail}`, variant: "success" });
       }
       setInviteEmail("");
@@ -108,6 +115,48 @@ export function UsersSettingsClient() {
             Enviar convite
           </Button>
         </form>
+
+        {/* Invite link banner (shown when email delivery fails) */}
+        {inviteLink && (
+          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Link2 className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-amber-900">
+                  O email não pôde ser enviado. Compartilhe o link manualmente:
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <code className="flex-1 min-w-0 text-xs bg-white border border-amber-200 rounded px-3 py-2 text-gray-700 truncate block">
+                    {inviteLink}
+                  </code>
+                  <button
+                    onClick={copyLink}
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-md transition-colors"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copiar link
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={() => setInviteLink(null)}
+                className="text-amber-400 hover:text-amber-600 text-lg leading-none"
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Members list */}
