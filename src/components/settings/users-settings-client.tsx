@@ -56,7 +56,18 @@ export function UsersSettingsClient() {
         const data = await res.json();
         throw new Error(data.error?.message);
       }
-      toast({ title: `Convite enviado para ${inviteEmail}`, variant: "success" });
+      const result = await res.json();
+      if (result.data?.emailSent === false) {
+        // Email failed but invite was created — show the link so the user can share it manually
+        toast({
+          title: `Convite criado! O email não pôde ser enviado. Compartilhe o link manualmente:`,
+          description: result.data.inviteUrl,
+          variant: "default",
+          duration: 15000,
+        });
+      } else {
+        toast({ title: `Convite enviado para ${inviteEmail}`, variant: "success" });
+      }
       setInviteEmail("");
     } catch (err: any) {
       toast({ title: err.message ?? "Erro ao enviar convite", variant: "destructive" });

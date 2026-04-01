@@ -74,13 +74,20 @@ export async function POST(req: NextRequest) {
 
     const inviteUrl = `${process.env.NEXTAUTH_URL}/invite/${invite.token}`;
 
-    await sendInviteEmail({
-      to: body.email,
-      inviteUrl,
-      tenantName: tenant?.name ?? "Psycologger",
-      role: body.role,
-      inviterName: inviter?.name ?? undefined,
-    });
+    // Send invite email (non-fatal — invite link still works if email fails)
+    let emailSent = true;
+    try {
+      await sendInviteEmail({
+        to: body.email,
+        inviteUrl,
+        tenantName: tenant?.name ?? "Psycologger",
+        role: body.role,
+        inviterName: inviter?.name ?? undefined,
+      });
+    } catch (emailErr) {
+      console.error("[users/invite] Email send failed:", emailErr);
+      emailSent = false;
+    }
 
     await auditLog({
       tenantId: ctx.tenantId,
@@ -93,7 +100,7 @@ export async function POST(req: NextRequest) {
       userAgent,
     });
 
-    return created({ id: invite.id, email: body.email, role: body.role, expiresAt });
+    return created({ id: invite.id, email: body.email, role: body.role, expiresAt, emailSent, inviteUrl });
   } catch (err) {
     return handleApiError(err);
   }
