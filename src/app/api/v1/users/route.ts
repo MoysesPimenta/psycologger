@@ -72,7 +72,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const inviteUrl = `${process.env.NEXTAUTH_URL}/invite/${invite.token}`;
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+    const inviteUrl = `${baseUrl}/invite/${invite.token}`;
 
     // Send invite email (non-fatal — invite link still works if email fails)
     let emailSent = true;

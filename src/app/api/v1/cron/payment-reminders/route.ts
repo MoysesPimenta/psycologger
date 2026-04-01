@@ -75,9 +75,9 @@ async function logReminder(data: {
 }
 
 export async function POST(req: NextRequest) {
-  // Verify cron secret
+  // Verify cron secret — MUST be set in production; reject if missing or mismatched
   const authHeader = req.headers.get("authorization");
-  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

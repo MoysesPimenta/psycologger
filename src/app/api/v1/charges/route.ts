@@ -19,7 +19,10 @@ const createSchema = z.object({
   amountCents: z.number().int().positive().max(100_000_000), // max R$1,000,000.00
   discountCents: z.number().int().min(0).max(100_000_000).default(0),
   currency: z.string().length(3).default("BRL"),
-  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(
+    (d) => !isNaN(new Date(d).getTime()),
+    "Data inválida"
+  ),
   description: z.string().max(200).optional(),
   notes: z.string().max(500).optional(),
 });

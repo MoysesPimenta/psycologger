@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, handleApiError } from "@/lib/api";
+import { ok, handleApiError, NotFoundError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
       where: { id: ctx.userId },
       select: { id: true, name: true, email: true, phone: true, imageUrl: true, createdAt: true },
     });
+    if (!user) throw new NotFoundError("User");
 
     return ok(user);
   } catch (err) {

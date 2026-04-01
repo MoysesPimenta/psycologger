@@ -26,7 +26,7 @@ const createSchema = z.object({
   // Recurring
   recurrenceRrule: z.string().optional(),
   recurrenceOccurrences: z.number().int().min(1).max(104).optional(),
-  recurrenceTime: z.string().regex(/^\d{2}:\d{2}$/).optional(), // "HH:mm" for recurring sessions
+  recurrenceTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(), // "HH:mm" validated range
   // Notifications
   notifyPatient: z.boolean().optional(),
   notifyMethods: z.array(z.enum(["EMAIL", "WHATSAPP", "SMS"])).optional(),

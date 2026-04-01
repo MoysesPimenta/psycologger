@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError } from "@/lib/api";
+import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError, BadRequestError } from "@/lib/api";
 import { requirePermission, getPatientScope } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
@@ -95,6 +95,17 @@ export async function POST(req: NextRequest) {
     }
 
     const session = await db.$transaction(async (tx) => {
+      // Guard: prevent duplicate sessions for the same appointment
+      if (body.appointmentId) {
+        const existingSession = await tx.clinicalSession.findFirst({
+          where: { appointmentId: body.appointmentId, tenantId: ctx.tenantId, deletedAt: null },
+          select: { id: true },
+        });
+        if (existingSession) {
+          throw new BadRequestError("Esta consulta já possui uma sessão clínica vinculada.");
+        }
+      }
+
       const sess = await tx.clinicalSession.create({
         data: {
           tenantId: ctx.tenantId,

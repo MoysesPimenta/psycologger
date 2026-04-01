@@ -582,6 +582,7 @@ model Charge {
   @@index([tenantId, providerUserId])
   @@index([tenantId, status])
   @@index([tenantId, dueDate])
+  @@index([status, dueDate]) // cron job: find PENDING/OVERDUE charges by date range
 }
 
 model Payment {

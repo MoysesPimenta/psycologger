@@ -19,7 +19,10 @@ const createSchema = z.object({
   chargeId: z.string().uuid(),
   amountCents: z.number().int().positive(),
   method: z.enum(["PIX", "CASH", "CARD", "TRANSFER", "INSURANCE", "OTHER"]),
-  paidAt: z.string().datetime().optional(),
+  paidAt: z.string().datetime().optional().refine(
+    (v) => !v || !isNaN(new Date(v).getTime()),
+    "Data de pagamento inválida"
+  ),
   reference: z.string().max(100).optional(),
   notes: z.string().max(500).optional(),
   /** Due date for the auto-created "Saldo restante" charge (ISO date string).

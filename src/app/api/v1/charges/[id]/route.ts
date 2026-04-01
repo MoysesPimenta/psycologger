@@ -53,7 +53,7 @@ export async function PATCH(
     }
 
     const updated = await db.charge.update({
-      where: { id: params.id },
+      where: { id: params.id, tenantId: ctx.tenantId },
       data: {
         ...(body.amountCents !== undefined && { amountCents: body.amountCents }),
         ...(body.discountCents !== undefined && { discountCents: body.discountCents }),
@@ -100,7 +100,7 @@ export async function DELETE(
       throw new BadRequestError("Cannot delete a charge that has payments. Void it instead.");
     }
 
-    await db.charge.delete({ where: { id: params.id } });
+    await db.charge.delete({ where: { id: params.id, tenantId: ctx.tenantId } });
 
     await auditLog({
       tenantId: ctx.tenantId,
