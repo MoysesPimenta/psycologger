@@ -127,37 +127,4 @@ export function buildMeta(
   };
 }
 
-// ─── Rate limiting (simple in-memory for dev; use Upstash in prod) ────────────
-
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-let lastCleanup = Date.now();
-const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
-
-/** Purge expired entries to prevent memory leak */
-function cleanupRateLimitMap() {
-  const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL) return;
-  lastCleanup = now;
-  rateLimitMap.forEach((entry, key) => {
-    if (entry.resetAt < now) rateLimitMap.delete(key);
-  });
-}
-
-export function rateLimit(
-  key: string,
-  limit: number,
-  windowMs: number
-): { allowed: boolean; remaining: number } {
-  cleanupRateLimitMap();
-  const now = Date.now();
-  const entry = rateLimitMap.get(key);
-  if (!entry || entry.resetAt < now) {
-    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, remaining: limit - 1 };
-  }
-  entry.count++;
-  if (entry.count > limit) {
-    return { allowed: false, remaining: 0 };
-  }
-  return { allowed: true, remaining: limit - entry.count };
-}
+// Rate limiting moved to src/lib/rate-limit.ts (Upstash Redis with in-memory fallback)

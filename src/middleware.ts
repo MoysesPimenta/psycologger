@@ -3,12 +3,21 @@
  * Handles:
  * - Auth protection for /app/* and /sa/* routes
  * - Tenant resolution header injection
- * - Security headers (supplementary to next.config.ts)
+ * - CSP nonce injection for defense-in-depth
  */
 
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+
+/** Generate a random nonce for CSP (Edge Runtime compatible) */
+function generateNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  // Convert to base64 without Buffer (Edge Runtime)
+  const binString = Array.from(bytes, (b) => String.fromCodePoint(b)).join("");
+  return btoa(binString);
+}
 
 export default withAuth(
   function middleware(req: NextRequest) {
@@ -22,14 +31,34 @@ export default withAuth(
       }
     }
 
-    // Inject tenant header from cookie if present (for SSR)
+    // Generate CSP nonce
+    const nonce = generateNonce();
+
+    // Inject tenant header and nonce from cookie if present (for SSR)
     const tenantId = req.cookies.get("psycologger-tenant")?.value;
     const headers = new Headers(req.headers);
     if (tenantId) {
       headers.set("x-tenant-id", tenantId);
     }
+    headers.set("x-nonce", nonce);
 
-    return NextResponse.next({ request: { headers } });
+    const response = NextResponse.next({ request: { headers } });
+
+    // Set CSP header with nonce — allows only scripts/styles with the matching nonce
+    // 'unsafe-inline' kept as fallback for older browsers that don't support nonce
+    const csp = [
+      "default-src 'self'",
+      `script-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
+      `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
+      "img-src 'self' data: blob: https:",
+      "font-src 'self'",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      "frame-ancestors 'none'",
+    ].join("; ");
+
+    response.headers.set("Content-Security-Policy", csp);
+
+    return response;
   },
   {
     callbacks: {

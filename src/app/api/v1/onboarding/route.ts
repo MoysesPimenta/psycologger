@@ -6,7 +6,8 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { created, handleApiError, apiError, rateLimit } from "@/lib/api";
+import { created, handleApiError, apiError } from "@/lib/api";
+import { rateLimit } from "@/lib/rate-limit";
 import { Prisma } from "@prisma/client";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { generateSlug } from "@/lib/utils";
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting: 5 signups per IP per hour
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    const rl = rateLimit(`signup:${ip}`, 5, 60 * 60 * 1000);
+    const rl = await rateLimit(`signup:${ip}`, 5, 60 * 60 * 1000);
     if (!rl.allowed) {
       return apiError("RATE_LIMITED", "Muitas tentativas. Tente novamente em 1 hora.", 429);
     }
