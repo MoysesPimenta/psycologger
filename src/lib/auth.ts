@@ -12,6 +12,7 @@ import EmailProvider from "next-auth/providers/email";
 import { db } from "./db";
 import { sendMagicLink } from "./email";
 import { auditLog } from "./audit";
+import { EMAIL_TOKEN_MAX_AGE_SECONDS, SESSION_MAX_AGE_SECONDS } from "./constants";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as NextAuthOptions["adapter"],
@@ -30,12 +31,12 @@ export const authOptions: NextAuthOptions = {
           name: user?.name ?? undefined,
         });
       },
-      maxAge: 24 * 60 * 60, // 24 hours
+      maxAge: EMAIL_TOKEN_MAX_AGE_SECONDS,
     }),
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: SESSION_MAX_AGE_SECONDS,
   },
   pages: {
     signIn: "/login",

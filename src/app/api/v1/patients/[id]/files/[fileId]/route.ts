@@ -9,6 +9,7 @@ import { getAuthContext } from "@/lib/tenant";
 import { ok, noContent, handleApiError, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { SOFT_DELETE_RETENTION_MS } from "@/lib/constants";
 
 export async function PATCH(
   req: NextRequest,
@@ -79,7 +80,7 @@ export async function DELETE(
       summary: {
         patientId: params.id,
         fileName: file.fileName,
-        scheduledHardDeleteAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        scheduledHardDeleteAt: new Date(Date.now() + SOFT_DELETE_RETENTION_MS),
       },
       ipAddress,
       userAgent,

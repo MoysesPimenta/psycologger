@@ -4,6 +4,7 @@
  */
 
 import { Resend } from "resend";
+import { roleLabel } from "@/lib/utils";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -308,13 +309,4 @@ async function sendEmail({
   return data;
 }
 
-function roleLabel(role: string): string {
-  const labels: Record<string, string> = {
-    SUPERADMIN: "Super Administrador",
-    TENANT_ADMIN: "Administrador",
-    PSYCHOLOGIST: "Psicólogo(a)",
-    ASSISTANT: "Assistente",
-    READONLY: "Leitor",
-  };
-  return labels[role] ?? role;
-}
+// roleLabel imported from @/lib/utils

@@ -15,25 +15,12 @@ import {
   sendPaymentOverdueNotification,
 } from "@/lib/email";
 
+import { formatCurrencyPlain, formatDatePlain } from "@/lib/utils";
+
 const CRON_SECRET = process.env.CRON_SECRET;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const dbAny = db as any;
-
-function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(cents / 100);
-}
-
-function formatDate(d: Date): string {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(d);
-}
 
 interface ChargeWithRelations {
   id: string;
@@ -122,8 +109,8 @@ export async function POST(req: NextRequest) {
         to: charge.patient.email,
         patientName: charge.patient.fullName,
         clinicName: charge.tenant.name,
-        amountFormatted: formatCurrency(net),
-        dueDate: formatDate(charge.dueDate),
+        amountFormatted: formatCurrencyPlain(net),
+        dueDate: formatDatePlain(charge.dueDate),
       });
 
       await logReminder({
@@ -177,8 +164,8 @@ export async function POST(req: NextRequest) {
         to: charge.patient.email,
         patientName: charge.patient.fullName,
         clinicName: charge.tenant.name,
-        amountFormatted: formatCurrency(net),
-        dueDate: formatDate(charge.dueDate),
+        amountFormatted: formatCurrencyPlain(net),
+        dueDate: formatDatePlain(charge.dueDate),
       });
 
       // Also flip status to OVERDUE if still PENDING

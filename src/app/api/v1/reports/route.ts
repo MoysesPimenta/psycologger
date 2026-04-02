@@ -10,17 +10,9 @@ import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
 import { ok, handleApiError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
+import { csvSafe } from "@/lib/utils";
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 import type { ChargeStatus } from "@prisma/client";
-
-/** Escape a string for safe CSV output (prevents formula injection and quote issues) */
-function csvSafe(value: string): string {
-  let v = value.replace(/"/g, '""');
-  v = v.replace(/[\r\n]+/g, " "); // flatten newlines to prevent CSV row breaks
-  // Prevent formula injection: prefix with single quote if starts with =, +, -, @, \t, \r
-  if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
-  return `"${v}"`;
-}
 
 const PENDING_STATUSES: ChargeStatus[] = ["PENDING", "OVERDUE"];
 

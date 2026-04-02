@@ -68,7 +68,9 @@ export function IntegrationsClient() {
           setStatuses(map);
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.warn("[integrations] Failed to load integration statuses:", err);
+      })
       .finally(() => setLoading(false));
   }, []);
 

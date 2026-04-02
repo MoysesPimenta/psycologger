@@ -45,12 +45,30 @@ export function generateSlug(name: string): string {
   return `${base}-${suffix}`;
 }
 
-export function toCents(value: number): number {
-  return Math.round(value * 100);
+/** Escape a string for safe CSV output (prevents formula injection and quote issues). */
+export function csvSafe(value: string): string {
+  let v = value.replace(/"/g, '""');
+  v = v.replace(/[\r\n]+/g, " "); // flatten newlines to prevent CSV row breaks
+  // Prevent formula injection: prefix with single quote if starts with =, +, -, @, \t, \r
+  if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
+  return `"${v}"`;
 }
 
-export function fromCents(cents: number): number {
-  return cents / 100;
+/** Format a currency value for cron/email contexts (BRL, no external deps). */
+export function formatCurrencyPlain(cents: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(cents / 100);
+}
+
+/** Format a date for cron/email contexts (dd/MM/yyyy, no external deps). */
+export function formatDatePlain(d: Date): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(d);
 }
 
 export function chargeStatusLabel(status: string): string {
@@ -89,13 +107,35 @@ export function paymentMethodLabel(method: string): string {
 
 export function roleLabel(role: string): string {
   const labels: Record<string, string> = {
-    SUPERADMIN: "Super Admin",
+    SUPERADMIN: "Super Administrador",
     TENANT_ADMIN: "Administrador",
     PSYCHOLOGIST: "Psicólogo(a)",
     ASSISTANT: "Assistente",
     READONLY: "Leitor",
   };
   return labels[role] ?? role;
+}
+
+/**
+ * Extract a user-friendly error message from an API response.
+ * Handles the standard { error: { message } } shape returned by our API layer.
+ */
+export async function extractApiError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json();
+    return data?.error?.message ?? data?.error ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Extract an error message from a caught exception.
+ */
+export function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return fallback;
 }
 
 export function initials(name: string): string {

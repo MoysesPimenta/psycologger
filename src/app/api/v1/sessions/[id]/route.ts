@@ -10,6 +10,7 @@ import { getAuthContext } from "@/lib/tenant";
 import { ok, noContent, handleApiError, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { SOFT_DELETE_RETENTION_MS } from "@/lib/constants";
 
 export async function GET(
   req: NextRequest,
@@ -161,7 +162,7 @@ export async function DELETE(
       action: "SESSION_DELETE",
       entity: "ClinicalSession",
       entityId: params.id,
-      summary: { patientId: existing.patientId, scheduledHardDeleteAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
+      summary: { patientId: existing.patientId, scheduledHardDeleteAt: new Date(Date.now() + SOFT_DELETE_RETENTION_MS) },
       ipAddress,
       userAgent,
     });

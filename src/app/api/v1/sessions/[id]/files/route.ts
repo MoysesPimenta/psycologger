@@ -12,7 +12,8 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { uploadFile, signedDownloadUrl, isStorageConfigured } from "@/lib/storage";
 import { randomUUID } from "crypto";
 
-const MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB per file
+import { MAX_UPLOAD_SIZE_BYTES } from "@/lib/constants";
+
 const ALLOWED_TYPES = [
   "application/pdf",
   "image/jpeg",
@@ -112,9 +113,9 @@ export async function POST(
     }
 
     // Validate size
-    if (file.size > MAX_SIZE_BYTES) {
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       return new Response(
-        JSON.stringify({ error: `Arquivo muito grande. Máximo: ${MAX_SIZE_BYTES / 1024 / 1024} MB.` }),
+        JSON.stringify({ error: `Arquivo muito grande. Máximo: ${MAX_UPLOAD_SIZE_BYTES / 1024 / 1024} MB.` }),
         { status: 413, headers: { "Content-Type": "application/json" } }
       );
     }

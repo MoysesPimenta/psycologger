@@ -6,6 +6,8 @@
  *   UPSTASH_REDIS_REST_TOKEN
  */
 
+import { RATE_LIMIT_CLEANUP_INTERVAL_MS } from "@/lib/constants";
+
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
 interface RateLimitResult {
@@ -17,11 +19,10 @@ interface RateLimitResult {
 
 const memoryMap = new Map<string, { count: number; resetAt: number }>();
 let lastCleanup = Date.now();
-const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 function cleanupMemoryMap() {
   const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL) return;
+  if (now - lastCleanup < RATE_LIMIT_CLEANUP_INTERVAL_MS) return;
   lastCleanup = now;
   memoryMap.forEach((entry, key) => {
     if (entry.resetAt < now) memoryMap.delete(key);
@@ -101,17 +102,5 @@ export async function rateLimit(
       console.error("[rate-limit] Upstash error, falling back to in-memory:", err);
     }
   }
-  return memoryRateLimit(key, limit, windowMs);
-}
-
-/**
- * Synchronous rate limit (in-memory only). For use in contexts where async is
- * not practical.
- */
-export function rateLimitSync(
-  key: string,
-  limit: number,
-  windowMs: number
-): RateLimitResult {
   return memoryRateLimit(key, limit, windowMs);
 }

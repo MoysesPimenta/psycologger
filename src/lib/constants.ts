@@ -1,0 +1,41 @@
+/**
+ * Application-wide constants — Psycologger
+ *
+ * Centralises magic numbers and configuration values so they can be
+ * understood and adjusted from a single place.
+ */
+
+// ─── Time durations ────────────────────────────────────────────────────────────
+
+/** Session/JWT lifetime for authenticated users (30 days). */
+export const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+
+/** Email-link sign-in token lifetime (24 hours). */
+export const EMAIL_TOKEN_MAX_AGE_SECONDS = 24 * 60 * 60;
+
+/** How long an invite link stays valid (7 days). */
+export const INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Grace period before soft-deleted records are hard-deleted (30 days). */
+export const SOFT_DELETE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+// ─── Rate limiting ─────────────────────────────────────────────────────────────
+
+/** Signup rate-limit: max attempts per IP within the window. */
+export const SIGNUP_RATE_LIMIT = 5;
+
+/** Signup rate-limit window (1 hour). */
+export const SIGNUP_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+
+/** In-memory rate-limit map cleanup interval (5 minutes). */
+export const RATE_LIMIT_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
+// ─── File uploads ──────────────────────────────────────────────────────────────
+
+/** Maximum upload size per file (25 MB). */
+export const MAX_UPLOAD_SIZE_BYTES = 25 * 1024 * 1024;
+
+// ─── CSV / Exports ─────────────────────────────────────────────────────────────
+
+/** Maximum rows for audit CSV export. */
+export const AUDIT_CSV_MAX_ROWS = 50_000;

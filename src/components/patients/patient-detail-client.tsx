@@ -9,8 +9,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatDateTime, formatCurrency, chargeStatusLabel, initials } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { SOFT_DELETE_RETENTION_MS } from "@/lib/constants";
 
 interface AppointmentTypeSummary {
   id: string;
@@ -21,8 +23,9 @@ interface AppointmentTypeSummary {
 type Tab = "timeline" | "sessions" | "files" | "financial" | "profile";
 
 function daysUntilHardDelete(deletedAt: string): number {
-  const hardDeleteAt = new Date(deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000;
-  return Math.max(0, Math.ceil((hardDeleteAt - Date.now()) / (24 * 60 * 60 * 1000)));
+  const hardDeleteAt = new Date(deletedAt).getTime() + SOFT_DELETE_RETENTION_MS;
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  return Math.max(0, Math.ceil((hardDeleteAt - Date.now()) / MS_PER_DAY));
 }
 
 /* ─── Reusable confirm modal ─────────────────────────────────────────────── */
@@ -77,6 +80,7 @@ export function PatientDetailClient({
   userId: string;
   appointmentTypes?: AppointmentTypeSummary[];
 }) {
+  const { toast } = useToast();
   const [tab, setTab] = useState<Tab>("timeline");
   const [patient, setPatient] = useState(initialPatient);
   const [togglingActive, setTogglingActive] = useState(false);
@@ -112,7 +116,7 @@ export function PatientDetailClient({
       if (!res.ok) throw new Error("Falha ao atualizar status");
       setPatient((p: Record<string, any>) => ({ ...p, isActive: newValue }));
     } catch {
-      // silently fail — user can retry
+      toast({ title: "Erro ao atualizar status do paciente", variant: "destructive" });
     } finally {
       setTogglingActive(false);
     }

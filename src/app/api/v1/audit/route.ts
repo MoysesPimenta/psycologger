@@ -7,14 +7,8 @@ import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
 import { ok, handleApiError, parsePagination, buildMeta } from "@/lib/api";
 import { requirePermission, can } from "@/lib/rbac";
-
-/** Escape a string for safe CSV output (prevents formula injection and quote issues) */
-function csvSafe(value: string): string {
-  let v = value.replace(/"/g, '""');
-  v = v.replace(/[\r\n]+/g, " "); // flatten newlines to prevent CSV row breaks
-  if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
-  return `"${v}"`;
-}
+import { csvSafe } from "@/lib/utils";
+import { AUDIT_CSV_MAX_ROWS } from "@/lib/constants";
 
 export async function GET(req: NextRequest) {
   try {
@@ -50,7 +44,7 @@ export async function GET(req: NextRequest) {
         where,
         include: { user: { select: { name: true, email: true } } },
         orderBy: { createdAt: "desc" },
-        take: 50_000,
+        take: AUDIT_CSV_MAX_ROWS,
       });
 
       const rows = [

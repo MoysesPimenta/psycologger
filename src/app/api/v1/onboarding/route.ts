@@ -11,6 +11,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { Prisma } from "@prisma/client";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { generateSlug } from "@/lib/utils";
+import { SIGNUP_RATE_LIMIT, SIGNUP_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
 const schema = z.object({
   // name is optional for users who logged in via magic link (email provider doesn't
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting: 5 signups per IP per hour
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    const rl = await rateLimit(`signup:${ip}`, 5, 60 * 60 * 1000);
+    const rl = await rateLimit(`signup:${ip}`, SIGNUP_RATE_LIMIT, SIGNUP_RATE_LIMIT_WINDOW_MS);
     if (!rl.allowed) {
       return apiError("RATE_LIMITED", "Muitas tentativas. Tente novamente em 1 hora.", 429);
     }
