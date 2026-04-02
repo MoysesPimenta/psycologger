@@ -16,6 +16,7 @@ import type { ChargeStatus } from "@prisma/client";
 /** Escape a string for safe CSV output (prevents formula injection and quote issues) */
 function csvSafe(value: string): string {
   let v = value.replace(/"/g, '""');
+  v = v.replace(/[\r\n]+/g, " "); // flatten newlines to prevent CSV row breaks
   // Prevent formula injection: prefix with single quote if starts with =, +, -, @, \t, \r
   if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
   return `"${v}"`;

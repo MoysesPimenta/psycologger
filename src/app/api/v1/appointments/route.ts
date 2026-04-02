@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, created, handleApiError, parsePagination, buildMeta, ConflictError } from "@/lib/api";
+import { ok, created, handleApiError, parsePagination, buildMeta, ConflictError, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { sendAppointmentConfirmation } from "@/lib/email";
@@ -79,7 +79,11 @@ export async function GET(req: NextRequest) {
     const pagination = parsePagination(searchParams);
     const from = searchParams.get("from");
     const to = searchParams.get("to");
-    const providerUserId = searchParams.get("providerId") ?? ctx.userId;
+    // PSYCHOLOGIST can only see their own appointments; admins can filter by any provider
+    const requestedProvider = searchParams.get("providerId");
+    const providerUserId = ctx.role === "PSYCHOLOGIST"
+      ? ctx.userId
+      : requestedProvider ?? ctx.userId;
     const patientId = searchParams.get("patientId");
     const status = searchParams.get("status");
 
@@ -138,6 +142,20 @@ export async function POST(req: NextRequest) {
     const body = createSchema.parse(await req.json());
     const startsAt = new Date(body.startsAt);
     const endsAt = new Date(body.endsAt);
+
+    // Validate patient belongs to this tenant
+    const patientCheck = await db.patient.findFirst({
+      where: { id: body.patientId, tenantId: ctx.tenantId },
+      select: { id: true },
+    });
+    if (!patientCheck) throw new NotFoundError("Patient");
+
+    // Validate provider belongs to this tenant
+    const providerCheck = await db.membership.findFirst({
+      where: { userId: body.providerUserId, tenantId: ctx.tenantId, status: "ACTIVE" },
+      select: { id: true },
+    });
+    if (!providerCheck) throw new NotFoundError("Provider");
 
     // Conflict detection for the first slot
     const conflict = await checkConflict(ctx.tenantId, body.providerUserId, startsAt, endsAt);

@@ -11,6 +11,7 @@ import { requirePermission, can } from "@/lib/rbac";
 /** Escape a string for safe CSV output (prevents formula injection and quote issues) */
 function csvSafe(value: string): string {
   let v = value.replace(/"/g, '""');
+  v = v.replace(/[\r\n]+/g, " "); // flatten newlines to prevent CSV row breaks
   if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
   return `"${v}"`;
 }

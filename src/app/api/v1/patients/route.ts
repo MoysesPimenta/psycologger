@@ -18,6 +18,7 @@ const createSchema = z.object({
   preferredName: z.string().max(50).optional(),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().max(20).optional(),
+  cpf: z.string().max(14).optional(),
   dob: z.string().optional(), // ISO date string
   notes: z.string().max(500).optional(),
   tags: z.array(z.string()).default([]),
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest) {
         preferredName: body.preferredName ?? null,
         email: body.email || null,
         phone: body.phone ?? null,
+        cpf: body.cpf ?? null,
         dob: body.dob ? new Date(body.dob) : null,
         notes: body.notes ?? null,
         tags: body.tags,

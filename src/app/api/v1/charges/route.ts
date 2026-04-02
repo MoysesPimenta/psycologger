@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, created, handleApiError, parsePagination, buildMeta } from "@/lib/api";
+import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { sendPaymentCreatedNotification } from "@/lib/email";
@@ -105,6 +105,13 @@ export async function POST(req: NextRequest) {
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const body = createSchema.parse(await req.json());
+
+    // Validate patient belongs to this tenant
+    const patient = await db.patient.findFirst({
+      where: { id: body.patientId, tenantId: ctx.tenantId },
+      select: { id: true },
+    });
+    if (!patient) throw new NotFoundError("Patient");
 
     const charge = await db.charge.create({
       data: {

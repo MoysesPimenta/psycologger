@@ -33,7 +33,12 @@ export async function GET(
     requirePermission(ctx, "sessions:view");
 
     const session = await db.clinicalSession.findFirst({
-      where: { id: params.id, tenantId: ctx.tenantId },
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        // PSYCHOLOGIST can only access their own sessions' files
+        ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+      },
     });
     if (!session) throw new NotFoundError("Session");
 
@@ -88,7 +93,12 @@ export async function POST(
     }
 
     const session = await db.clinicalSession.findFirst({
-      where: { id: params.id, tenantId: ctx.tenantId },
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        // PSYCHOLOGIST can only upload to their own sessions
+        ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+      },
     });
     if (!session) throw new NotFoundError("Session");
 

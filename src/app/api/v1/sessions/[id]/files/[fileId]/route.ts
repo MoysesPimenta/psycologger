@@ -19,6 +19,17 @@ export async function GET(
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "files:downloadClinical");
 
+    // Verify session exists and user has access (PSYCHOLOGIST only sees own sessions)
+    const session = await db.clinicalSession.findFirst({
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+      },
+      select: { id: true },
+    });
+    if (!session) throw new NotFoundError("Session");
+
     const file = await db.fileObject.findFirst({
       where: { id: params.fileId, sessionId: params.id, tenantId: ctx.tenantId },
       select: { id: true, fileName: true, mimeType: true, sizeBytes: true, storageKey: true, createdAt: true },
@@ -40,6 +51,17 @@ export async function DELETE(
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "files:delete");
     const { ipAddress, userAgent } = extractRequestMeta(req);
+
+    // Verify session exists and user has access
+    const sessionCheck = await db.clinicalSession.findFirst({
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+      },
+      select: { id: true },
+    });
+    if (!sessionCheck) throw new NotFoundError("Session");
 
     const file = await db.fileObject.findFirst({
       where: { id: params.fileId, sessionId: params.id, tenantId: ctx.tenantId },

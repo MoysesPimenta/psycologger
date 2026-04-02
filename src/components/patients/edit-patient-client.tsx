@@ -98,6 +98,7 @@ export function EditPatientClient({
           preferredName: form.preferredName || null,
           email: form.email || null,
           phone: form.phone || null,
+          cpf: form.cpf || null,
           dob: form.dob || null,
           notes: form.notes || null,
           tags: form.tags
