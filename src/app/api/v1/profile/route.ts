@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     const user = await db.user.findUnique({
       where: { id: ctx.userId },
-      select: { id: true, name: true, email: true, phone: true, imageUrl: true, createdAt: true },
+      select: { id: true, name: true, email: true, phone: true, imageUrl: true, createdAt: true } as never,
     });
     if (!user) throw new NotFoundError("User");
 
@@ -28,7 +28,6 @@ export async function GET(req: NextRequest) {
 
 const patchSchema = z.object({
   name: z.string().min(2, "Nome deve ter ao menos 2 caracteres").max(100).optional(),
-  // @ts-ignore — phone added via migration, Prisma types updated on next generate
   phone: z.string().max(30).optional().nullable(),
 });
 
@@ -43,10 +42,9 @@ export async function PATCH(req: NextRequest) {
       where: { id: ctx.userId },
       data: {
         ...(body.name !== undefined && { name: body.name }),
-        // @ts-ignore — phone field added via migration
         ...(body.phone !== undefined && { phone: body.phone }),
-      },
-      select: { id: true, name: true, email: true, phone: true },
+      } as never,
+      select: { id: true, name: true, email: true, phone: true } as never,
     });
 
     await auditLog({

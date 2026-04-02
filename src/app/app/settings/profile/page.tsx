@@ -11,10 +11,10 @@ export default async function ProfileSettingsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  const user = await db.user.findUnique({
+  const user = await (db.user as any).findUnique({
     where: { id: session.user.id },
     select: { id: true, name: true, email: true, phone: true },
-  });
+  }) as { id: string; name: string | null; email: string; phone: string | null } | null;
 
   if (!user) redirect("/login");
 
@@ -27,8 +27,7 @@ export default async function ProfileSettingsPage() {
       <ProfileSettingsClient
         initialName={user.name ?? ""}
         email={user.email}
-        // @ts-ignore — phone added via migration
-        initialPhone={(user as { phone?: string | null }).phone ?? ""}
+        initialPhone={user.phone ?? ""}
       />
     </div>
   );
