@@ -74,7 +74,7 @@ export async function DELETE(
     }
 
     // Remove DB record
-    await db.fileObject.delete({ where: { id: params.fileId } });
+    await db.fileObject.delete({ where: { id: params.fileId, tenantId: ctx.tenantId } });
 
     await auditLog({
       tenantId: ctx.tenantId,

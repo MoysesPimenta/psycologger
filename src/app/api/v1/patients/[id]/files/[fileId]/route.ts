@@ -25,7 +25,7 @@ export async function PATCH(
     if (!file) throw new NotFoundError("File");
 
     const restored = await db.fileObject.update({
-      where: { id: params.fileId },
+      where: { id: params.fileId, tenantId: ctx.tenantId },
       data: { deletedAt: null, deletedBy: null },
     });
 
@@ -66,7 +66,7 @@ export async function DELETE(
     if (!file) throw new NotFoundError("File");
 
     await db.fileObject.update({
-      where: { id: params.fileId },
+      where: { id: params.fileId, tenantId: ctx.tenantId },
       data: { deletedAt: new Date(), deletedBy: ctx.userId },
     });
 

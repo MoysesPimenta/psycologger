@@ -72,7 +72,7 @@ export async function PATCH(
     const body = updateSchema.parse(await req.json());
 
     const patient = await db.patient.update({
-      where: { id: params.id },
+      where: { id: params.id, tenantId: ctx.tenantId },
       data: {
         ...(body.fullName && { fullName: body.fullName }),
         ...(body.preferredName !== undefined && { preferredName: body.preferredName }),
@@ -132,7 +132,7 @@ export async function DELETE(
     await resolvePatient(params.id, ctx);
 
     await db.patient.update({
-      where: { id: params.id },
+      where: { id: params.id, tenantId: ctx.tenantId },
       data: {
         isActive: false,
         archivedAt: new Date(),

@@ -129,10 +129,14 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Mark appointment as completed if linked
+      // Mark appointment as completed if linked (only if still in a non-final state)
       if (body.appointmentId) {
         await tx.appointment.updateMany({
-          where: { id: body.appointmentId, tenantId: ctx.tenantId },
+          where: {
+            id: body.appointmentId,
+            tenantId: ctx.tenantId,
+            status: { notIn: ["CANCELED" as never, "NO_SHOW" as never, "COMPLETED" as never] },
+          },
           data: { status: "COMPLETED" as never },
         });
       }

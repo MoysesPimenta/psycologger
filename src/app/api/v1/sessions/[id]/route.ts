@@ -73,7 +73,7 @@ export async function PATCH(
     // Restore from soft-delete
     if (body.restore === true) {
       const restored = await db.clinicalSession.update({
-        where: { id: params.id },
+        where: { id: params.id, tenantId: ctx.tenantId },
         data: { deletedAt: null, deletedBy: null },
       });
       await auditLog({
@@ -91,7 +91,7 @@ export async function PATCH(
 
     const updated = await db.$transaction(async (tx) => {
       const sess = await tx.clinicalSession.update({
-        where: { id: params.id },
+        where: { id: params.id, tenantId: ctx.tenantId },
         data: {
           ...(body.noteText !== undefined && { noteText: body.noteText }),
           ...(body.templateKey && { templateKey: body.templateKey }),
@@ -151,7 +151,7 @@ export async function DELETE(
     if (!existing) throw new NotFoundError("Session");
 
     await db.clinicalSession.update({
-      where: { id: params.id },
+      where: { id: params.id, tenantId: ctx.tenantId },
       data: { deletedAt: new Date(), deletedBy: ctx.userId },
     });
 

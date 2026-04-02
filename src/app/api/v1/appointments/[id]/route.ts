@@ -97,7 +97,7 @@ export async function PATCH(
 
     const updated = await db.$transaction(async (tx) => {
       const appt = await tx.appointment.update({
-        where: { id: params.id },
+        where: { id: params.id, tenantId: ctx.tenantId },
         data: {
           ...(body.status && { status: body.status }),
           ...(body.startsAt && { startsAt: new Date(body.startsAt) }),
