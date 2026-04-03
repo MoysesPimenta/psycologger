@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ["@prisma/client", "prisma"],
+  experimental: {
+    serverComponentsExternalPackages: [
+      "@prisma/client",
+      "prisma",
+      "libsodium-wrappers",
+      "libsodium",
+    ],
+  },
   images: {
     remotePatterns: [
       {
