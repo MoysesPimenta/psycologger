@@ -140,9 +140,11 @@ function FileAttachmentPanel({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [sessionId, toast]);
 
-  async function handleDelete(fileId: string, fileName: string) {
-    if (!confirm(`Excluir "${fileName}"? Não pode ser desfeito.`)) return;
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+
+  async function executeFileDelete(fileId: string) {
     setDeletingId(fileId);
+    setConfirmDelete(null);
     try {
       const res = await fetch(`/api/v1/sessions/${sessionId}/files/${fileId}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
@@ -223,7 +225,7 @@ function FileAttachmentPanel({
                 </Button>
                 {canEdit && (
                   <Button variant="ghost" size="sm" disabled={deletingId === file.id}
-                    onClick={() => handleDelete(file.id, file.fileName)} title="Excluir"
+                    onClick={() => setConfirmDelete({ id: file.id, name: file.fileName })} title="Excluir"
                     className="h-7 w-7 p-0 text-gray-400 hover:text-red-600">
                     {deletingId === file.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </Button>
@@ -234,6 +236,27 @@ function FileAttachmentPanel({
         </div>
       ) : (
         <p className="text-center text-xs text-gray-400 py-2">Nenhum arquivo anexado</p>
+      )}
+
+      {/* File delete confirmation modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          role="dialog" aria-modal="true" aria-labelledby="file-delete-title"
+          onClick={() => setConfirmDelete(null)}>
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-4"
+            onClick={(e) => e.stopPropagation()}>
+            <h2 id="file-delete-title" className="text-base font-semibold text-gray-900">Excluir arquivo?</h2>
+            <p className="text-sm text-gray-600">
+              O arquivo <strong>{confirmDelete.name}</strong> será removido permanentemente. Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>Cancelar</Button>
+              <Button variant="destructive" size="sm" onClick={() => executeFileDelete(confirmDelete.id)}>
+                <Trash2 className="h-4 w-4 mr-1" /> Excluir
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

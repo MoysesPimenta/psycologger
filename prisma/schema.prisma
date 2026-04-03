@@ -286,6 +286,7 @@ model Invite {
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sentBy  User?   @relation("InvitesSentBy", fields: [sentById], references: [id], onDelete: SetNull)
 
+  @@unique([tenantId, email]) // prevent duplicate pending invites to same email in same tenant
   @@index([tenantId])
   @@index([token])
   @@index([email])

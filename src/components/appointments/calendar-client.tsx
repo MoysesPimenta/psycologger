@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus, Clock, User, Sun } from "lucide-react";
@@ -88,15 +88,15 @@ export function CalendarClient({
     }
   }
 
-  const weekDays = eachDayOfInterval({
+  const weekDays = useMemo(() => eachDayOfInterval({
     start: startOfWeek(currentDate, { weekStartsOn: 1 }),
     end: endOfWeek(currentDate, { weekStartsOn: 1 }),
-  });
+  }), [currentDate]);
 
   // Default: 7h–19h (13 slots). Toggle: 0h–23h (24 slots).
-  const hours = show24h
+  const hours = useMemo(() => show24h
     ? Array.from({ length: 24 }, (_, i) => i)
-    : Array.from({ length: 13 }, (_, i) => i + 7);
+    : Array.from({ length: 13 }, (_, i) => i + 7), [show24h]);
 
   const title = view === "week"
     ? `${format(weekDays[0], "dd MMM", { locale: ptBR })} – ${format(weekDays[6], "dd MMM yyyy", { locale: ptBR })}`

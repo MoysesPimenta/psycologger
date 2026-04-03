@@ -139,7 +139,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
   // Notification state
   const [notif, setNotif] = useState({ enabled: false, methods: ["EMAIL"] as string[] });
 
-  // ── Sync rec.dayIndex when form.date changes ────────────────────────────────
+  // ── Sync rec.dayIndex when form.date or form.time changes ──────────────────
   useEffect(() => {
     if (form.date) {
       try {
@@ -147,8 +147,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
         setRec((r) => ({ ...r, dayIndex: getDay(d), time: form.time }));
       } catch {}
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.date]);
+  }, [form.date, form.time]);
 
   // ── Load patients + appointment types ──────────────────────────────────────
   const loadPatients = useCallback(async () => {

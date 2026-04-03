@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Download, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuditEntry {
   id: string;
@@ -16,6 +17,7 @@ interface AuditEntry {
 }
 
 export function AuditClient() {
+  const { toast } = useToast();
   const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
@@ -34,15 +36,23 @@ export function AuditClient() {
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
   async function exportCsv() {
-    const res = await fetch("/api/v1/audit?export=true");
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "auditoria.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const res = await fetch("/api/v1/audit?export=true");
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        toast({ title: json?.error ?? "Erro ao exportar auditoria", variant: "destructive" });
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "auditoria.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ title: "Erro de rede ao exportar auditoria", variant: "destructive" });
+    }
   }
 
   return (

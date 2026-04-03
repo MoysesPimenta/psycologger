@@ -55,6 +55,7 @@ export function AppointmentTypesClient() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
+  const [confirmDeactivate, setConfirmDeactivate] = useState<{ id: string; name: string } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -133,8 +134,8 @@ export function AppointmentTypesClient() {
     }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Desativar o tipo "${name}"? As consultas existentes não serão afetadas.`)) return;
+  async function executeDelete(id: string) {
+    setConfirmDeactivate(null);
     setActionError("");
     const res = await fetch(`/api/v1/appointment-types/${id}`, { method: "DELETE" });
     if (res.ok) {
@@ -213,7 +214,7 @@ export function AppointmentTypesClient() {
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => handleDelete(type.id, type.name)}
+                    onClick={() => setConfirmDeactivate({ id: type.id, name: type.name })}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -245,6 +246,27 @@ export function AppointmentTypesClient() {
         <Button variant="outline" onClick={startCreate} className="w-full">
           <Plus className="h-4 w-4 mr-2" /> Adicionar tipo
         </Button>
+      )}
+
+      {/* Deactivate confirmation modal */}
+      {confirmDeactivate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          role="dialog" aria-modal="true" aria-labelledby="deactivate-type-title"
+          onClick={() => setConfirmDeactivate(null)}>
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-4"
+            onClick={(e) => e.stopPropagation()}>
+            <h2 id="deactivate-type-title" className="text-base font-semibold text-gray-900">Desativar tipo de consulta?</h2>
+            <p className="text-sm text-gray-600">
+              O tipo <strong>{confirmDeactivate.name}</strong> será desativado. As consultas existentes não serão afetadas.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setConfirmDeactivate(null)}>Cancelar</Button>
+              <Button variant="destructive" size="sm" onClick={() => executeDelete(confirmDeactivate.id)}>
+                <Trash2 className="h-4 w-4 mr-1" /> Desativar
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

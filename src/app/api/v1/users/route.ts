@@ -67,8 +67,20 @@ export async function POST(req: NextRequest) {
     // Use high-entropy token instead of default CUID to prevent enumeration
     const token = randomBytes(32).toString("base64url");
 
-    const invite = await db.invite.create({
-      data: {
+    // Upsert: if an invite already exists for this email+tenant, replace it
+    // (handles the @@unique([tenantId, email]) constraint)
+    const invite = await db.invite.upsert({
+      where: {
+        tenantId_email: { tenantId: ctx.tenantId, email: body.email },
+      } as never,
+      update: {
+        role: body.role,
+        expiresAt,
+        sentById: ctx.userId,
+        token,
+        acceptedAt: null,
+      },
+      create: {
         tenantId: ctx.tenantId,
         email: body.email,
         role: body.role,
