@@ -26,14 +26,16 @@ export async function GET(
         patient: { select: { id: true, fullName: true, preferredName: true } },
         provider: { select: { id: true, name: true } },
         appointment: { select: { id: true, startsAt: true, status: true } },
-        revisions: {
+        // editedBy relation added in migration — Prisma client not regenerated in VM
+      revisions: {
           orderBy: { editedAt: "desc" },
           take: 10,
           select: {
             id: true,
             editedAt: true,
             editedById: true,
-          },
+            editedBy: { select: { name: true, email: true } },
+          } as never,
         },
         files: {
           select: { id: true, fileName: true, mimeType: true, sizeBytes: true, createdAt: true },

@@ -76,6 +76,42 @@ enum CalendarShowPatient {
   FULL_NAME
 }
 
+enum ContactType {
+  EMERGENCY
+  RESPONSIBLE
+  OTHER
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+enum DeliveryStatus {
+  SENT
+  FAILED
+  BOUNCED
+}
+
+enum ReminderType {
+  CONFIRMATION
+  REMINDER_24H
+  REMINDER_1H
+}
+
+enum PaymentReminderType {
+  PAYMENT_CREATED
+  PAYMENT_DUE_24H
+  PAYMENT_OVERDUE
+}
+
+enum IntegrationStatus {
+  INACTIVE
+  ACTIVE
+  ERROR
+}
+
 // ─── Auth (NextAuth required tables) ────────────────────────────────────────
 
 model Account {
@@ -147,6 +183,8 @@ model User {
 
   uploadedFiles   FileObject[] @relation("FileUploadedBy")
   createdPayments Payment[]    @relation("PaymentCreatedBy")
+  recurrencesCreated Recurrence[] @relation("RecurrenceCreatedBy")
+  sessionRevisions   SessionRevision[] @relation("RevisionEditor")
   auditLogs       AuditLog[]
 
   googleCalendarIntegration GoogleCalendarToken?
@@ -246,7 +284,7 @@ model Invite {
   createdAt DateTime @default(now())
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sentBy  User?   @relation("InvitesSentBy", fields: [sentById], references: [id])
+  sentBy  User?   @relation("InvitesSentBy", fields: [sentById], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([token])
@@ -289,8 +327,8 @@ model Patient {
   updatedAt DateTime @updatedAt
 
   tenant                 Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  assignedUser           User?     @relation("PatientPrimaryProvider", fields: [assignedUserId], references: [id])
-  defaultAppointmentType AppointmentType? @relation("PatientDefaultType", fields: [defaultAppointmentTypeId], references: [id])
+  assignedUser           User?     @relation("PatientPrimaryProvider", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  defaultAppointmentType AppointmentType? @relation("PatientDefaultType", fields: [defaultAppointmentTypeId], references: [id], onDelete: SetNull)
   contacts               PatientContact[]
   appointments           Appointment[]
   clinicalSessions       ClinicalSession[]
@@ -308,12 +346,13 @@ model PatientContact {
   tenantId  String @db.Uuid
   patientId String @db.Uuid
 
-  type  String // EMERGENCY | RESPONSIBLE | OTHER
+  type  ContactType
   name  String
   phone String?
   email String?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
@@ -374,10 +413,10 @@ model Appointment {
   updatedAt DateTime @updatedAt
 
   tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  patient         Patient         @relation(fields: [patientId], references: [id])
-  provider        User            @relation("AppointmentProvider", fields: [providerUserId], references: [id])
-  appointmentType AppointmentType @relation(fields: [appointmentTypeId], references: [id])
-  recurrence      Recurrence?     @relation(fields: [recurrenceId], references: [id])
+  patient         Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  provider        User            @relation("AppointmentProvider", fields: [providerUserId], references: [id], onDelete: Restrict)
+  appointmentType AppointmentType @relation(fields: [appointmentTypeId], references: [id], onDelete: Restrict)
+  recurrence      Recurrence?     @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
   clinicalSession ClinicalSession?
   charges         Charge[]
   reminderLogs    ReminderLog[]
@@ -401,7 +440,9 @@ model Recurrence {
   createdById String @db.Uuid
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  createdBy    User          @relation("RecurrenceCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   appointments Appointment[]
 
   @@index([tenantId])
@@ -429,11 +470,11 @@ model ReminderLog {
   tenantId      String @db.Uuid
   appointmentId String @db.Uuid
 
-  type      String   // CONFIRMATION | REMINDER_24H
-  channel   String   // EMAIL | SMS | WHATSAPP
+  type      ReminderType
+  channel   NotificationChannel
   recipient String
   sentAt    DateTime @default(now())
-  status    String   // SENT | FAILED | BOUNCED
+  status    DeliveryStatus
   errorMsg  String?
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
@@ -446,11 +487,11 @@ model PaymentReminderLog {
   tenantId String @db.Uuid
   chargeId String @db.Uuid
 
-  type      String   // PAYMENT_CREATED | PAYMENT_DUE_24H | PAYMENT_OVERDUE
-  channel   String   // EMAIL | SMS | WHATSAPP
+  type      PaymentReminderType
+  channel   NotificationChannel
   recipient String
   sentAt    DateTime @default(now())
-  status    String   // SENT | FAILED | BOUNCED
+  status    DeliveryStatus
   errorMsg  String?
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -484,9 +525,9 @@ model ClinicalSession {
   updatedAt DateTime @updatedAt
 
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  appointment Appointment? @relation(fields: [appointmentId], references: [id])
-  patient     Patient      @relation(fields: [patientId], references: [id])
-  provider    User         @relation("SessionProvider", fields: [providerUserId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  provider    User         @relation("SessionProvider", fields: [providerUserId], references: [id], onDelete: Restrict)
   revisions   SessionRevision[]
   files       FileObject[]
   charges     Charge[]
@@ -507,7 +548,8 @@ model SessionRevision {
   editedById String @db.Uuid
   editedAt   DateTime @default(now())
 
-  session ClinicalSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session  ClinicalSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  editedBy User            @relation("RevisionEditor", fields: [editedById], references: [id], onDelete: Restrict)
 
   @@index([tenantId, sessionId])
 }
@@ -537,9 +579,9 @@ model FileObject {
   createdAt DateTime @default(now())
 
   tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  patient  Patient?         @relation(fields: [patientId], references: [id])
-  session  ClinicalSession? @relation(fields: [sessionId], references: [id])
-  uploader User             @relation("FileUploadedBy", fields: [uploaderId], references: [id])
+  patient  Patient?         @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  session  ClinicalSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  uploader User             @relation("FileUploadedBy", fields: [uploaderId], references: [id], onDelete: Restrict)
 
   @@index([tenantId])
   @@index([tenantId, deletedAt])
@@ -571,10 +613,10 @@ model Charge {
   updatedAt DateTime @updatedAt
 
   tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  patient     Patient          @relation(fields: [patientId], references: [id])
-  appointment Appointment?     @relation(fields: [appointmentId], references: [id])
-  session     ClinicalSession? @relation(fields: [sessionId], references: [id])
-  provider    User             @relation("ChargeProvider", fields: [providerUserId], references: [id])
+  patient     Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  appointment Appointment?     @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  session     ClinicalSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  provider    User             @relation("ChargeProvider", fields: [providerUserId], references: [id], onDelete: Restrict)
   payments    Payment[]
   nfseInvoice NfseInvoice?
   paymentReminderLogs PaymentReminderLog[]
@@ -604,7 +646,7 @@ model Payment {
 
   tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   charge    Charge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
-  createdBy User   @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+  createdBy User   @relation("PaymentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
 
   @@index([tenantId])
   @@index([tenantId, chargeId])
@@ -630,8 +672,8 @@ model AuditLog {
 
   createdAt DateTime @default(now())
 
-  tenant Tenant? @relation(fields: [tenantId], references: [id])
-  user   User?   @relation(fields: [userId], references: [id])
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([tenantId, userId])
@@ -649,7 +691,7 @@ model IntegrationCredential {
 
   type          IntegrationType
   encryptedJson String @db.Text // libsodium sealed box, base64
-  status        String  @default("INACTIVE") // INACTIVE | ACTIVE | ERROR
+  status        IntegrationStatus @default(INACTIVE)
   providerName  String? // e.g. "eNotas", "Focus NFe"
 
   createdAt DateTime @default(now())
@@ -696,7 +738,7 @@ model NfseInvoice {
   updatedAt DateTime @updatedAt
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  charge  Charge  @relation(fields: [chargeId], references: [id])
+  charge  Charge  @relation(fields: [chargeId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, status])

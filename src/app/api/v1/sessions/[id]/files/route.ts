@@ -11,6 +11,7 @@ import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { uploadFile, signedDownloadUrl, isStorageConfigured } from "@/lib/storage";
 import { randomUUID } from "crypto";
+import { validateMimeType } from "@/lib/mime-check";
 
 import { MAX_UPLOAD_SIZE_BYTES } from "@/lib/constants";
 
@@ -136,6 +137,14 @@ export async function POST(
     // Read file into buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // Magic-byte MIME validation — prevents spoofed Content-Type headers
+    if (!validateMimeType(buffer, file.type)) {
+      return new Response(
+        JSON.stringify({ error: "O conteúdo do arquivo não corresponde ao tipo declarado." }),
+        { status: 415, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     // Upload to Supabase Storage
     await uploadFile({ buffer, fileName: file.name, mimeType: file.type || "application/octet-stream", storageKey });

@@ -36,7 +36,7 @@ interface Props {
     templateKey: TemplateKey;
     tags: string[];
     sessionDate: string;
-    revisions: { id: string; editedAt: string; editedById: string }[];
+    revisions: { id: string; editedAt: string; editedById: string; editedBy?: { name: string | null; email: string } }[];
     files: FileAttachment[];
   } | null;
   patient: { id: string; fullName: string } | null;
@@ -584,7 +584,10 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
               <h3 className="text-sm font-semibold text-gray-700">Histórico de edições</h3>
               <div className="space-y-2">
                 {session.revisions.map((rev) => (
-                  <div key={rev.id} className="text-xs text-gray-500">{formatDateTime(rev.editedAt)}</div>
+                  <div key={rev.id} className="text-xs text-gray-500">
+                    {formatDateTime(rev.editedAt)}
+                    {rev.editedBy?.name && <span className="text-gray-400"> · {rev.editedBy.name}</span>}
+                  </div>
                 ))}
               </div>
             </div>
