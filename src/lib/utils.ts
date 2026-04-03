@@ -41,7 +41,10 @@ export function slugify(text: string): string {
 
 export function generateSlug(name: string): string {
   const base = slugify(name);
-  const suffix = Math.random().toString(36).slice(2, 7);
+  // Use crypto-safe random instead of Math.random() to prevent predictable slugs
+  const bytes = new Uint8Array(5);
+  crypto.getRandomValues(bytes);
+  const suffix = Array.from(bytes, (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 7);
   return `${base}-${suffix}`;
 }
 

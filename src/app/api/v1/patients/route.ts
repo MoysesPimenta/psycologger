@@ -8,9 +8,9 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
 import {
-  ok, created, handleApiError, parsePagination, buildMeta,
+  ok, created, handleApiError, parsePagination, buildMeta, BadRequestError,
 } from "@/lib/api";
-import { requirePermission, getPatientScope } from "@/lib/rbac";
+import { requirePermission, getPatientScope, ForbiddenError } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
 const createSchema = z.object({
@@ -84,6 +84,24 @@ export async function POST(req: NextRequest) {
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const body = createSchema.parse(await req.json());
+
+    // Validate assignedUserId: non-admins can only assign to themselves
+    if (body.assignedUserId && body.assignedUserId !== ctx.userId) {
+      if (ctx.role !== "SUPERADMIN" && ctx.role !== "TENANT_ADMIN") {
+        throw new ForbiddenError(
+          "Apenas administradores podem atribuir pacientes a outros profissionais."
+        );
+      }
+      // Verify target user belongs to this tenant
+      const targetMembership = await db.membership.findFirst({
+        where: { tenantId: ctx.tenantId, userId: body.assignedUserId, status: "ACTIVE" as never },
+      });
+      if (!targetMembership) {
+        throw new BadRequestError(
+          "Usuário de destino não encontrado nesta clínica."
+        );
+      }
+    }
 
     const patient = await db.patient.create({
       data: {

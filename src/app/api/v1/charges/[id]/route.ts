@@ -44,8 +44,11 @@ export async function PATCH(
       throw new BadRequestError("Discount cannot exceed the charge amount");
     }
 
-    // Guard: only allow setting status=PAID if the charge already has payments
+    // Validate charge status transition
     if (body.status === "PAID") {
+      if (charge.status !== "PENDING" && charge.status !== "OVERDUE") {
+        throw new BadRequestError(`Não é possível alterar de ${charge.status} para PAID.`);
+      }
       const paymentCount = await db.payment.count({ where: { chargeId: params.id } });
       if (paymentCount === 0) {
         throw new BadRequestError("Cannot mark a charge as PAID without any recorded payments.");
@@ -90,7 +93,12 @@ export async function DELETE(
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const charge = await db.charge.findFirst({
-      where: { id: params.id, tenantId: ctx.tenantId },
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        // PSYCHOLOGIST can only void their own charges
+        ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+      },
       include: { payments: { select: { id: true } } },
     });
     if (!charge) throw new NotFoundError("Charge");

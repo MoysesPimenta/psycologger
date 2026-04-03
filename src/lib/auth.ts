@@ -94,6 +94,14 @@ export const authOptions: NextAuthOptions = {
       }
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: (() => {
+    const s = process.env.NEXTAUTH_SECRET;
+    if (!s || s.length < 32) {
+      throw new Error(
+        "NEXTAUTH_SECRET must be at least 32 characters. Generate with: openssl rand -base64 32"
+      );
+    }
+    return s;
+  })(),
   debug: process.env.NODE_ENV === "development",
 };

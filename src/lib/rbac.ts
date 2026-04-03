@@ -202,9 +202,9 @@ export function can(ctx: AuthContext, permission: Permission): boolean {
 
 export function requirePermission(ctx: AuthContext, permission: Permission): void {
   if (!can(ctx, permission)) {
-    throw new ForbiddenError(
-      `Role ${ctx.role} does not have permission: ${permission}`
-    );
+    // Log detailed info server-side; send generic message to client
+    console.warn(`[RBAC] Denied: user=${ctx.userId} role=${ctx.role} perm=${permission}`);
+    throw new ForbiddenError("Você não tem permissão para realizar esta ação.");
   }
 }
 

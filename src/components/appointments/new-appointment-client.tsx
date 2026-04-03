@@ -47,7 +47,10 @@ const INDETERMINATE_COUNTS: Record<string, Record<number, number>> = {
 
 /** Generate a working Jitsi Meet link (rooms are created on first join, no auth needed) */
 function generateJitsiLink(): string {
-  const id = Math.random().toString(36).slice(2, 10).toUpperCase();
+  // Use crypto-safe random to prevent guessable room IDs
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  const id = Array.from(bytes, (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 10).toUpperCase();
   return `https://meet.jit.si/Psycologger-${id}`;
 }
 

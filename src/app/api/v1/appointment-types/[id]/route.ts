@@ -37,7 +37,7 @@ export async function PATCH(
     const body = updateSchema.parse(await req.json());
 
     const updated = await db.appointmentType.update({
-      where: { id: params.id },
+      where: { id: params.id, tenantId: ctx.tenantId },
       data: body,
     });
 
@@ -74,7 +74,7 @@ export async function DELETE(
 
     // Soft-delete: mark inactive so existing appointments still reference it
     await db.appointmentType.update({
-      where: { id: params.id },
+      where: { id: params.id, tenantId: ctx.tenantId },
       data: { isActive: false },
     });
 

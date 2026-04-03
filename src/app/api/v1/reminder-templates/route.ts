@@ -49,28 +49,29 @@ export async function POST(req: NextRequest) {
 
     const body = saveSchema.parse(await req.json());
 
-    // Each tenant has at most one template per type — create or update
-    const existing = await db.reminderTemplate.findFirst({
-      where: { tenantId: ctx.tenantId, type: body.type },
-    });
+    // Each tenant has at most one template per type — atomic upsert to prevent race conditions
+    const template = await db.$transaction(async (tx) => {
+      const existing = await tx.reminderTemplate.findFirst({
+        where: { tenantId: ctx.tenantId, type: body.type },
+      });
 
-    let template;
-    if (existing) {
-      template = await db.reminderTemplate.update({
-        where: { id: existing.id },
-        data: { subject: body.subject, body: body.body, isActive: body.isActive },
-      });
-    } else {
-      template = await db.reminderTemplate.create({
-        data: {
-          tenantId: ctx.tenantId,
-          type: body.type,
-          subject: body.subject,
-          body: body.body,
-          isActive: body.isActive,
-        },
-      });
-    }
+      if (existing) {
+        return tx.reminderTemplate.update({
+          where: { id: existing.id },
+          data: { subject: body.subject, body: body.body, isActive: body.isActive },
+        });
+      } else {
+        return tx.reminderTemplate.create({
+          data: {
+            tenantId: ctx.tenantId,
+            type: body.type,
+            subject: body.subject,
+            body: body.body,
+            isActive: body.isActive,
+          },
+        });
+      }
+    });
 
     await auditLog({
       tenantId: ctx.tenantId,

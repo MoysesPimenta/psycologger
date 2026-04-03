@@ -74,28 +74,28 @@ export async function PATCH(
 
     const body = patchSchema.parse(await req.json());
 
-    // If rescheduling, check for conflicts
-    if (body.startsAt || body.endsAt) {
-      const startsAt = body.startsAt ? new Date(body.startsAt) : existing.startsAt;
-      const endsAt = body.endsAt ? new Date(body.endsAt) : existing.endsAt;
-      const conflict = await db.appointment.findFirst({
-        where: {
-          tenantId: ctx.tenantId,
-          providerUserId: existing.providerUserId,
-          id: { not: params.id },
-          status: { notIn: ["CANCELED", "NO_SHOW"] },
-          AND: [{ startsAt: { lt: endsAt } }, { endsAt: { gt: startsAt } }],
-        },
-      });
-      if (conflict) {
-        throw new ConflictError("O profissional já possui uma consulta neste horário.");
-      }
-    }
-
     const isCancelling = body.status === "CANCELED";
     const cancelFuture = isCancelling && body.cancelScope === "THIS_AND_FUTURE";
 
     const updated = await db.$transaction(async (tx) => {
+      // Conflict check INSIDE transaction to prevent TOCTOU race conditions
+      if (body.startsAt || body.endsAt) {
+        const startsAt = body.startsAt ? new Date(body.startsAt) : existing.startsAt;
+        const endsAt = body.endsAt ? new Date(body.endsAt) : existing.endsAt;
+        const conflict = await tx.appointment.findFirst({
+          where: {
+            tenantId: ctx.tenantId,
+            providerUserId: existing.providerUserId,
+            id: { not: params.id },
+            status: { notIn: ["CANCELED", "NO_SHOW"] },
+            AND: [{ startsAt: { lt: endsAt } }, { endsAt: { gt: startsAt } }],
+          },
+        });
+        if (conflict) {
+          throw new ConflictError("O profissional já possui uma consulta neste horário.");
+        }
+      }
+
       const appt = await tx.appointment.update({
         where: { id: params.id, tenantId: ctx.tenantId },
         data: {
