@@ -18,9 +18,15 @@ const updateSchema = z.object({
   adminCanViewClinical: z.boolean().optional(),
   calendarShowPatient: z.enum(["NONE", "FIRST_NAME", "FULL_NAME"]).optional(),
   defaultAppointmentDurationMin: z.number().int().min(5).max(480).optional(),
-  workingHoursStart: z.string().optional(),
-  workingHoursEnd: z.string().optional(),
-  workingDays: z.string().optional(),
+  workingHoursStart: z.string().regex(/^\d{2}:\d{2}$/, "Formato esperado: HH:MM").refine(
+    (v) => { const [h, m] = v.split(":").map(Number); return h >= 0 && h <= 23 && m >= 0 && m <= 59; },
+    "Horário inválido"
+  ).optional(),
+  workingHoursEnd: z.string().regex(/^\d{2}:\d{2}$/, "Formato esperado: HH:MM").refine(
+    (v) => { const [h, m] = v.split(":").map(Number); return h >= 0 && h <= 23 && m >= 0 && m <= 59; },
+    "Horário inválido"
+  ).optional(),
+  workingDays: z.string().regex(/^[0-6](,[0-6])*$/, "Formato esperado: 0,1,2,3,4,5,6 (dom=0, seg=1, …)").optional(),
   phone: z.string().max(20).optional().nullable(),
   website: z.string().url().optional().nullable(),
   addressLine: z.string().max(200).optional().nullable(),

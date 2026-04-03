@@ -6,12 +6,8 @@ import { PatientDetailClient } from "@/components/patients/patient-detail-client
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const patient = await db.patient.findUnique({
-    where: { id: params.id },
-    select: { fullName: true },
-  });
-  return { title: patient?.fullName ?? "Paciente" };
+export function generateMetadata() {
+  return { title: "Paciente" };
 }
 
 export default async function PatientDetailPage({ params }: { params: { id: string } }) {

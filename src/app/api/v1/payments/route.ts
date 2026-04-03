@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
             tenantId: ctx.tenantId,
             patientId: charge.patientId,
             appointmentId: charge.appointmentId,
+            sessionId: charge.sessionId,
             providerUserId: charge.providerUserId,
             amountCents: remainderCents,
             discountCents: 0,
@@ -112,13 +113,13 @@ export async function POST(req: NextRequest) {
 
         // 2b. Mark original charge as PAID — obligation transferred to remainder
         await tx.charge.update({
-          where: { id: body.chargeId },
+          where: { id: body.chargeId, tenantId: ctx.tenantId },
           data: { status: "PAID" },
         });
       } else {
         // 3. Full payment — mark charge as PAID
         await tx.charge.update({
-          where: { id: body.chargeId },
+          where: { id: body.chargeId, tenantId: ctx.tenantId },
           data: { status: "PAID" },
         });
       }

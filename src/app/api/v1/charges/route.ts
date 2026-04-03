@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError } from "@/lib/api";
+import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError, BadRequestError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { sendPaymentCreatedNotification } from "@/lib/email";
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     // When filtering for OVERDUE, also include PENDING charges past their due date
     // (a cron job may not have flipped their status yet).
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
 
     const statusFilter =
       status === "OVERDUE"
@@ -112,6 +112,24 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
     if (!patient) throw new NotFoundError("Patient");
+
+    // Validate appointmentId belongs to this tenant
+    if (body.appointmentId) {
+      const appt = await db.appointment.findFirst({
+        where: { id: body.appointmentId, tenantId: ctx.tenantId },
+        select: { id: true },
+      });
+      if (!appt) throw new BadRequestError("Consulta não encontrada nesta clínica.");
+    }
+
+    // Validate sessionId belongs to this tenant
+    if (body.sessionId) {
+      const sess = await db.clinicalSession.findFirst({
+        where: { id: body.sessionId, tenantId: ctx.tenantId },
+        select: { id: true },
+      });
+      if (!sess) throw new BadRequestError("Sessão clínica não encontrada nesta clínica.");
+    }
 
     const charge = await db.charge.create({
       data: {

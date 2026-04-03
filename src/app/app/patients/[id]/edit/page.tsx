@@ -6,12 +6,8 @@ import { EditPatientClient } from "@/components/patients/edit-patient-client";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const patient = await db.patient.findUnique({
-    where: { id: params.id },
-    select: { fullName: true },
-  });
-  return { title: patient ? `Editar — ${patient.fullName}` : "Editar Paciente" };
+export function generateMetadata() {
+  return { title: "Editar Paciente" };
 }
 
 export default async function EditPatientPage({ params }: { params: { id: string } }) {

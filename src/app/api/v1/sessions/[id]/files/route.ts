@@ -104,6 +104,18 @@ export async function POST(
     });
     if (!session) throw new NotFoundError("Session");
 
+    // Pre-check Content-Length header to reject oversized uploads early
+    const contentLength = req.headers.get("content-length");
+    if (contentLength) {
+      const declaredSize = parseInt(contentLength, 10);
+      if (!isNaN(declaredSize) && declaredSize > MAX_UPLOAD_SIZE_BYTES) {
+        return new Response(
+          JSON.stringify({ error: `Arquivo muito grande. Máximo: ${MAX_UPLOAD_SIZE_BYTES / 1024 / 1024} MB.` }),
+          { status: 413, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     if (!file) {
