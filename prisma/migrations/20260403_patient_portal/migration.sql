@@ -37,6 +37,7 @@ CREATE TABLE "PatientAuth" (
 );
 
 CREATE UNIQUE INDEX "PatientAuth_activationToken_key" ON "PatientAuth"("activationToken");
+CREATE UNIQUE INDEX "PatientAuth_patientId_key" ON "PatientAuth"("patientId");
 CREATE UNIQUE INDEX "PatientAuth_tenantId_email_key" ON "PatientAuth"("tenantId", "email");
 CREATE UNIQUE INDEX "PatientAuth_tenantId_patientId_key" ON "PatientAuth"("tenantId", "patientId");
 CREATE INDEX "PatientAuth_tenantId_idx" ON "PatientAuth"("tenantId");
