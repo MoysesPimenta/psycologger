@@ -48,14 +48,20 @@ function applyTime(date: Date, hhmm: string): Date {
   return result;
 }
 
+/**
+ * Check for scheduling conflicts. Accepts an optional transaction client
+ * so the check can run inside a transaction to prevent TOCTOU races.
+ */
 async function checkConflict(
   tenantId: string,
   providerUserId: string,
   startsAt: Date,
   endsAt: Date,
-  excludeId?: string
+  excludeId?: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any = db,
 ) {
-  const conflict = await db.appointment.findFirst({
+  const conflict = await client.appointment.findFirst({
     where: {
       tenantId,
       providerUserId,
@@ -157,14 +163,6 @@ export async function POST(req: NextRequest) {
     });
     if (!providerCheck) throw new NotFoundError("Provider");
 
-    // Conflict detection for the first slot
-    const conflict = await checkConflict(ctx.tenantId, body.providerUserId, startsAt, endsAt);
-    if (conflict) {
-      throw new ConflictError(
-        `O profissional já possui uma consulta neste horário (${conflict.id}).`
-      );
-    }
-
     const durationMs = endsAt.getTime() - startsAt.getTime();
 
     // ── Build list of slots to create ────────────────────────────────────────
@@ -183,8 +181,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── Transaction: create recurrence record + all appointment slots ─────────
+    // ── Transaction: conflict check + recurrence + all appointment slots ──────
+    // Conflict check MUST run inside the transaction to prevent TOCTOU races
+    // where two concurrent requests both pass the check and both create.
     const { firstAppointment, createdCount } = await db.$transaction(async (tx) => {
+      // Verify no conflict for the first slot within the transaction
+      const conflict = await checkConflict(ctx.tenantId, body.providerUserId, startsAt, endsAt, undefined, tx);
+      if (conflict) {
+        throw new ConflictError(
+          `O profissional já possui uma consulta neste horário (${conflict.id}).`
+        );
+      }
+
       let recurrenceId: string | undefined;
 
       if (body.recurrenceRrule) {

@@ -44,7 +44,7 @@ export async function GET(
     if (!session) throw new NotFoundError("Session");
 
     const files = await db.fileObject.findMany({
-      where: { sessionId: params.id, tenantId: ctx.tenantId },
+      where: { sessionId: params.id, tenantId: ctx.tenantId, deletedAt: null },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,

@@ -305,6 +305,7 @@ function TimelineTab({ appointments, canViewClinical }: { appointments: any[]; c
 
 /* ─── Sessions tab ───────────────────────────────────────────────────────── */
 function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]; patientId: string }) {
+  const { toast } = useToast();
   const [sessions, setSessions] = useState(initialSessions);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -319,7 +320,7 @@ function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]
       if (!res.ok) throw new Error();
       setSessions((prev: any[]) => prev.map((s) => s.id === id ? { ...s, deletedAt: new Date().toISOString() } : s));
     } catch {
-      // silently fail
+      toast({ title: "Erro ao excluir sessão", variant: "destructive" });
     } finally {
       setActioningId(null);
       setConfirmDelete(null);
@@ -337,7 +338,7 @@ function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]
       if (!res.ok) throw new Error();
       setSessions((prev: any[]) => prev.map((s) => s.id === id ? { ...s, deletedAt: null } : s));
     } catch {
-      // silently fail
+      toast({ title: "Erro ao restaurar sessão", variant: "destructive" });
     } finally {
       setActioningId(null);
     }
@@ -428,6 +429,7 @@ function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]
 
 /* ─── Files tab ──────────────────────────────────────────────────────────── */
 function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: any[]; patientId: string; canViewClinical: boolean }) {
+  const { toast } = useToast();
   const [files, setFiles] = useState(
     initialFiles.filter((f: any) => !f.isClinical || canViewClinical)
   );
@@ -444,7 +446,7 @@ function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: 
       if (!res.ok) throw new Error();
       setFiles((prev: any[]) => prev.map((f) => f.id === id ? { ...f, deletedAt: new Date().toISOString() } : f));
     } catch {
-      // silently fail
+      toast({ title: "Erro ao excluir arquivo", variant: "destructive" });
     } finally {
       setActioningId(null);
       setConfirmDelete(null);
@@ -458,7 +460,7 @@ function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: 
       if (!res.ok) throw new Error();
       setFiles((prev: any[]) => prev.map((f) => f.id === id ? { ...f, deletedAt: null } : f));
     } catch {
-      // silently fail
+      toast({ title: "Erro ao restaurar arquivo", variant: "destructive" });
     } finally {
       setActioningId(null);
     }
@@ -869,6 +871,7 @@ function ProfileTab({
   appointmentTypes: AppointmentTypeSummary[];
   onPatientUpdate: (updates: Record<string, any>) => void;
 }) {
+  const { toast } = useToast();
   const [editingBilling, setEditingBilling] = useState(false);
   const [billingForm, setBillingForm] = useState({
     defaultAppointmentTypeId: patient.defaultAppointmentTypeId ?? "",
@@ -905,7 +908,7 @@ function ProfileTab({
       });
       setEditingBilling(false);
     } catch {
-      // silently fail
+      toast({ title: "Erro ao salvar configurações de cobrança", variant: "destructive" });
     } finally {
       setSavingBilling(false);
     }

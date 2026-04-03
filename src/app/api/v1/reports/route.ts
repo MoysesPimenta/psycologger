@@ -27,13 +27,22 @@ export async function GET(req: NextRequest) {
     const month = parseInt(searchParams.get("month") ?? (new Date().getMonth() + 1).toString());
     const exportCsv = searchParams.get("export") === "true";
 
+    // CSV exports (including type=patients|appointments|charges) require export permission
+    if (exportCsv || ["patients", "appointments", "charges"].includes(type)) {
+      requirePermission(ctx, "reports:export");
+    }
+
+    // Provider-scoped filter: non-admin roles only see their own data
+    const isAdmin = ctx.role === "SUPERADMIN" || ctx.role === "TENANT_ADMIN";
+    const providerScopeFilter = !isAdmin ? { providerUserId: ctx.userId } : {};
+
     // ── Monthly / Dashboard ──────────────────────────────────────────────────
 
     if (type === "monthly" || type === "dashboard") {
       const from = startOfMonth(new Date(year, month - 1));
       const to = endOfMonth(new Date(year, month - 1));
 
-      const providerFilter = ctx.role === "PSYCHOLOGIST" ? { providerUserId: ctx.userId } : {};
+      const providerFilter = providerScopeFilter;
 
       const [charges, payments, appointments, allPatients] = await Promise.all([
         db.charge.findMany({
@@ -196,7 +205,7 @@ export async function GET(req: NextRequest) {
 
     if (type === "cashflow") {
       const months = parseInt(searchParams.get("months") ?? "6");
-      const providerFilter = ctx.role === "PSYCHOLOGIST" ? { providerUserId: ctx.userId } : {};
+      const providerFilter = providerScopeFilter;
 
       const monthlyData = await Promise.all(
         Array.from({ length: months }, (_, i) => {
@@ -249,7 +258,7 @@ export async function GET(req: NextRequest) {
     // ── Previsibilidade (upcoming pending charges) ────────────────────────────
 
     if (type === "previsibility") {
-      const providerFilter = ctx.role === "PSYCHOLOGIST" ? { providerUserId: ctx.userId } : {};
+      const providerFilter = providerScopeFilter;
       const now = new Date();
       const futureMonths = 3;
 
@@ -304,7 +313,11 @@ export async function GET(req: NextRequest) {
 
     if (type === "patients") {
       const patients = await db.patient.findMany({
-        where: { tenantId: ctx.tenantId, isActive: true },
+        where: {
+          tenantId: ctx.tenantId,
+          isActive: true,
+          ...(!isAdmin && { assignedUserId: ctx.userId }),
+        },
         select: {
           fullName: true, preferredName: true, email: true, phone: true,
           dob: true, tags: true, consentGiven: true, createdAt: true,
@@ -340,7 +353,7 @@ export async function GET(req: NextRequest) {
       const appointments = await db.appointment.findMany({
         where: {
           tenantId: ctx.tenantId,
-          ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+          ...providerScopeFilter,
         },
         include: {
           patient: { select: { fullName: true } },
@@ -378,7 +391,7 @@ export async function GET(req: NextRequest) {
       const charges = await db.charge.findMany({
         where: {
           tenantId: ctx.tenantId,
-          ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+          ...providerScopeFilter,
         },
         include: {
           patient: { select: { fullName: true } },

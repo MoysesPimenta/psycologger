@@ -492,6 +492,7 @@ model ClinicalSession {
   charges     Charge[]
 
   @@index([tenantId])
+  @@index([tenantId, deletedAt])
   @@index([tenantId, patientId])
   @@index([tenantId, providerUserId])
   @@index([tenantId, sessionDate])
@@ -541,6 +542,7 @@ model FileObject {
   uploader User             @relation("FileUploadedBy", fields: [uploaderId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, deletedAt])
   @@index([tenantId, patientId])
   @@index([tenantId, sessionId])
 }
@@ -635,6 +637,7 @@ model AuditLog {
   @@index([tenantId, userId])
   @@index([tenantId, action])
   @@index([tenantId, entity, entityId])
+  @@index([tenantId, createdAt])
   @@index([createdAt])
 }
 

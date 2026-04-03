@@ -31,7 +31,7 @@ export async function GET(
     if (!session) throw new NotFoundError("Session");
 
     const file = await db.fileObject.findFirst({
-      where: { id: params.fileId, sessionId: params.id, tenantId: ctx.tenantId },
+      where: { id: params.fileId, sessionId: params.id, tenantId: ctx.tenantId, deletedAt: null },
       select: { id: true, fileName: true, mimeType: true, sizeBytes: true, storageKey: true, createdAt: true },
     });
     if (!file) throw new NotFoundError("File");
@@ -64,7 +64,7 @@ export async function DELETE(
     if (!sessionCheck) throw new NotFoundError("Session");
 
     const file = await db.fileObject.findFirst({
-      where: { id: params.fileId, sessionId: params.id, tenantId: ctx.tenantId },
+      where: { id: params.fileId, sessionId: params.id, tenantId: ctx.tenantId, deletedAt: null },
     });
     if (!file) throw new NotFoundError("File");
 

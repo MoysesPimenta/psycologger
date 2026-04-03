@@ -64,12 +64,17 @@ export async function PATCH(
     requirePermission(ctx, "sessions:edit");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
+    const body = updateSchema.parse(await req.json());
+
+    // Restore requires finding even soft-deleted records; normal edits must not touch deleted sessions
     const existing = await db.clinicalSession.findFirst({
-      where: { id: params.id, tenantId: ctx.tenantId },
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        ...(body.restore !== true && { deletedAt: null }),
+      },
     });
     if (!existing) throw new NotFoundError("Session");
-
-    const body = updateSchema.parse(await req.json());
 
     // Restore from soft-delete
     if (body.restore === true) {
