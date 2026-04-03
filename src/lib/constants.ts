@@ -27,8 +27,26 @@ export const SIGNUP_RATE_LIMIT = 5;
 /** Signup rate-limit window (1 hour). */
 export const SIGNUP_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
+/** Invite acceptance rate-limit: max attempts per IP within the window. */
+export const INVITE_ACCEPT_RATE_LIMIT = 10;
+
+/** Invite acceptance rate-limit window (15 minutes). */
+export const INVITE_ACCEPT_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
+/** Profile update rate-limit: max attempts per user within the window. */
+export const PROFILE_UPDATE_RATE_LIMIT = 20;
+
+/** Profile update rate-limit window (15 minutes). */
+export const PROFILE_UPDATE_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
 /** In-memory rate-limit map cleanup interval (5 minutes). */
 export const RATE_LIMIT_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
+/** Maximum rows for CSV report exports. */
+export const REPORT_CSV_MAX_ROWS = 50_000;
+
+/** Maximum audit export date range in days. */
+export const AUDIT_MAX_DATE_RANGE_DAYS = 90;
 
 // ─── File uploads ──────────────────────────────────────────────────────────────
 

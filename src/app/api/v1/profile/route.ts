@@ -7,8 +7,10 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, handleApiError, NotFoundError } from "@/lib/api";
+import { ok, handleApiError, NotFoundError, apiError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { rateLimit } from "@/lib/rate-limit";
+import { PROFILE_UPDATE_RATE_LIMIT, PROFILE_UPDATE_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
 export async function GET(req: NextRequest) {
   try {
@@ -35,6 +37,12 @@ export async function PATCH(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     const { ipAddress, userAgent } = extractRequestMeta(req);
+
+    // Rate limit profile updates per user
+    const rl = await rateLimit(`profile:${ctx.userId}`, PROFILE_UPDATE_RATE_LIMIT, PROFILE_UPDATE_RATE_LIMIT_WINDOW_MS);
+    if (!rl.allowed) {
+      return apiError("TOO_MANY_REQUESTS", "Muitas atualizações. Aguarde alguns minutos.", 429);
+    }
 
     const body = patchSchema.parse(await req.json());
 

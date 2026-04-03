@@ -8,6 +8,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { ok, created, handleApiError, apiError, NotFoundError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { rateLimit } from "@/lib/rate-limit";
+import { INVITE_ACCEPT_RATE_LIMIT, INVITE_ACCEPT_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 // Note: invite acceptance is public — no auth imports needed
 
 export async function GET(
@@ -40,6 +42,14 @@ export async function POST(
 ) {
   try {
     const { ipAddress, userAgent } = extractRequestMeta(req);
+
+    // Rate limit invite acceptance by IP to prevent brute-force token enumeration
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = await rateLimit(`invite:${ip}`, INVITE_ACCEPT_RATE_LIMIT, INVITE_ACCEPT_RATE_LIMIT_WINDOW_MS);
+    if (!rl.allowed) {
+      return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde alguns minutos.", 429);
+    }
+
     // Note: invite acceptance is public (no auth required — user may not have account yet)
     const body = acceptSchema.parse(await req.json());
 

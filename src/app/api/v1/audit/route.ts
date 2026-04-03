@@ -5,10 +5,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, handleApiError, parsePagination, buildMeta } from "@/lib/api";
+import { ok, handleApiError, parsePagination, buildMeta, BadRequestError } from "@/lib/api";
 import { requirePermission, can } from "@/lib/rbac";
 import { csvSafe } from "@/lib/utils";
-import { AUDIT_CSV_MAX_ROWS } from "@/lib/constants";
+import { AUDIT_CSV_MAX_ROWS, AUDIT_MAX_DATE_RANGE_DAYS } from "@/lib/constants";
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,13 +28,33 @@ export async function GET(req: NextRequest) {
     const canSeeAll = can(ctx, "audit:export"); // TA and SA
     const effectiveUserId = canSeeAll ? userId : ctx.userId;
 
+    // Validate date range for exports — max 90 days to prevent memory exhaustion
+    if (exportCsv && from && to) {
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+      const diffDays = (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays > AUDIT_MAX_DATE_RANGE_DAYS) {
+        throw new BadRequestError(
+          `Intervalo máximo para exportação: ${AUDIT_MAX_DATE_RANGE_DAYS} dias. Refine o filtro de datas.`
+        );
+      }
+    }
+    // For CSV exports, require at least a "from" date to prevent unbounded queries
+    if (exportCsv && !from) {
+      throw new BadRequestError("Informe uma data inicial para a exportação.");
+    }
+
+    // Build WHERE — handle combined from+to on the same field (createdAt)
+    const dateFilter: Record<string, Date> = {};
+    if (from) dateFilter.gte = new Date(from);
+    if (to) dateFilter.lte = new Date(to);
+
     const where = {
       tenantId: ctx.tenantId,
       ...(action && { action }),
       ...(effectiveUserId && { userId: effectiveUserId }),
       ...(entity && { entity }),
-      ...(from && { createdAt: { gte: new Date(from) } }),
-      ...(to && { createdAt: { lte: new Date(to) } }),
+      ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter }),
     };
 
     if (exportCsv) {

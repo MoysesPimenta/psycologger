@@ -77,6 +77,7 @@ export default function DocsLayout({
             {sidebarOpen && (
               <div
                 className="fixed inset-0 bg-black/20 lg:hidden z-30 top-16"
+                aria-hidden="true"
                 onClick={() => setSidebarOpen(false)}
               />
             )}

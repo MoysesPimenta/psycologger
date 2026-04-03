@@ -57,6 +57,7 @@ export function AppSidebar() {
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          aria-hidden="true"
           onClick={() => setMobileOpen(false)}
         />
       )}

@@ -400,10 +400,11 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
       {/* ── Delete confirmation modal ── */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          role="dialog" aria-modal="true" aria-labelledby="delete-session-title"
           onClick={() => setShowDeleteModal(false)}>
           <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-4"
             onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-base font-semibold text-gray-900">Excluir sessão clínica?</h2>
+            <h2 id="delete-session-title" className="text-base font-semibold text-gray-900">Excluir sessão clínica?</h2>
             <p className="text-sm text-gray-600">
               A sessão será removida imediatamente e excluída permanentemente após 30 dias. Esta ação não pode ser desfeita.
             </p>
@@ -599,6 +600,7 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
       {pendingNavUrl && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          role="dialog" aria-modal="true" aria-labelledby="unsaved-changes-title"
           onClick={handleNavCancel}
         >
           <div
@@ -608,7 +610,7 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
             <div className="flex items-start gap-3 mb-4">
               <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <h2 className="text-sm font-semibold text-gray-900">Alterações não salvas</h2>
+                <h2 id="unsaved-changes-title" className="text-sm font-semibold text-gray-900">Alterações não salvas</h2>
                 <p className="mt-1 text-sm text-gray-500">
                   Você tem alterações que ainda não foram salvas. Se sair agora, elas serão perdidas.
                 </p>

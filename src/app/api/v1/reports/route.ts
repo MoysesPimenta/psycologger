@@ -11,6 +11,7 @@ import { getAuthContext } from "@/lib/tenant";
 import { ok, handleApiError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { csvSafe } from "@/lib/utils";
+import { REPORT_CSV_MAX_ROWS } from "@/lib/constants";
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 import type { ChargeStatus } from "@prisma/client";
 
@@ -323,6 +324,7 @@ export async function GET(req: NextRequest) {
           dob: true, tags: true, consentGiven: true, createdAt: true,
         },
         orderBy: { fullName: "asc" },
+        take: REPORT_CSV_MAX_ROWS,
       });
 
       const rows = [
@@ -361,6 +363,7 @@ export async function GET(req: NextRequest) {
           appointmentType: { select: { name: true } },
         },
         orderBy: { startsAt: "desc" },
+        take: REPORT_CSV_MAX_ROWS,
       });
 
       const rows = [
@@ -399,6 +402,7 @@ export async function GET(req: NextRequest) {
           payments: { select: { amountCents: true, method: true, paidAt: true } },
         },
         orderBy: { dueDate: "desc" },
+        take: REPORT_CSV_MAX_ROWS,
       });
 
       const rows = [

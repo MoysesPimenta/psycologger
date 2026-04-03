@@ -44,16 +44,17 @@ export default withAuth(
 
     const response = NextResponse.next({ request: { headers } });
 
-    // Set CSP header with nonce — allows only scripts/styles with the matching nonce
-    // 'unsafe-inline' kept as fallback for older browsers that don't support nonce
+    // Set CSP header with nonce — only scripts/styles with the matching nonce are allowed
     const csp = [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
-      `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
+      `script-src 'self' 'nonce-${nonce}'`,
+      `style-src 'self' 'nonce-${nonce}'`,
       "img-src 'self' data: blob: https:",
       "font-src 'self'",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
       "frame-ancestors 'none'",
+      "form-action 'self'",
+      "base-uri 'self'",
     ].join("; ");
 
     response.headers.set("Content-Security-Policy", csp);

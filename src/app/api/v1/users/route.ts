@@ -11,6 +11,7 @@ import { ok, created, handleApiError, apiError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { sendInviteEmail } from "@/lib/email";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { randomBytes } from "crypto";
 
 export async function GET(req: NextRequest) {
   try {
@@ -63,6 +64,9 @@ export async function POST(req: NextRequest) {
     const { INVITE_EXPIRY_MS } = await import("@/lib/constants");
     const expiresAt = new Date(Date.now() + INVITE_EXPIRY_MS);
 
+    // Use high-entropy token instead of default CUID to prevent enumeration
+    const token = randomBytes(32).toString("base64url");
+
     const invite = await db.invite.create({
       data: {
         tenantId: ctx.tenantId,
@@ -70,6 +74,7 @@ export async function POST(req: NextRequest) {
         role: body.role,
         expiresAt,
         sentById: ctx.userId,
+        token,
       },
     });
 

@@ -230,14 +230,14 @@ function PaymentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="appt-payment-modal-title">
       <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl space-y-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
             <CreditCard className="h-5 w-5 text-green-600" />
           </div>
           <div>
-            <h2 className="font-semibold text-gray-900">
+            <h2 id="appt-payment-modal-title" className="font-semibold text-gray-900">
               {partial ? "Pagamento parcial" : "Registrar pagamento"}
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
@@ -432,8 +432,13 @@ export function AppointmentDetailClient({
     if (charge) {
       setCreatingCharge(true);
       try {
-        const amountCents = Math.round(parseFloat(chargePrompt.editAmount.replace(",", ".")) * 100);
-        const discountCents = Math.round(parseFloat((chargePrompt.editDiscount || "0").replace(",", ".")) * 100);
+        const parsedAmount = parseFloat(chargePrompt.editAmount.replace(",", "."));
+        const parsedDiscount = parseFloat((chargePrompt.editDiscount || "0").replace(",", "."));
+        if (isNaN(parsedAmount) || parsedAmount <= 0) throw new Error("Valor inválido.");
+        if (isNaN(parsedDiscount) || parsedDiscount < 0) throw new Error("Desconto inválido.");
+        const amountCents = Math.round(parsedAmount * 100);
+        const discountCents = Math.round(parsedDiscount * 100);
+        if (discountCents > amountCents) throw new Error("Desconto não pode exceder o valor.");
         const res = await fetch("/api/v1/charges", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -462,8 +467,9 @@ export function AppointmentDetailClient({
             }],
           }));
         }
-      } catch {
-        // charge failed silently — user can create manually
+      } catch (err) {
+        // Charge creation failed — show feedback so user knows to create manually
+        setError(err instanceof Error ? err.message : "Erro ao criar cobrança. Crie manualmente.");
       } finally {
         setCreatingCharge(false);
       }
@@ -879,14 +885,14 @@ export function AppointmentDetailClient({
 
       {/* ── Charge prompt modal ── */}
       {chargePrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="charge-prompt-title">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl space-y-4">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
                 <CreditCard className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-gray-900">Cobrar esta sessão?</h2>
+                <h2 id="charge-prompt-title" className="font-semibold text-gray-900">Cobrar esta sessão?</h2>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {chargePrompt.label} — {appt.patient.preferredName ?? appt.patient.fullName}
                 </p>
@@ -962,14 +968,14 @@ export function AppointmentDetailClient({
 
       {/* ── Cancel dialog (modal-style) ── */}
       {cancelDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl space-y-5">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
                 <Trash2 className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-gray-900">Cancelar consulta</h2>
+                <h2 id="cancel-dialog-title" className="font-semibold text-gray-900">Cancelar consulta</h2>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {format(parseISO(appt.startsAt), "d 'de' MMMM · HH:mm", { locale: ptBR })} —{" "}
                   {appt.patient.preferredName ?? appt.patient.fullName}
