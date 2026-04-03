@@ -31,7 +31,12 @@ export async function PATCH(
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const charge = await db.charge.findFirst({
-      where: { id: params.id, tenantId: ctx.tenantId },
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        // PSYCHOLOGIST can only edit their own charges
+        ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+      },
     });
     if (!charge) throw new NotFoundError("Charge");
 

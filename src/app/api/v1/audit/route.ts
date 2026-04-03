@@ -32,6 +32,9 @@ export async function GET(req: NextRequest) {
     if (exportCsv && from && to) {
       const fromDate = new Date(from);
       const toDate = new Date(to);
+      if (fromDate > toDate) {
+        throw new BadRequestError("A data inicial não pode ser posterior à data final.");
+      }
       const diffDays = (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24);
       if (diffDays > AUDIT_MAX_DATE_RANGE_DAYS) {
         throw new BadRequestError(

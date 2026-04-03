@@ -131,6 +131,11 @@ export async function POST(req: NextRequest) {
       if (!sess) throw new BadRequestError("Sessão clínica não encontrada nesta clínica.");
     }
 
+    // Validate discount doesn't exceed amount
+    if (body.discountCents > body.amountCents) {
+      throw new BadRequestError("Desconto não pode exceder o valor da cobrança.");
+    }
+
     const charge = await db.charge.create({
       data: {
         tenantId: ctx.tenantId,

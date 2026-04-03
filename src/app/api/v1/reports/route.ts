@@ -84,11 +84,12 @@ export async function GET(req: NextRequest) {
             provider: { select: { id: true, name: true } },
           },
         }),
-        // New patients this month
+        // New patients this month (scoped to provider for non-admins)
         db.patient.count({
           where: {
             tenantId: ctx.tenantId,
             createdAt: { gte: from, lte: to },
+            ...(!isAdmin && { assignedUserId: ctx.userId }),
           },
         }),
       ]);

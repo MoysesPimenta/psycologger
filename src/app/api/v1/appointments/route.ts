@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, created, handleApiError, parsePagination, buildMeta, ConflictError, NotFoundError } from "@/lib/api";
+import { ok, created, handleApiError, parsePagination, buildMeta, ConflictError, NotFoundError, BadRequestError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { sendAppointmentConfirmation } from "@/lib/email";
@@ -148,6 +148,11 @@ export async function POST(req: NextRequest) {
     const body = createSchema.parse(await req.json());
     const startsAt = new Date(body.startsAt);
     const endsAt = new Date(body.endsAt);
+
+    // Validate time range is positive
+    if (startsAt >= endsAt) {
+      throw new BadRequestError("O horário de início deve ser anterior ao horário de término.");
+    }
 
     // Validate patient belongs to this tenant
     const patientCheck = await db.patient.findFirst({

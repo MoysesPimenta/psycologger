@@ -33,9 +33,9 @@ interface ChargeWithRelations {
   tenant: { id: string; name: string };
 }
 
-async function hasReminderBeenSent(chargeId: string, type: string): Promise<boolean> {
+async function hasReminderBeenSent(chargeId: string, type: string, tenantId: string): Promise<boolean> {
   const count = await dbAny.paymentReminderLog.count({
-    where: { chargeId, type },
+    where: { chargeId, type, tenantId },
   });
   return count > 0;
 }
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
   for (const charge of chargesDueTomorrow) {
     if (!charge.patient.email) continue;
-    if (await hasReminderBeenSent(charge.id, "PAYMENT_DUE_24H")) continue;
+    if (await hasReminderBeenSent(charge.id, "PAYMENT_DUE_24H", charge.tenantId)) continue;
 
     // Check if tenant has this template active
     const template = await db.reminderTemplate.findFirst({
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
 
   for (const charge of chargesOverdue) {
     if (!charge.patient.email) continue;
-    if (await hasReminderBeenSent(charge.id, "PAYMENT_OVERDUE")) continue;
+    if (await hasReminderBeenSent(charge.id, "PAYMENT_OVERDUE", charge.tenantId)) continue;
 
     const template = await db.reminderTemplate.findFirst({
       where: { tenantId: charge.tenantId, type: "PAYMENT_OVERDUE" },
