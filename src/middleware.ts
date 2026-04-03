@@ -78,10 +78,13 @@ export default withAuth(
     const response = NextResponse.next({ request: { headers } });
 
     // Set CSP header with nonce — only scripts/styles with the matching nonce are allowed
+    // Note: Next.js 14 injects inline scripts for RSC hydration data that cannot
+    // carry a nonce attribute, so we must allow 'unsafe-inline' for script-src.
+    // The nonce is kept for style-src where it remains effective.
     const csp = [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}'`,
-      `style-src 'self' 'nonce-${nonce}'`,
+      "script-src 'self' 'unsafe-inline'",
+      `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
       "img-src 'self' data: blob: https:",
       "font-src 'self'",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
