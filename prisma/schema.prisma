@@ -76,6 +76,38 @@ enum CalendarShowPatient {
   FULL_NAME
 }
 
+// ─── Patient Portal Enums ─────────────────────────────────────────────────────
+
+enum JournalEntryType {
+  MOOD_CHECKIN
+  REFLECTION
+  SESSION_PREP
+  QUESTION
+  IMPORTANT_EVENT
+  GRATITUDE
+}
+
+enum JournalVisibility {
+  PRIVATE
+  SHARED
+  DRAFT
+}
+
+enum PatientNotificationType {
+  SESSION_REMINDER
+  PAYMENT_REMINDER
+  PRE_SESSION_PROMPT
+  ENTRY_REVIEWED
+  GENERAL
+}
+
+enum ConsentType {
+  TERMS_OF_USE
+  PRIVACY_POLICY
+  DATA_SHARING
+  JOURNAL_SHARING
+}
+
 enum ContactType {
   EMERGENCY
   RESPONSIBLE
@@ -189,6 +221,9 @@ model User {
 
   googleCalendarIntegration GoogleCalendarToken?
 
+  journalEntriesAsTherapist JournalEntry[] @relation("JournalTherapist")
+  journalEntriesReviewed    JournalEntry[] @relation("JournalReviewer")
+
   @@index([email])
   @@index([createdAt])
 }
@@ -225,6 +260,15 @@ model Tenant {
   plan      String @default("beta")
   planSince DateTime @default(now())
 
+  // Patient portal feature flags
+  portalEnabled              Boolean @default(false)
+  portalPaymentsVisible      Boolean @default(true)
+  portalJournalEnabled       Boolean @default(true)
+  portalRescheduleEnabled    Boolean @default(false)
+  portalVideoLinkAdvanceMin  Int     @default(60)
+  portalSafetyText           String?
+  portalSafetyCrisisPhone    String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -242,6 +286,11 @@ model Tenant {
   nfseInvoices     NfseInvoice[]
   reminderTemplates ReminderTemplate[]
   paymentReminderLogs PaymentReminderLog[]
+  patientAuths         PatientAuth[]
+  patientPreferences   PatientPreference[]
+  journalEntries       JournalEntry[]
+  patientNotifications PatientNotification[]
+  consentRecords       ConsentRecord[]
 
   @@index([createdAt])
   @@index([slug])
@@ -335,6 +384,11 @@ model Patient {
   clinicalSessions       ClinicalSession[]
   files                  FileObject[]
   charges                Charge[]
+  portalAuth             PatientAuth?
+  preference             PatientPreference?
+  journalEntries         JournalEntry[]
+  patientNotifications   PatientNotification[]
+  consentRecords         ConsentRecord[]
 
   @@index([tenantId])
   @@index([tenantId, assignedUserId])
@@ -743,4 +797,153 @@ model NfseInvoice {
 
   @@index([tenantId])
   @@index([tenantId, status])
+}
+
+// ─── Patient Portal ─────────────────────────────────────────────────────────
+
+model PatientAuth {
+  id              String    @id @default(uuid()) @db.Uuid
+  patientId       String    @db.Uuid
+  tenantId        String    @db.Uuid
+  email           String
+  passwordHash    String?
+  emailVerified   Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  status          String    @default("ACTIVE")
+  lastLoginAt     DateTime?
+  loginAttempts   Int       @default(0)
+  lockedUntil     DateTime?
+  activatedAt     DateTime?
+  activationToken String?   @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions PatientPortalSession[]
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, patientId])
+  @@index([tenantId])
+  @@index([email])
+}
+
+model PatientPortalSession {
+  id            String    @id @default(uuid()) @db.Uuid
+  patientAuthId String    @db.Uuid
+  tokenHash     String    @unique
+  userAgent     String?
+  ipAddress     String?
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime  @default(now())
+
+  patientAuth PatientAuth @relation(fields: [patientAuthId], references: [id], onDelete: Cascade)
+
+  @@index([patientAuthId])
+  @@index([expiresAt])
+}
+
+model PatientPreference {
+  id                          String   @id @default(uuid()) @db.Uuid
+  patientId                   String   @unique @db.Uuid
+  tenantId                    String   @db.Uuid
+
+  notifySessionReminder       Boolean  @default(true)
+  notifyPaymentReminder       Boolean  @default(true)
+  notifyPreSessionPrompt      Boolean  @default(true)
+  reminderHoursBefore         Int      @default(24)
+
+  defaultJournalVisibility    JournalVisibility @default(PRIVATE)
+  timezone                    String   @default("America/Sao_Paulo")
+
+  emergencyContactName        String?
+  emergencyContactPhone       String?
+  emergencyContactRelation    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model JournalEntry {
+  id                  String             @id @default(uuid()) @db.Uuid
+  tenantId            String             @db.Uuid
+  patientId           String             @db.Uuid
+  therapistId         String?            @db.Uuid
+
+  entryType           JournalEntryType
+  visibility          JournalVisibility  @default(PRIVATE)
+
+  moodScore           Int?
+  anxietyScore        Int?
+  energyScore         Int?
+  sleepScore          Int?
+
+  emotionTags         String[]           @default([])
+  noteText            String?
+  discussNextSession  Boolean            @default(false)
+
+  flaggedForSupport   Boolean            @default(false)
+
+  reviewedAt          DateTime?
+  reviewedById        String?            @db.Uuid
+
+  deletedAt           DateTime?
+
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist User?    @relation("JournalTherapist", fields: [therapistId], references: [id], onDelete: SetNull)
+  reviewer  User?    @relation("JournalReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, patientId])
+  @@index([tenantId, therapistId, visibility])
+  @@index([tenantId, patientId, createdAt])
+  @@index([tenantId, discussNextSession])
+}
+
+model PatientNotification {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  tenantId            String                    @db.Uuid
+  patientId           String                    @db.Uuid
+  type                PatientNotificationType
+  title               String
+  body                String
+  readAt              DateTime?
+  relatedEntityType   String?
+  relatedEntityId     String?                   @db.Uuid
+
+  createdAt           DateTime                  @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, patientId, readAt])
+  @@index([tenantId, patientId, createdAt])
+}
+
+model ConsentRecord {
+  id                  String       @id @default(uuid()) @db.Uuid
+  tenantId            String       @db.Uuid
+  patientId           String       @db.Uuid
+  consentType         ConsentType
+  version             String
+  acceptedAt          DateTime
+  revokedAt           DateTime?
+  ipAddress           String?
+  userAgent           String?
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, patientId])
+  @@index([tenantId, patientId, consentType])
 }

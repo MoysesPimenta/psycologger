@@ -117,7 +117,7 @@ export function parsePagination(searchParams: URLSearchParams): PaginationParams
 
 export function buildMeta(
   total: number,
-  { page, pageSize }: PaginationParams
+  { page, pageSize }: Pick<PaginationParams, "page" | "pageSize">,
 ) {
   return {
     page,

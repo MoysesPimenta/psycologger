@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Stethoscope,
+  BookOpen,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { cn, initials } from "@/lib/utils";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/app/patients", label: "Pacientes", icon: Users },
   { href: "/app/financial", label: "Financeiro", icon: DollarSign },
   { href: "/app/reports", label: "Relatórios", icon: BarChart3 },
+  { href: "/app/journal-inbox", label: "Diário Pacientes", icon: BookOpen },
 ];
 
 const bottomNavItems = [

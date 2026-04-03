@@ -19,6 +19,22 @@ function generateNonce(): string {
   return btoa(binString);
 }
 
+/** Check if this is a patient portal route (uses its own auth, not NextAuth) */
+function isPortalRoute(pathname: string): boolean {
+  return pathname.startsWith("/portal") || pathname.startsWith("/api/v1/portal");
+}
+
+/** Public portal pages that don't require a portal session */
+function isPublicPortalRoute(pathname: string): boolean {
+  return (
+    pathname === "/portal/login" ||
+    pathname.startsWith("/portal/activate/") ||
+    pathname === "/portal/forgot-password" ||
+    pathname.startsWith("/portal/reset-password/") ||
+    pathname.startsWith("/api/v1/portal/auth/")
+  );
+}
+
 export default withAuth(
   function middleware(req: NextRequest) {
     const token = (req as NextRequest & { nextauth?: { token?: Record<string, unknown> } }).nextauth?.token;
@@ -28,6 +44,23 @@ export default withAuth(
     if (pathname.startsWith("/sa/") && pathname !== "/sa/login") {
       if (!token?.isSuperAdmin) {
         return NextResponse.redirect(new URL("/sa/login", req.url));
+      }
+    }
+
+    // Portal routes: check for portal session cookie (NOT NextAuth)
+    // Protected portal pages redirect to /portal/login if no cookie
+    if (isPortalRoute(pathname) && !isPublicPortalRoute(pathname)) {
+      const portalToken = req.cookies.get("psycologger-portal-token")?.value;
+      if (!portalToken) {
+        if (pathname.startsWith("/api/v1/portal")) {
+          // API routes return 401
+          return NextResponse.json(
+            { error: { code: "UNAUTHORIZED", message: "Portal session required" } },
+            { status: 401 },
+          );
+        }
+        // Page routes redirect to login
+        return NextResponse.redirect(new URL("/portal/login", req.url));
       }
     }
 
@@ -70,6 +103,12 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const pathname = req.nextUrl.pathname;
+
+        // Portal routes use their own auth — always pass NextAuth check
+        if (isPortalRoute(pathname)) {
+          return true;
+        }
+
         // Public routes
         if (
           pathname === "/" ||

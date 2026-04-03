@@ -57,3 +57,23 @@ export const MAX_UPLOAD_SIZE_BYTES = 25 * 1024 * 1024;
 
 /** Maximum rows for audit CSV export. */
 export const AUDIT_CSV_MAX_ROWS = 50_000;
+
+// ─── Patient Portal ──────────────────────────────────────────────────────────
+
+/** Portal login rate limit: max attempts per email within the window. */
+export const PORTAL_LOGIN_RATE_LIMIT = 5;
+
+/** Portal login rate-limit window (15 minutes). */
+export const PORTAL_LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
+/** Portal magic-link rate limit: max per email within the window. */
+export const PORTAL_MAGIC_LINK_RATE_LIMIT = 3;
+
+/** Portal magic-link rate-limit window (1 hour). */
+export const PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+
+/** Portal journal entries rate limit: max creates per hour. */
+export const PORTAL_JOURNAL_RATE_LIMIT = 30;
+
+/** Portal journal rate-limit window (1 hour). */
+export const PORTAL_JOURNAL_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;

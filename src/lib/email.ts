@@ -278,6 +278,43 @@ export async function sendPaymentOverdueNotification({
   return sendEmail({ to, subject, html });
 }
 
+// ─── Patient Portal Emails ──────────────────────────────────────────────────
+
+export async function sendPortalInviteEmail({
+  to,
+  activateUrl,
+  patientName,
+  tenantName,
+}: {
+  to: string;
+  activateUrl: string;
+  patientName: string;
+  tenantName: string;
+}) {
+  const subject = `Convite para o Portal do Paciente — ${esc(tenantName)}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+      <h2 style="color:#1e3a8a;">Portal do Paciente</h2>
+      <p>Olá, ${esc(patientName)}!</p>
+      <p><strong>${esc(tenantName)}</strong> convidou você para acessar o Portal do Paciente.</p>
+      <p>No portal, você poderá:</p>
+      <ul style="color:#374151; font-size:14px;">
+        <li>Ver suas sessões agendadas</li>
+        <li>Acompanhar pagamentos</li>
+        <li>Manter um diário de humor e reflexões</li>
+      </ul>
+      <div style="text-align:center; margin:24px 0;">
+        <a href="${esc(activateUrl)}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; padding:12px 32px; border-radius:8px; font-weight:600;">
+          Ativar minha conta
+        </a>
+      </div>
+      <p style="color:#6b7280; font-size:13px;">Se você não esperava este convite, pode ignorar este email.</p>
+    </div>
+  `;
+
+  return sendEmail({ to, subject, html });
+}
+
 // ─── Base send ────────────────────────────────────────────────────────────────
 
 async function sendEmail({
