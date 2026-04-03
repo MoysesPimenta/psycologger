@@ -331,6 +331,13 @@ async function sendEmail({
     return { id: "dev-email-id" };
   }
 
+  if (!process.env.RESEND_API_KEY) {
+    console.error("[email] RESEND_API_KEY is not set — email will not be sent");
+    throw new Error("Email service not configured: RESEND_API_KEY missing");
+  }
+
+  console.log(`[email] Sending to=${to} from=${FROM_EMAIL} subject="${subject}"`);
+
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to,
@@ -339,10 +346,11 @@ async function sendEmail({
   });
 
   if (error) {
-    console.error("[email] Resend error:", error);
+    console.error("[email] Resend error:", JSON.stringify(error));
     throw new Error(`Email send failed: ${error.message}`);
   }
 
+  console.log(`[email] Sent OK id=${data?.id} to=${to}`);
   return data;
 }
 
