@@ -45,9 +45,16 @@ export function PortalJournalNewClient() {
   const [crisisData, setCrisisData] = useState<{ phone: string; text: string } | null>(null);
 
   function toggleEmotion(tag: string) {
-    setEmotionTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag].slice(0, 10),
-    );
+    setEmotionTags((prev) => {
+      if (prev.includes(tag)) {
+        return prev.filter((t) => t !== tag);
+      } else if (prev.length >= 10) {
+        // Show feedback that limit is reached
+        return prev;
+      } else {
+        return [...prev, tag];
+      }
+    });
   }
 
   async function handleSave() {
@@ -108,7 +115,7 @@ export function PortalJournalNewClient() {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <Link href="/portal/journal" className="text-gray-400 hover:text-gray-600">
+        <Link href="/portal/journal" className="text-gray-400 hover:text-gray-600" aria-label="Voltar ao diário">
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-xl font-bold text-gray-900">Nova anotação</h1>
@@ -178,10 +185,13 @@ export function PortalJournalNewClient() {
             <button
               key={tag}
               onClick={() => toggleEmotion(tag)}
+              disabled={emotionTags.length >= 10 && !emotionTags.includes(tag)}
               className={cn(
                 "px-3 py-1 text-xs rounded-full border transition-colors",
                 emotionTags.includes(tag)
                   ? "bg-brand-100 text-brand-700 border-brand-200"
+                  : emotionTags.length >= 10
+                  ? "text-gray-300 border-gray-100 cursor-not-allowed"
                   : "text-gray-500 border-gray-200 hover:bg-gray-50",
               )}
             >
@@ -189,6 +199,9 @@ export function PortalJournalNewClient() {
             </button>
           ))}
         </div>
+        {emotionTags.length >= 10 && (
+          <p className="text-xs text-amber-600 mt-2">Limite de 10 emoções atingido</p>
+        )}
       </div>
 
       {/* Additional scores */}

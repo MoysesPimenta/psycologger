@@ -34,6 +34,7 @@ export function PortalProfileClient() {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [prefs, setPrefs] = useState({
     notifySessionReminder: true,
     notifyPaymentReminder: true,
@@ -46,7 +47,9 @@ export function PortalProfileClient() {
   });
 
   useEffect(() => {
-    fetch("/api/v1/portal/profile")
+    const controller = new AbortController();
+
+    fetch("/api/v1/portal/profile", { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
         if (json?.data) {
@@ -65,32 +68,56 @@ export function PortalProfileClient() {
           }
         }
       })
+      .catch((err) => {
+        if ((err as Error).name !== 'AbortError') {
+          // Handle error silently
+        }
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, []);
 
   async function handleSave() {
     setSaving(true);
-    await fetch("/api/v1/portal/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...prefs,
-        emergencyContactName: prefs.emergencyContactName || null,
-        emergencyContactPhone: prefs.emergencyContactPhone || null,
-        emergencyContactRelation: prefs.emergencyContactRelation || null,
-      }),
-    });
-    setSaving(false);
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/portal/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...prefs,
+          emergencyContactName: prefs.emergencyContactName || null,
+          emergencyContactPhone: prefs.emergencyContactPhone || null,
+          emergencyContactRelation: prefs.emergencyContactRelation || null,
+        }),
+      });
+      if (!res.ok) {
+        setError("Erro ao salvar preferências.");
+      }
+    } catch {
+      setError("Erro de conexão.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleLogout() {
-    await fetch("/api/v1/portal/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "logout" }),
-    });
-    router.push("/portal/login");
-    router.refresh();
+    try {
+      const res = await fetch("/api/v1/portal/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logout" }),
+      });
+      if (!res.ok) {
+        setError("Erro ao fazer logout.");
+        return;
+      }
+      router.push("/portal/login");
+      router.refresh();
+    } catch {
+      setError("Erro de conexão.");
+    }
   }
 
   if (loading) {
@@ -105,6 +132,12 @@ export function PortalProfileClient() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-bold text-gray-900">Perfil</h1>
+
+      {error && (
+        <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg" role="alert">
+          {error}
+        </div>
+      )}
 
       {/* Patient info (read-only) */}
       <div className="bg-white rounded-xl border p-4 space-y-2">

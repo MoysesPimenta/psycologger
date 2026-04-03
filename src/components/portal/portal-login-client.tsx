@@ -26,13 +26,19 @@ export function PortalLoginClient() {
           action: "login",
           email: email.toLowerCase().trim(),
           password,
-          tenantId,
+          tenantId: tenantId.trim(),
         }),
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error?.message ?? "Erro ao fazer login.");
+        let errorMessage = "Erro ao fazer login.";
+        try {
+          const data = await res.json();
+          errorMessage = data.error?.message ?? errorMessage;
+        } catch {
+          // Response body is not JSON, use default error
+        }
+        setError(errorMessage);
         return;
       }
 

@@ -47,36 +47,58 @@ function memoryRateLimit(key: string, limit: number, windowMs: number): RateLimi
 // ─── Upstash Redis rate limiting ────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let upstashLimiter: any = null;
+let upstashRedis: any = null;
 let upstashInitialized = false;
+let Ratelimit: any = null;
 
-async function getUpstashLimiter(): Promise<unknown> {
-  if (upstashInitialized) return upstashLimiter;
+// Cache limiters by config key: "limit:windowMs"
+const upstashLimiters = new Map<string, any>();
+
+async function initializeUpstash(): Promise<boolean> {
+  if (upstashInitialized) return !!upstashRedis;
   upstashInitialized = true;
 
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
+  if (!url || !token) return false;
 
   try {
     // Dynamic require to avoid build errors when packages are not installed
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Redis } = require("@upstash/redis");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { Ratelimit } = require("@upstash/ratelimit");
+    const RatelimitModule = require("@upstash/ratelimit");
+    Ratelimit = RatelimitModule.Ratelimit;
 
-    const redis = new Redis({ url, token });
-
-    upstashLimiter = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(10, "60 s"),
-      prefix: "psycologger:rl",
-    });
-
-    return upstashLimiter;
+    upstashRedis = new Redis({ url, token });
+    return true;
   } catch {
     // @upstash packages not installed — fall back to in-memory
     console.warn("[rate-limit] Upstash packages not available, using in-memory fallback");
+    return false;
+  }
+}
+
+async function getUpstashLimiter(limit: number, windowMs: number): Promise<unknown> {
+  const hasUpstash = await initializeUpstash();
+  if (!hasUpstash || !upstashRedis || !Ratelimit) return null;
+
+  const cacheKey = `${limit}:${windowMs}`;
+  if (upstashLimiters.has(cacheKey)) {
+    return upstashLimiters.get(cacheKey);
+  }
+
+  try {
+    const windowSeconds = Math.ceil(windowMs / 1000);
+    const limiter = new Ratelimit({
+      redis: upstashRedis,
+      limiter: Ratelimit.slidingWindow(limit, `${windowSeconds} s`),
+      prefix: `psycologger:rl:${limit}:${windowSeconds}`,
+    });
+    upstashLimiters.set(cacheKey, limiter);
+    return limiter;
+  } catch (err) {
+    console.error("[rate-limit] Failed to create Upstash limiter:", err);
     return null;
   }
 }
@@ -91,7 +113,7 @@ export async function rateLimit(
   limit: number,
   windowMs: number
 ): Promise<RateLimitResult> {
-  const limiter = await getUpstashLimiter();
+  const limiter = await getUpstashLimiter(limit, windowMs);
   if (limiter) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

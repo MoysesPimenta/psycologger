@@ -38,18 +38,32 @@ export function PortalSessionsClient() {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
-    const res = await fetch(`/api/v1/portal/appointments?tab=${tab}&pageSize=50`);
-    if (res.ok) {
-      const json = await res.json();
-      setAppointments(json.data);
+    setError(null);
+    try {
+      const res = await fetch(`/api/v1/portal/appointments?tab=${tab}&pageSize=50`, { signal });
+      if (res.ok) {
+        const json = await res.json();
+        setAppointments(json.data);
+      } else {
+        setError("Erro ao carregar sessões.");
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setError("Erro ao carregar sessões.");
+      }
     }
     setLoading(false);
   }, [tab]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [fetchData]);
 
   return (
     <div className="space-y-4">
@@ -69,6 +83,12 @@ export function PortalSessionsClient() {
           </button>
         ))}
       </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg" role="alert">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-3 animate-pulse">

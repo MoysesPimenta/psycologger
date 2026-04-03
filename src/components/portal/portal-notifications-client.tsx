@@ -29,10 +29,19 @@ export function PortalNotificationsClient() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/v1/portal/notifications?pageSize=50")
+    const controller = new AbortController();
+
+    fetch("/api/v1/portal/notifications?pageSize=50", { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => { if (json) setNotifications(json.data); })
+      .catch((err) => {
+        if ((err as Error).name !== 'AbortError') {
+          // Handle error silently
+        }
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, []);
 
   async function markRead(id: string) {

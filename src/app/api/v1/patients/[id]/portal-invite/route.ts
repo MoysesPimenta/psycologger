@@ -43,9 +43,7 @@ export async function POST(
 
     // Check if portal auth already exists
     const existing = await dbAny.patientAuth.findUnique({
-      where: {
-        tenantId_patientId: { tenantId: ctx.tenantId, patientId: params.id },
-      } as never,
+      where: { patientId: params.id } as never,
     });
 
     if (existing?.activatedAt) {
@@ -66,9 +64,7 @@ export async function POST(
 
     // Upsert: if an invite was already sent but not activated, replace it
     const patientAuth = await dbAny.patientAuth.upsert({
-      where: {
-        tenantId_patientId: { tenantId: ctx.tenantId, patientId: params.id },
-      } as never,
+      where: { patientId: params.id } as never,
       update: {
         email: body.email,
         activationToken,

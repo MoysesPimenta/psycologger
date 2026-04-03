@@ -57,8 +57,9 @@ export async function GET(req: NextRequest) {
         if (noteText) {
           try {
             noteText = await decrypt(noteText);
-          } catch {
-            // May be plaintext
+          } catch (e) {
+            console.error("[journal-inbox] Decryption failed for entry", entry.id, e);
+            noteText = "[Não foi possível descriptografar esta entrada]";
           }
         }
         return { ...entry, noteText };

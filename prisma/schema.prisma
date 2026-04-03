@@ -481,6 +481,7 @@ model Appointment {
   @@index([tenantId, providerUserId, startsAt])
   @@index([tenantId, patientId])
   @@index([tenantId, status])
+  @@index([tenantId, status, startsAt])
 }
 
 model Recurrence {
@@ -681,7 +682,7 @@ model Charge {
   @@index([tenantId, providerUserId])
   @@index([tenantId, status])
   @@index([tenantId, dueDate])
-  @@index([status, dueDate]) // cron job: find PENDING/OVERDUE charges by date range
+  @@index([tenantId, status, dueDate])
 }
 
 model Payment {
@@ -824,7 +825,6 @@ model PatientAuth {
   sessions PatientPortalSession[]
 
   @@unique([tenantId, email])
-  @@unique([tenantId, patientId])
   @@index([tenantId])
   @@index([email])
 }
@@ -908,6 +908,7 @@ model JournalEntry {
   @@index([tenantId, therapistId, visibility])
   @@index([tenantId, patientId, createdAt])
   @@index([tenantId, discussNextSession])
+  @@index([tenantId, flaggedForSupport])
 }
 
 model PatientNotification {

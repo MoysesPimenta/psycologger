@@ -39,7 +39,6 @@ CREATE TABLE "PatientAuth" (
 CREATE UNIQUE INDEX "PatientAuth_activationToken_key" ON "PatientAuth"("activationToken");
 CREATE UNIQUE INDEX "PatientAuth_patientId_key" ON "PatientAuth"("patientId");
 CREATE UNIQUE INDEX "PatientAuth_tenantId_email_key" ON "PatientAuth"("tenantId", "email");
-CREATE UNIQUE INDEX "PatientAuth_tenantId_patientId_key" ON "PatientAuth"("tenantId", "patientId");
 CREATE INDEX "PatientAuth_tenantId_idx" ON "PatientAuth"("tenantId");
 CREATE INDEX "PatientAuth_email_idx" ON "PatientAuth"("email");
 
@@ -164,3 +163,10 @@ CREATE INDEX "ConsentRecord_tenantId_patientId_consentType_idx" ON "ConsentRecor
 
 ALTER TABLE "ConsentRecord" ADD CONSTRAINT "ConsentRecord_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ConsentRecord" ADD CONSTRAINT "ConsentRecord_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "Patient"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Additional composite indexes for performance
+CREATE INDEX "Appointment_tenantId_status_startsAt_idx" ON "Appointment"("tenantId", "status", "startsAt");
+DROP INDEX IF EXISTS "Charge_status_dueDate_idx";
+CREATE INDEX "Charge_tenantId_status_dueDate_idx" ON "Charge"("tenantId", "status", "dueDate");
+CREATE INDEX "JournalEntry_tenantId_flaggedForSupport_idx" ON "JournalEntry"("tenantId", "flaggedForSupport");
+CREATE INDEX "PatientNotification_tenantId_patientId_readAt_idx" ON "PatientNotification"("tenantId", "patientId", "readAt");

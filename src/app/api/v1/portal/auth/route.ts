@@ -20,7 +20,13 @@ import {
   generateActivationToken,
   PORTAL_MAX_LOGIN_ATTEMPTS,
   PORTAL_LOCKOUT_MS,
+  PORTAL_ACTIVATION_TOKEN_MAX_AGE_MS,
 } from "@/lib/patient-auth";
+import { rateLimit } from "@/lib/rate-limit";
+import {
+  PORTAL_LOGIN_RATE_LIMIT,
+  PORTAL_LOGIN_RATE_LIMIT_WINDOW_MS,
+} from "@/lib/constants";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const dbAny = db as any;
@@ -105,6 +111,13 @@ async function handleLogin(
   ipAddress: string | undefined,
   userAgent: string | undefined,
 ) {
+  // Rate limit by IP + email combo to prevent distributed brute-force
+  const rlKey = `portal-login:${ipAddress ?? "unknown"}:${input.email}`;
+  const rl = await rateLimit(rlKey, PORTAL_LOGIN_RATE_LIMIT, PORTAL_LOGIN_RATE_LIMIT_WINDOW_MS);
+  if (!rl.allowed) {
+    return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde alguns minutos.", 429);
+  }
+
   // Find patient auth
   const patientAuth = await dbAny.patientAuth.findUnique({
     where: {
@@ -217,6 +230,12 @@ async function handleActivate(
 
   if (patientAuth.activatedAt) {
     return apiError("CONFLICT", "Conta já ativada. Faça login.", 409);
+  }
+
+  // Check token expiry (based on createdAt + max age)
+  const tokenAge = Date.now() - new Date(patientAuth.createdAt).getTime();
+  if (tokenAge > PORTAL_ACTIVATION_TOKEN_MAX_AGE_MS) {
+    return apiError("GONE", "Token de ativação expirado. Solicite um novo convite.", 410);
   }
 
   // Hash password and activate

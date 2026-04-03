@@ -29,10 +29,19 @@ export function PortalPrivacyClient() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/v1/portal/consents")
+    const controller = new AbortController();
+
+    fetch("/api/v1/portal/consents", { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => { if (json) setRecords(json.data); })
+      .catch((err) => {
+        if ((err as Error).name !== 'AbortError') {
+          // Handle error silently
+        }
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, []);
 
   async function handleConsent(consentType: string, action: "accept" | "revoke") {

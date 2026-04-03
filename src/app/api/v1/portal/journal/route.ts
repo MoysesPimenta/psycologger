@@ -12,6 +12,8 @@ import { getPatientContext } from "@/lib/patient-auth";
 import { containsCrisisKeywords } from "@/lib/safety";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { encrypt } from "@/lib/crypto";
+import { rateLimit } from "@/lib/rate-limit";
+import { PORTAL_JOURNAL_RATE_LIMIT, PORTAL_JOURNAL_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const dbAny = db as any;
@@ -91,6 +93,16 @@ export async function POST(req: NextRequest) {
 
     if (!ctx.tenant.portalJournalEnabled) {
       return apiError("FORBIDDEN", "Diário não está habilitado.", 403);
+    }
+
+    // Rate limit journal creation per patient
+    const rl = await rateLimit(
+      `portal-journal:${ctx.patientId}`,
+      PORTAL_JOURNAL_RATE_LIMIT,
+      PORTAL_JOURNAL_RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rl.allowed) {
+      return apiError("TOO_MANY_REQUESTS", "Limite de entradas atingido. Aguarde um pouco.", 429);
     }
 
     const body = createSchema.parse(await req.json());

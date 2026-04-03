@@ -56,9 +56,10 @@ export async function GET(
     if (entry.noteText) {
       try {
         decryptedNote = await decrypt(entry.noteText);
-      } catch {
-        // If decryption fails, it may be stored in plaintext (old entries)
-        decryptedNote = entry.noteText;
+      } catch (e) {
+        // Log decryption failure but never return raw ciphertext
+        console.error("[journal] Decryption failed for entry", params.id, e);
+        decryptedNote = "[Não foi possível descriptografar esta entrada]";
       }
     }
 

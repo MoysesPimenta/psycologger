@@ -18,6 +18,7 @@ export const PORTAL_MAGIC_LINK_EXPIRY_MS = 30 * 60 * 1000; // 30 min
 export const PORTAL_PASSWORD_RESET_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 export const PORTAL_MAX_LOGIN_ATTEMPTS = 5;
 export const PORTAL_LOCKOUT_MS = 15 * 60 * 1000; // 15 min
+export const PORTAL_ACTIVATION_TOKEN_MAX_AGE_MS = 48 * 60 * 60 * 1000; // 48 hours
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

@@ -67,12 +67,22 @@ const ENTRY_TYPE_LABELS: Record<string, string> = {
 export function PortalDashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/v1/portal/dashboard")
+    const controller = new AbortController();
+
+    fetch("/api/v1/portal/dashboard", { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => { if (json) setData(json.data); })
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          setError("Erro ao carregar dados.");
+        }
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, []);
 
   if (loading) {
@@ -83,6 +93,10 @@ export function PortalDashboardClient() {
         <div className="h-24 bg-gray-200 rounded-xl" />
       </div>
     );
+  }
+
+  if (error) {
+    return <p className="text-red-500">{error}</p>;
   }
 
   if (!data) {
@@ -126,7 +140,7 @@ export function PortalDashboardClient() {
             </div>
             <ChevronRight className="h-5 w-5 text-gray-300 mt-1 flex-shrink-0" />
           </div>
-          {appt.videoLink && (
+          {appt.videoLink && appt.videoLink.startsWith("https://") && (
             <a
               href={appt.videoLink}
               target="_blank"

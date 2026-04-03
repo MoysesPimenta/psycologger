@@ -56,18 +56,34 @@ export function PortalPaymentsClient() {
   const [tab, setTab] = useState<"pending" | "paid" | "all">("pending");
   const [charges, setCharges] = useState<Charge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [requestCounter, setRequestCounter] = useState(0);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal: AbortSignal, counter: number) => {
     setLoading(true);
-    const res = await fetch(`/api/v1/portal/charges?tab=${tab}&pageSize=50`);
-    if (res.ok) {
-      const json = await res.json();
-      setCharges(json.data);
+    try {
+      const res = await fetch(`/api/v1/portal/charges?tab=${tab}&pageSize=50`, { signal });
+      if (res.ok) {
+        const json = await res.json();
+        // Only update if this is the latest request
+        if (counter === requestCounter) {
+          setCharges(json.data);
+        }
+      }
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        // Handle error silently
+      }
     }
     setLoading(false);
-  }, [tab]);
+  }, [tab, requestCounter]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const newCounter = requestCounter + 1;
+    setRequestCounter(newCounter);
+    fetchData(controller.signal, newCounter);
+    return () => controller.abort();
+  }, [tab, fetchData]);
 
   return (
     <div className="space-y-4">

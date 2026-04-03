@@ -50,14 +50,26 @@ export function PortalJournalDetailClient({ id }: { id: string }) {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/v1/portal/journal/${id}`)
+    const controller = new AbortController();
+
+    fetch(`/api/v1/portal/journal/${id}`, { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => { if (json) setEntry(json.data); })
+      .catch((err) => {
+        if ((err as Error).name !== 'AbortError') {
+          // Handle error silently
+        }
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, [id]);
 
   async function handleDelete() {
     if (deleting) return;
+    if (!window.confirm("Tem certeza que deseja deletar esta entrada?")) {
+      return;
+    }
     setDeleting(true);
     const res = await fetch(`/api/v1/portal/journal/${id}`, { method: "DELETE" });
     if (res.ok) {
