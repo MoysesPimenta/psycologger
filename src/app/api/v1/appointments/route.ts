@@ -40,11 +40,18 @@ function nextOccurrence(date: Date, rrule: string): Date {
   return addWeeks(date, interval);
 }
 
-/** Apply an "HH:mm" time string to a Date, returning a new Date */
-function applyTime(date: Date, hhmm: string): Date {
-  const [h, m] = hhmm.split(":").map(Number);
-  const result = new Date(date);
-  result.setHours(h, m, 0, 0);
+/**
+ * Copy the UTC time from a reference date onto a target date.
+ * This preserves the correct UTC offset regardless of the server's timezone.
+ */
+function applyUtcTime(targetDate: Date, referenceDate: Date): Date {
+  const result = new Date(targetDate);
+  result.setUTCHours(
+    referenceDate.getUTCHours(),
+    referenceDate.getUTCMinutes(),
+    0,
+    0,
+  );
   return result;
 }
 
@@ -177,10 +184,10 @@ export async function POST(req: NextRequest) {
       let current = startsAt;
       for (let i = 1; i < body.recurrenceOccurrences; i++) {
         current = nextOccurrence(current, body.recurrenceRrule);
-        // Override time for recurring sessions if a specific time was set
-        const slotStart = body.recurrenceTime
-          ? applyTime(current, body.recurrenceTime)
-          : new Date(current);
+        // Preserve the UTC time from the first appointment for all recurring slots.
+        // The frontend sends startsAt as a proper ISO datetime (already in UTC),
+        // so we copy its UTC hours/minutes onto each new date.
+        const slotStart = applyUtcTime(current, startsAt);
         const slotEnd = new Date(slotStart.getTime() + durationMs);
         slots.push({ startsAt: slotStart, endsAt: slotEnd });
       }
