@@ -168,10 +168,11 @@ export default function JournalTrendChart({
                 padding: "0.75rem",
               }}
               labelStyle={{ color: "#1f2937" }}
-              formatter={(value: number | undefined) =>
-                value !== undefined ? value.toFixed(1) : "—"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter={(value: any) =>
+                typeof value === "number" ? value.toFixed(1) : "—"
               }
-              labelFormatter={(label: string) => `Data: ${label}`}
+              labelFormatter={(label) => `Data: ${label}`}
             />
             <Legend
               wrapperStyle={{ paddingTop: "1rem" }}
