@@ -1,22 +1,19 @@
 /**
  * Encryption utilities — Psycologger
- * Uses libsodium (secretbox) for symmetric encryption of integration credentials
- * and other sensitive data at rest.
+ * Uses Node.js built-in crypto (AES-256-GCM) for symmetric encryption
+ * of sensitive data at rest (journal entries, integration credentials).
+ *
+ * AES-256-GCM provides authenticated encryption — both confidentiality
+ * and integrity. No external dependencies (no WASM, no libsodium).
  */
 
-// We load libsodium lazily since it requires wasm init
-let _sodium: typeof import("libsodium-wrappers") | null = null;
+import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 
-async function getSodium() {
-  if (!_sodium) {
-    const sodium = await import("libsodium-wrappers");
-    await sodium.ready;
-    _sodium = sodium;
-  }
-  return _sodium;
-}
+const ALGORITHM = "aes-256-gcm";
+const IV_LENGTH = 12; // 96 bits — recommended for GCM
+const AUTH_TAG_LENGTH = 16; // 128 bits
 
-function getEncryptionKey(): Uint8Array {
+function getEncryptionKey(): Buffer {
   const keyBase64 = process.env.ENCRYPTION_KEY;
   if (!keyBase64) {
     throw new Error("ENCRYPTION_KEY environment variable is not set");
@@ -25,42 +22,53 @@ function getEncryptionKey(): Uint8Array {
   if (key.length !== 32) {
     throw new Error("ENCRYPTION_KEY must be 32 bytes (256-bit), base64-encoded");
   }
-  return new Uint8Array(key);
+  return key;
 }
 
 /**
- * Encrypt a string value using secretbox.
- * Returns base64-encoded nonce+ciphertext.
+ * Encrypt a string value using AES-256-GCM.
+ * Returns base64-encoded: IV (12 bytes) + authTag (16 bytes) + ciphertext.
  */
 export async function encrypt(plaintext: string): Promise<string> {
-  const sodium = await getSodium();
   const key = getEncryptionKey();
-  const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
-  const ciphertext = sodium.crypto_secretbox_easy(
-    sodium.from_string(plaintext),
-    nonce,
-    key
-  );
-  // Prepend nonce to ciphertext
-  const combined = new Uint8Array(nonce.length + ciphertext.length);
-  combined.set(nonce);
-  combined.set(ciphertext, nonce.length);
-  return Buffer.from(combined).toString("base64");
+  const iv = randomBytes(IV_LENGTH);
+  const cipher = createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext, "utf8"),
+    cipher.final(),
+  ]);
+  const authTag = cipher.getAuthTag();
+
+  // Format: IV + authTag + ciphertext
+  const combined = Buffer.concat([iv, authTag, encrypted]);
+  return combined.toString("base64");
 }
 
 /**
  * Decrypt a value previously encrypted with encrypt().
  */
 export async function decrypt(encryptedBase64: string): Promise<string> {
-  const sodium = await getSodium();
   const key = getEncryptionKey();
-  const combined = new Uint8Array(Buffer.from(encryptedBase64, "base64"));
-  const nonceLength = sodium.crypto_secretbox_NONCEBYTES;
-  const nonce = combined.slice(0, nonceLength);
-  const ciphertext = combined.slice(nonceLength);
-  const plaintext = sodium.crypto_secretbox_open_easy(ciphertext, nonce, key);
-  if (!plaintext) throw new Error("Decryption failed — invalid key or corrupted data");
-  return sodium.to_string(plaintext);
+  const combined = Buffer.from(encryptedBase64, "base64");
+
+  if (combined.length < IV_LENGTH + AUTH_TAG_LENGTH) {
+    throw new Error("Decryption failed — data too short");
+  }
+
+  const iv = combined.subarray(0, IV_LENGTH);
+  const authTag = combined.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
+  const ciphertext = combined.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
+
+  const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+  decipher.setAuthTag(authTag);
+
+  const decrypted = Buffer.concat([
+    decipher.update(ciphertext),
+    decipher.final(),
+  ]);
+
+  return decrypted.toString("utf8");
 }
 
 /**
@@ -80,12 +88,10 @@ export async function decryptJson<T>(encrypted: string): Promise<T> {
 
 /**
  * Generate a random base64 key suitable for ENCRYPTION_KEY.
- * Usage: node -e "require('./src/lib/crypto').generateKey().then(console.log)"
+ * Usage: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
  */
 export async function generateKey(): Promise<string> {
-  const sodium = await getSodium();
-  const key = sodium.randombytes_buf(32);
-  return Buffer.from(key).toString("base64");
+  return randomBytes(32).toString("base64");
 }
 
 /**
