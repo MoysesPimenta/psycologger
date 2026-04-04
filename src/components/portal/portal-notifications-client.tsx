@@ -45,17 +45,32 @@ export function PortalNotificationsClient() {
   }, []);
 
   async function markRead(id: string) {
-    await fetch(`/api/v1/portal/notifications/${id}`, { method: "PATCH" });
+    // Optimistic update
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n)),
     );
+    try {
+      const res = await fetch(`/api/v1/portal/notifications/${id}`, { method: "PATCH" });
+      if (!res.ok) throw new Error("Failed to mark as read");
+    } catch {
+      // Revert on failure
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, readAt: null } : n)),
+      );
+    }
   }
 
   async function markAllRead() {
-    await fetch("/api/v1/portal/notifications/read-all", { method: "POST" });
+    const snapshot = notifications;
     setNotifications((prev) =>
       prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })),
     );
+    try {
+      const res = await fetch("/api/v1/portal/notifications/read-all", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to mark all as read");
+    } catch {
+      setNotifications(snapshot); // Revert on failure
+    }
   }
 
   const unreadCount = notifications.filter((n) => !n.readAt).length;

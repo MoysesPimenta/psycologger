@@ -64,7 +64,12 @@ async function logReminder(data: {
 export async function POST(req: NextRequest) {
   // Verify cron secret — MUST be set in production; reject if missing or mismatched
   const authHeader = req.headers.get("authorization");
-  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (!CRON_SECRET) {
+    console.error("[cron/payment-reminders] CRON_SECRET env var is not set — rejecting request");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+    console.warn("[cron/payment-reminders] Invalid authorization header — rejecting request");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

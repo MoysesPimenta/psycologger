@@ -12,6 +12,8 @@ import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { generateActivationToken } from "@/lib/patient-auth";
 import { sendPortalInviteEmail } from "@/lib/email";
+import { rateLimit } from "@/lib/rate-limit";
+import { PORTAL_INVITE_RATE_LIMIT, PORTAL_INVITE_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const dbAny = db as any;
@@ -37,6 +39,16 @@ export async function POST(
 
     if (!patient) {
       return apiError("NOT_FOUND", "Paciente não encontrado.", 404);
+    }
+
+    // Rate limit: prevent invite spam per patient
+    const rl = await rateLimit(
+      `portal-invite:${params.id}`,
+      PORTAL_INVITE_RATE_LIMIT,
+      PORTAL_INVITE_RATE_LIMIT_WINDOW_MS,
+    );
+    if (!rl.allowed) {
+      return apiError("TOO_MANY_REQUESTS", "Muitos convites enviados. Tente novamente mais tarde.", 429);
     }
 
     const body = bodySchema.parse(await req.json());

@@ -89,3 +89,9 @@ export const PORTAL_ACTIVATION_RATE_LIMIT = 5;
 
 /** Portal activation rate-limit window (15 minutes). */
 export const PORTAL_ACTIVATION_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
+/** Portal invite rate limit: max invites per patient within the window. */
+export const PORTAL_INVITE_RATE_LIMIT = 5;
+
+/** Portal invite rate-limit window (1 hour). */
+export const PORTAL_INVITE_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;

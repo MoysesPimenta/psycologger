@@ -80,6 +80,9 @@ export async function PATCH(
 
     // Restore from soft-delete
     if (body.restore === true) {
+      if (!existing.deletedAt) {
+        throw new NotFoundError("Session is not deleted");
+      }
       const restored = await db.clinicalSession.update({
         where: { id: params.id, tenantId: ctx.tenantId },
         data: { deletedAt: null, deletedBy: null },

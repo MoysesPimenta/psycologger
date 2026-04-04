@@ -6,7 +6,7 @@
  */
 
 import { db } from "./db";
-import { createHash, randomBytes } from "crypto";
+import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { ForbiddenError, UnauthorizedError } from "./rbac";
 
@@ -103,7 +103,7 @@ export function setPortalCookie(token: string): void {
   cookieStore.set(PORTAL_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",  // Must cover both /portal/* pages and /api/v1/portal/* endpoints
     maxAge: PORTAL_SESSION_MAX_AGE_MS / 1000,
   });
@@ -257,13 +257,15 @@ export async function verifyPassword(password: string, stored: string): Promise<
     key,
     256,
   );
-  const computed = Buffer.from(derived).toString("base64url");
+  const computedBuf = Buffer.from(new Uint8Array(derived));
+  const storedBuf = Buffer.from(hashStr, "base64url");
 
-  // Timing-safe comparison
-  if (computed.length !== hashStr.length) return false;
-  let diff = 0;
-  for (let i = 0; i < computed.length; i++) {
-    diff |= computed.charCodeAt(i) ^ hashStr.charCodeAt(i);
+  // Use crypto.timingSafeEqual to prevent timing attacks.
+  // Both buffers must be the same length; if not, compare against a
+  // dummy buffer of the correct length to avoid leaking length info.
+  if (computedBuf.length !== storedBuf.length) {
+    timingSafeEqual(computedBuf, computedBuf); // constant-time no-op
+    return false;
   }
-  return diff === 0;
+  return timingSafeEqual(computedBuf, storedBuf);
 }

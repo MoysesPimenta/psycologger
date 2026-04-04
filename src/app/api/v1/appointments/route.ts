@@ -101,6 +101,10 @@ export async function GET(req: NextRequest) {
     const pagination = parsePagination(searchParams);
     const from = searchParams.get("from");
     const to = searchParams.get("to");
+    // Validate date range
+    if (from && to && new Date(from) > new Date(to)) {
+      throw new BadRequestError("'from' date must be before 'to' date.");
+    }
     // PSYCHOLOGIST can only see their own appointments; admins can filter by any provider
     const requestedProvider = searchParams.get("providerId");
     const providerUserId = ctx.role === "PSYCHOLOGIST"
