@@ -262,7 +262,7 @@ export async function POST(req: NextRequest) {
       }
 
       return { firstAppointment: first, createdCount: count };
-    });
+    }, { timeout: 30000 }); // 30s — recurring appointments create many slots sequentially
 
     await auditLog({
       tenantId: ctx.tenantId,
