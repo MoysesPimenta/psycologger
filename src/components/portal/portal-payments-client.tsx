@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreditCard } from "lucide-react";
@@ -56,34 +56,36 @@ export function PortalPaymentsClient() {
   const [tab, setTab] = useState<"pending" | "paid" | "all">("pending");
   const [charges, setCharges] = useState<Charge[]>([]);
   const [loading, setLoading] = useState(true);
-  const [requestCounter, setRequestCounter] = useState(0);
-
-  const fetchData = useCallback(async (signal: AbortSignal, counter: number) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/v1/portal/charges?tab=${tab}&pageSize=50`, { signal });
-      if (res.ok) {
-        const json = await res.json();
-        // Only update if this is the latest request
-        if (counter === requestCounter) {
-          setCharges(json.data);
-        }
-      }
-    } catch (err) {
-      if ((err as Error).name !== 'AbortError') {
-        // Handle error silently
-      }
-    }
-    setLoading(false);
-  }, [tab, requestCounter]);
+  const requestId = useRef(0);
 
   useEffect(() => {
     const controller = new AbortController();
-    const newCounter = requestCounter + 1;
-    setRequestCounter(newCounter);
-    fetchData(controller.signal, newCounter);
+    const currentId = ++requestId.current;
+
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/v1/portal/charges?tab=${tab}&pageSize=50`, {
+          signal: controller.signal,
+        });
+        if (res.ok && currentId === requestId.current) {
+          const json = await res.json();
+          setCharges(json.data);
+        }
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          // Handle error silently
+        }
+      } finally {
+        if (currentId === requestId.current) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchData();
     return () => controller.abort();
-  }, [tab, fetchData]);
+  }, [tab]);
 
   return (
     <div className="space-y-4">
