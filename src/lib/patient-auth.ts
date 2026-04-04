@@ -19,6 +19,7 @@ export const PORTAL_PASSWORD_RESET_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 export const PORTAL_MAX_LOGIN_ATTEMPTS = 5;
 export const PORTAL_LOCKOUT_MS = 15 * 60 * 1000; // 15 min
 export const PORTAL_ACTIVATION_TOKEN_MAX_AGE_MS = 48 * 60 * 60 * 1000; // 48 hours
+export const PORTAL_IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes idle timeout
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -178,6 +179,23 @@ export async function getPatientContext(req?: Request): Promise<PatientContext> 
   if (new Date(session.expiresAt) < new Date()) {
     throw new UnauthorizedError("Portal session expired");
   }
+
+  // Check idle timeout — if no activity in the last 30 minutes, expire
+  const lastActivity = session.lastActivityAt ? new Date(session.lastActivityAt) : new Date(session.createdAt);
+  if (Date.now() - lastActivity.getTime() > PORTAL_IDLE_TIMEOUT_MS) {
+    // Auto-revoke the idle session
+    await dbAny.patientPortalSession.update({
+      where: { id: session.id },
+      data: { revokedAt: new Date() },
+    });
+    throw new UnauthorizedError("Portal session expired due to inactivity");
+  }
+
+  // Touch lastActivityAt (fire-and-forget to avoid latency)
+  dbAny.patientPortalSession.update({
+    where: { id: session.id },
+    data: { lastActivityAt: new Date() },
+  }).catch(() => {/* non-critical */});
 
   const { patientAuth } = session;
 

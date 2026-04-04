@@ -9,6 +9,7 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { setCsrfCookie, validateCsrf } from "@/lib/csrf";
 
 /** Generate a random nonce for CSP (Edge Runtime compatible) */
 function generateNonce(): string {
@@ -32,9 +33,7 @@ function isPublicPortalRoute(pathname: string): boolean {
     pathname.startsWith("/portal/magic-login/") ||
     // Auth API (magic-link-request, magic-link-verify, activate, logout — all via POST actions)
     pathname === "/api/v1/portal/auth" ||
-    pathname.startsWith("/api/v1/portal/auth/") ||
-    // Diagnostic endpoint (protected by its own bearer token check)
-    pathname === "/api/v1/portal/email-test"
+    pathname.startsWith("/api/v1/portal/auth/")
   );
 }
 
@@ -67,6 +66,14 @@ export default withAuth(
       }
     }
 
+    // CSRF validation for state-changing requests
+    if (!validateCsrf(req)) {
+      return NextResponse.json(
+        { error: { code: "CSRF_FAILED", message: "Invalid or missing CSRF token" } },
+        { status: 403 },
+      );
+    }
+
     // Generate CSP nonce
     const nonce = generateNonce();
 
@@ -80,13 +87,16 @@ export default withAuth(
 
     const response = NextResponse.next({ request: { headers } });
 
-    // Set CSP header with nonce — only scripts/styles with the matching nonce are allowed
+    // Set CSP header with nonce — scripts/styles with the matching nonce are allowed.
     // Note: Next.js 14 injects inline scripts for RSC hydration data that cannot
-    // carry a nonce attribute, so we must allow 'unsafe-inline' for script-src.
-    // The nonce is kept for style-src where it remains effective.
+    // carry a nonce attribute. We include both 'nonce-...' and 'unsafe-inline':
+    // - In browsers that support CSP3, 'nonce-...' takes precedence and
+    //   'unsafe-inline' is ignored (per spec), giving nonce-only protection.
+    // - In older browsers, 'unsafe-inline' provides a baseline.
+    // 'strict-dynamic' allows nonce-authenticated scripts to load children.
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline'`,
       `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
       "img-src 'self' data: blob: https:",
       "font-src 'self'",
@@ -95,6 +105,9 @@ export default withAuth(
       "form-action 'self'",
       "base-uri 'self'",
     ].join("; ");
+
+    // Set CSRF cookie (non-httpOnly so JS can read it)
+    setCsrfCookie(req, response);
 
     response.headers.set("Content-Security-Policy", csp);
     response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");

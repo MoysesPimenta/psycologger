@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -134,12 +134,20 @@ export function RemindersClient() {
         setTemplates((prev) => ({ ...prev, [type]: json.data }));
         setEditing(null);
         setSavedType(type);
-        setTimeout(() => setSavedType(null), 3000);
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setSavedType(null), 3000);
       }
     } finally {
       setSaving(false);
     }
   }
+
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   if (loading) return <div className="animate-pulse h-32 bg-gray-100 rounded-xl" />;
 

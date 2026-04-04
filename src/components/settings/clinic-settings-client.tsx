@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,13 +116,22 @@ export function ClinicSettingsClient() {
       }
 
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => setSuccess(false), 3000);
     } catch {
       setError("Erro de rede. Tente novamente.");
     } finally {
       setSaving(false);
     }
   }
+
+  // Cleanup timeout on unmount
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   if (loading) {
     return <div className="animate-pulse h-32 bg-gray-100 rounded-xl" />;

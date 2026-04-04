@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { User, Mail, Phone, Save, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,13 +54,21 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
       await updateSession({ name: name.trim() });
 
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => setSaved(false), 3000);
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
       setSaving(false);
     }
   }
+
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   return (
     <form onSubmit={handleSave}>

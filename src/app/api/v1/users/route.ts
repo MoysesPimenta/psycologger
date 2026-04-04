@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { ok, created, handleApiError, apiError } from "@/lib/api";
+import { ok, created, handleApiError, apiError, parsePagination, buildMeta } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { sendInviteEmail } from "@/lib/email";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -18,17 +18,24 @@ export async function GET(req: NextRequest) {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "users:view");
 
-    const members = await db.membership.findMany({
-      where: { tenantId: ctx.tenantId },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, lastLoginAt: true, imageUrl: true },
-        },
-      },
-      orderBy: { createdAt: "asc" },
-    });
+    const { page, pageSize, skip } = parsePagination(req.nextUrl.searchParams);
 
-    return ok(members);
+    const [members, total] = await Promise.all([
+      db.membership.findMany({
+        where: { tenantId: ctx.tenantId },
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, lastLoginAt: true, imageUrl: true },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+        skip,
+        take: pageSize,
+      }),
+      db.membership.count({ where: { tenantId: ctx.tenantId } }),
+    ]);
+
+    return ok(members, buildMeta(total, { page, pageSize }));
   } catch (err) {
     return handleApiError(err);
   }
