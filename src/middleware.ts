@@ -3,22 +3,13 @@
  * Handles:
  * - Auth protection for /app/* and /sa/* routes
  * - Tenant resolution header injection
- * - CSP nonce injection for defense-in-depth
+ * - CSP headers for defense-in-depth
  */
 
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { setCsrfCookie, validateCsrf } from "@/lib/csrf";
-
-/** Generate a random nonce for CSP (Edge Runtime compatible) */
-function generateNonce(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  // Convert to base64 without Buffer (Edge Runtime)
-  const binString = Array.from(bytes, (b) => String.fromCodePoint(b)).join("");
-  return btoa(binString);
-}
 
 /** Check if this is a patient portal route (uses its own auth, not NextAuth) */
 function isPortalRoute(pathname: string): boolean {
@@ -74,30 +65,28 @@ export default withAuth(
       );
     }
 
-    // Generate CSP nonce
-    const nonce = generateNonce();
-
-    // Inject tenant header and nonce from cookie if present (for SSR)
+    // Inject tenant header from cookie if present (for SSR)
     const tenantId = req.cookies.get("psycologger-tenant")?.value;
     const headers = new Headers(req.headers);
     if (tenantId) {
       headers.set("x-tenant-id", tenantId);
     }
-    headers.set("x-nonce", nonce);
 
     const response = NextResponse.next({ request: { headers } });
 
-    // Set CSP header with nonce — scripts/styles with the matching nonce are allowed.
-    // Note: Next.js 14 injects inline scripts for RSC hydration data that cannot
-    // carry a nonce attribute. We include both 'nonce-...' and 'unsafe-inline':
-    // - In browsers that support CSP3, 'nonce-...' takes precedence and
-    //   'unsafe-inline' is ignored (per spec), giving nonce-only protection.
-    // - In older browsers, 'unsafe-inline' provides a baseline.
-    // 'strict-dynamic' allows nonce-authenticated scripts to load children.
+    // CSP header — Next.js 14 injects inline scripts for RSC hydration data
+    // that do NOT carry nonce attributes (no built-in nonce support without
+    // experimental config). In CSP3 browsers, a nonce causes 'unsafe-inline'
+    // to be ignored, which BLOCKS those hydration scripts and produces blank
+    // pages on every fresh page load.
+    //
+    // Until Next.js supports automatic nonce injection, we use 'unsafe-inline'
+    // without a nonce. Combined with 'strict-dynamic', nonce-less inline
+    // scripts are allowed but can only load same-origin children.
     const csp = [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline'`,
-      `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
+      `script-src 'self' 'unsafe-inline'`,
+      `style-src 'self' 'unsafe-inline'`,
       "img-src 'self' data: blob: https:",
       "font-src 'self'",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
