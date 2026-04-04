@@ -12,6 +12,7 @@ import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { sendAppointmentConfirmation } from "@/lib/email";
 import { format, addWeeks, addMonths } from "date-fns";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
 
 const createSchema = z.object({
@@ -41,18 +42,26 @@ function nextOccurrence(date: Date, rrule: string): Date {
 }
 
 /**
- * Copy the UTC time from a reference date onto a target date.
- * This preserves the correct UTC offset regardless of the server's timezone.
+ * Apply the same local (wall-clock) time from a reference date onto a target date,
+ * using the tenant's IANA timezone. This correctly handles DST transitions:
+ * e.g. "9:00 AM São Paulo" is always 9:00 AM regardless of UTC offset changes.
+ *
+ * 1. Convert the reference date to the tenant's local time → extract HH:MM
+ * 2. Set that HH:MM on the target date in the tenant's local time
+ * 3. Convert back to UTC for storage
  */
-function applyUtcTime(targetDate: Date, referenceDate: Date): Date {
-  const result = new Date(targetDate);
-  result.setUTCHours(
-    referenceDate.getUTCHours(),
-    referenceDate.getUTCMinutes(),
-    0,
-    0,
-  );
-  return result;
+function applyLocalTime(targetDate: Date, referenceDate: Date, timezone: string): Date {
+  // Get the local hours/minutes of the reference date in the tenant's timezone
+  const refLocal = toZonedTime(referenceDate, timezone);
+  const hours = refLocal.getHours();
+  const minutes = refLocal.getMinutes();
+
+  // Set the same local hours/minutes on the target date in the tenant's timezone
+  const targetLocal = toZonedTime(targetDate, timezone);
+  targetLocal.setHours(hours, minutes, 0, 0);
+
+  // Convert back to UTC
+  return fromZonedTime(targetLocal, timezone);
 }
 
 /**
@@ -177,6 +186,13 @@ export async function POST(req: NextRequest) {
 
     const durationMs = endsAt.getTime() - startsAt.getTime();
 
+    // Fetch tenant timezone for recurring slot generation
+    const tenant = await db.tenant.findUniqueOrThrow({
+      where: { id: ctx.tenantId },
+      select: { timezone: true },
+    });
+    const tz = tenant.timezone || "America/Sao_Paulo";
+
     // ── Build list of slots to create ────────────────────────────────────────
     const slots: Array<{ startsAt: Date; endsAt: Date }> = [{ startsAt, endsAt }];
 
@@ -184,10 +200,10 @@ export async function POST(req: NextRequest) {
       let current = startsAt;
       for (let i = 1; i < body.recurrenceOccurrences; i++) {
         current = nextOccurrence(current, body.recurrenceRrule);
-        // Preserve the UTC time from the first appointment for all recurring slots.
-        // The frontend sends startsAt as a proper ISO datetime (already in UTC),
-        // so we copy its UTC hours/minutes onto each new date.
-        const slotStart = applyUtcTime(current, startsAt);
+        // Apply the same wall-clock time (in the tenant's timezone) to each slot.
+        // This handles DST transitions correctly: "9:00 AM São Paulo" stays
+        // 9:00 AM even if the UTC offset changes between summer/winter.
+        const slotStart = applyLocalTime(current, startsAt, tz);
         const slotEnd = new Date(slotStart.getTime() + durationMs);
         slots.push({ startsAt: slotStart, endsAt: slotEnd });
       }
