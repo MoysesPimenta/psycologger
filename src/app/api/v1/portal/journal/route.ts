@@ -179,6 +179,11 @@ export async function POST(req: NextRequest) {
         : undefined,
     });
   } catch (err) {
+    console.error("[portal-journal] POST failed:", {
+      name: (err as Error)?.name,
+      message: (err as Error)?.message,
+      stack: (err as Error)?.stack?.slice(0, 500),
+    });
     return handleApiError(err);
   }
 }
