@@ -104,7 +104,7 @@ export function setPortalCookie(token: string): void {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    path: "/portal",
+    path: "/",  // Must cover both /portal/* pages and /api/v1/portal/* endpoints
     maxAge: PORTAL_SESSION_MAX_AGE_MS / 1000,
   });
 }
