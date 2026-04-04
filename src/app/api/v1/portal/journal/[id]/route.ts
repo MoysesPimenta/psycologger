@@ -119,10 +119,20 @@ export async function PATCH(
       }
     }
 
-    const updated = await dbAny.journalEntry.update({
-      where: { id: params.id },
+    // Use updateMany with tenant+patient scope for defense-in-depth
+    const updateResult = await dbAny.journalEntry.updateMany({
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        patientId: ctx.patientId,
+        deletedAt: null,
+      },
       data,
     });
+
+    if (updateResult.count === 0) {
+      return apiError("NOT_FOUND", "Entrada não encontrada.", 404);
+    }
 
     await auditLog({
       tenantId: ctx.tenantId,
@@ -134,7 +144,8 @@ export async function PATCH(
       userAgent,
     });
 
-    return ok(updated);
+    // Return sanitized response (no encrypted data)
+    return ok({ id: params.id, updated: true });
   } catch (err) {
     return handleApiError(err);
   }
@@ -165,9 +176,14 @@ export async function DELETE(
       return apiError("FORBIDDEN", "Não é possível excluir uma entrada já revisada.", 403);
     }
 
-    // Soft delete
-    await dbAny.journalEntry.update({
-      where: { id: params.id },
+    // Soft delete — scoped to tenant+patient for defense-in-depth
+    await dbAny.journalEntry.updateMany({
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        patientId: ctx.patientId,
+        deletedAt: null,
+      },
       data: { deletedAt: new Date() },
     });
 

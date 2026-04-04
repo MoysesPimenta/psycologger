@@ -67,7 +67,8 @@ export async function GET(req: NextRequest) {
           energyScore: true,
           sleepScore: true,
           emotionTags: true,
-          noteText: true,
+          // noteText excluded — it's encrypted at rest and decrypting many
+          // entries is expensive. Use GET /journal/[id] for full decrypted text.
           discussNextSession: true,
           flaggedForSupport: true,
           reviewedAt: true,

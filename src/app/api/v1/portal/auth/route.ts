@@ -31,6 +31,8 @@ import {
   PORTAL_PASSWORD_RESET_RATE_LIMIT_WINDOW_MS,
   PORTAL_MAGIC_LINK_RATE_LIMIT,
   PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS,
+  PORTAL_ACTIVATION_RATE_LIMIT,
+  PORTAL_ACTIVATION_RATE_LIMIT_WINDOW_MS,
 } from "@/lib/constants";
 import { sendPortalPasswordResetEmail, sendPortalMagicLinkEmail } from "@/lib/email";
 import { PORTAL_MAGIC_LINK_EXPIRY_MS } from "@/lib/patient-auth";
@@ -259,56 +261,88 @@ async function handleActivate(
   ipAddress: string | undefined,
   userAgent: string | undefined,
 ) {
-  const patientAuth = await dbAny.patientAuth.findUnique({
-    where: { activationToken: input.token } as never,
-    include: {
-      patient: { select: { id: true, fullName: true } },
-      tenant: { select: { id: true, portalEnabled: true } },
-    },
+  // Rate limit activation attempts by IP
+  const rlKey = `portal-activate:${ipAddress ?? "unknown"}`;
+  const rl = await rateLimit(rlKey, PORTAL_ACTIVATION_RATE_LIMIT, PORTAL_ACTIVATION_RATE_LIMIT_WINDOW_MS);
+  if (!rl.allowed) {
+    return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde antes de tentar novamente.", 429);
+  }
+
+  // Hash password before transaction (CPU-intensive)
+  const passwordHash = await hashPassword(input.password);
+
+  // Atomic token consumption via transaction
+  const result = await db.$transaction(async (tx) => {
+    const txAny = tx as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const patientAuth = await txAny.patientAuth.findUnique({
+      where: { activationToken: input.token } as never,
+      include: {
+        patient: { select: { id: true } },
+        tenant: { select: { id: true, portalEnabled: true } },
+      },
+    });
+
+    if (!patientAuth) {
+      return { error: "NOT_FOUND" as const };
+    }
+
+    if (patientAuth.activatedAt) {
+      return { error: "CONFLICT" as const };
+    }
+
+    // Check token expiry — use updatedAt as proxy for token issuance time
+    // (activation token is set on create or re-invite which updates the record)
+    const tokenAge = Date.now() - new Date(patientAuth.updatedAt ?? patientAuth.createdAt).getTime();
+    if (tokenAge > PORTAL_ACTIVATION_TOKEN_MAX_AGE_MS) {
+      // Clear the expired token
+      await txAny.patientAuth.update({
+        where: { id: patientAuth.id },
+        data: { activationToken: null },
+      });
+      return { error: "EXPIRED" as const };
+    }
+
+    // Activate atomically — consume token
+    await txAny.patientAuth.update({
+      where: { id: patientAuth.id },
+      data: {
+        passwordHash,
+        activatedAt: new Date(),
+        activationToken: null,
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+      },
+    });
+
+    // Create preferences if not exist
+    const existingPref = await txAny.patientPreference.findUnique({
+      where: { patientId: patientAuth.patientId } as never,
+    });
+    if (!existingPref) {
+      await txAny.patientPreference.create({
+        data: {
+          patientId: patientAuth.patientId,
+          tenantId: patientAuth.tenant.id,
+        },
+      });
+    }
+
+    return { patientAuth };
   });
 
-  if (!patientAuth) {
+  if (result.error === "NOT_FOUND") {
     return apiError("NOT_FOUND", "Token de ativação inválido ou expirado.", 404);
   }
-
-  if (patientAuth.activatedAt) {
+  if (result.error === "CONFLICT") {
     return apiError("CONFLICT", "Conta já ativada. Faça login.", 409);
   }
-
-  // Check token expiry (based on createdAt + max age)
-  const tokenAge = Date.now() - new Date(patientAuth.createdAt).getTime();
-  if (tokenAge > PORTAL_ACTIVATION_TOKEN_MAX_AGE_MS) {
+  if (result.error === "EXPIRED") {
     return apiError("GONE", "Token de ativação expirado. Solicite um novo convite.", 410);
   }
 
-  // Hash password and activate
-  const passwordHash = await hashPassword(input.password);
+  const { patientAuth } = result;
 
-  await dbAny.patientAuth.update({
-    where: { id: patientAuth.id },
-    data: {
-      passwordHash,
-      activatedAt: new Date(),
-      activationToken: null,
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-    },
-  });
-
-  // Create preferences if not exist
-  const existingPref = await dbAny.patientPreference.findUnique({
-    where: { patientId: patientAuth.patientId } as never,
-  });
-  if (!existingPref) {
-    await dbAny.patientPreference.create({
-      data: {
-        patientId: patientAuth.patientId,
-        tenantId: patientAuth.tenant.id,
-      },
-    });
-  }
-
-  // Auto-login
+  // Auto-login (outside transaction — non-critical)
   const token = await createPortalSession(patientAuth.id, ipAddress, userAgent);
   setPortalCookie(token);
 
@@ -321,7 +355,8 @@ async function handleActivate(
     userAgent,
   });
 
-  return created({ success: true, patientName: patientAuth.patient.fullName });
+  // Don't leak patient name in response — the client will redirect to dashboard
+  return created({ success: true });
 }
 
 // ─── Logout Handler ──────────────────────────────────────────────────────────
@@ -427,42 +462,65 @@ async function handleResetPassword(
   ipAddress: string | undefined,
   userAgent: string | undefined,
 ) {
-  const patientAuth = await dbAny.patientAuth.findUnique({
-    where: { resetToken: input.token } as never,
-    include: {
-      tenant: { select: { id: true, portalEnabled: true } },
-    },
-  });
-
-  if (!patientAuth) {
-    return apiError("NOT_FOUND", "Token inválido ou expirado.", 404);
+  // Rate limit reset token verification by IP to prevent brute-force token guessing
+  const rlKey = `portal-reset-verify:${ipAddress ?? "unknown"}`;
+  const rl = await rateLimit(rlKey, PORTAL_PASSWORD_RESET_RATE_LIMIT, PORTAL_PASSWORD_RESET_RATE_LIMIT_WINDOW_MS);
+  if (!rl.allowed) {
+    return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde antes de tentar novamente.", 429);
   }
 
-  if (!patientAuth.resetTokenExpiresAt || new Date(patientAuth.resetTokenExpiresAt) < new Date()) {
-    // Clear expired token
-    await dbAny.patientAuth.update({
-      where: { id: patientAuth.id },
-      data: { resetToken: null, resetTokenExpiresAt: null },
+  // Hash the new password before the transaction (CPU-intensive, don't hold the lock)
+  const passwordHash = await hashPassword(input.password);
+
+  // Atomic token consumption via transaction — prevents race condition where two
+  // concurrent requests with the same token could both succeed
+  const result = await db.$transaction(async (tx) => {
+    const txAny = tx as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const patientAuth = await txAny.patientAuth.findUnique({
+      where: { resetToken: input.token } as never,
+      include: {
+        tenant: { select: { id: true, portalEnabled: true } },
+      },
     });
+
+    if (!patientAuth) {
+      return { error: "NOT_FOUND" as const };
+    }
+
+    if (!patientAuth.resetTokenExpiresAt || new Date(patientAuth.resetTokenExpiresAt) < new Date()) {
+      // Clear expired token atomically
+      await txAny.patientAuth.update({
+        where: { id: patientAuth.id },
+        data: { resetToken: null, resetTokenExpiresAt: null },
+      });
+      return { error: "EXPIRED" as const };
+    }
+
+    // Update password and clear token + unlock account atomically
+    await txAny.patientAuth.update({
+      where: { id: patientAuth.id },
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiresAt: null,
+        loginAttempts: 0,
+        lockedUntil: null,
+      },
+    });
+
+    return { patientAuth };
+  });
+
+  if (result.error === "NOT_FOUND") {
+    return apiError("NOT_FOUND", "Token inválido ou expirado.", 404);
+  }
+  if (result.error === "EXPIRED") {
     return apiError("GONE", "Token expirado. Solicite uma nova redefinição.", 410);
   }
 
-  // Hash new password
-  const passwordHash = await hashPassword(input.password);
+  const { patientAuth } = result;
 
-  // Update password and clear token + unlock account
-  await dbAny.patientAuth.update({
-    where: { id: patientAuth.id },
-    data: {
-      passwordHash,
-      resetToken: null,
-      resetTokenExpiresAt: null,
-      loginAttempts: 0,
-      lockedUntil: null,
-    },
-  });
-
-  // Revoke all existing sessions for security
+  // Revoke all existing sessions for security (outside tx — non-critical)
   await revokeAllPortalSessions(patientAuth.id);
 
   await auditLog({
@@ -547,36 +605,59 @@ async function handleMagicLinkVerify(
   ipAddress: string | undefined,
   userAgent: string | undefined,
 ) {
-  const patientAuth = await dbAny.patientAuth.findUnique({
-    where: { magicToken: input.token } as never,
-    include: {
-      tenant: { select: { id: true, portalEnabled: true } },
-    },
-  });
-
-  if (!patientAuth) {
-    return apiError("NOT_FOUND", "Link inválido ou expirado.", 404);
+  // Rate limit magic link verification by IP to prevent brute-force token guessing
+  const rlKey = `portal-magic-verify:${ipAddress ?? "unknown"}`;
+  const rl = await rateLimit(rlKey, PORTAL_MAGIC_LINK_RATE_LIMIT, PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS);
+  if (!rl.allowed) {
+    return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde antes de tentar novamente.", 429);
   }
 
-  if (!patientAuth.magicTokenExpiresAt || new Date(patientAuth.magicTokenExpiresAt) < new Date()) {
-    await dbAny.patientAuth.update({
-      where: { id: patientAuth.id },
-      data: { magicToken: null, magicTokenExpiresAt: null },
+  // Atomic token consumption via transaction — prevents race condition where two
+  // concurrent requests with the same token could both succeed
+  const result = await db.$transaction(async (tx) => {
+    const txAny = tx as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const patientAuth = await txAny.patientAuth.findUnique({
+      where: { magicToken: input.token } as never,
+      include: {
+        tenant: { select: { id: true, portalEnabled: true } },
+      },
     });
+
+    if (!patientAuth) {
+      return { error: "NOT_FOUND" as const };
+    }
+
+    if (!patientAuth.magicTokenExpiresAt || new Date(patientAuth.magicTokenExpiresAt) < new Date()) {
+      await txAny.patientAuth.update({
+        where: { id: patientAuth.id },
+        data: { magicToken: null, magicTokenExpiresAt: null },
+      });
+      return { error: "EXPIRED" as const };
+    }
+
+    // Consume token atomically (single use)
+    await txAny.patientAuth.update({
+      where: { id: patientAuth.id },
+      data: {
+        magicToken: null,
+        magicTokenExpiresAt: null,
+        loginAttempts: 0,
+        lockedUntil: null,
+        lastLoginAt: new Date(),
+      },
+    });
+
+    return { patientAuth };
+  });
+
+  if (result.error === "NOT_FOUND") {
+    return apiError("NOT_FOUND", "Link inválido ou expirado.", 404);
+  }
+  if (result.error === "EXPIRED") {
     return apiError("GONE", "Link expirado. Solicite um novo.", 410);
   }
 
-  // Clear token (single use)
-  await dbAny.patientAuth.update({
-    where: { id: patientAuth.id },
-    data: {
-      magicToken: null,
-      magicTokenExpiresAt: null,
-      loginAttempts: 0,
-      lockedUntil: null,
-      lastLoginAt: new Date(),
-    },
-  });
+  const { patientAuth } = result;
 
   const token = await createPortalSession(patientAuth.id, ipAddress, userAgent);
   setPortalCookie(token);
