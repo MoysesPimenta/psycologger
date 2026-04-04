@@ -78,7 +78,8 @@ export type AuditAction =
   | "PORTAL_CONSENT_ACCEPT"
   | "PORTAL_CONSENT_REVOKE"
   | "PORTAL_PROFILE_UPDATE"
-  | "PORTAL_SESSION_REVOKE";
+  | "PORTAL_SESSION_REVOKE"
+  | "PORTAL_EMAIL_UPDATED";
 
 export interface AuditParams {
   tenantId?: string;

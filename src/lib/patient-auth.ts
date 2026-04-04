@@ -97,9 +97,16 @@ export async function revokeAllPortalSessions(patientAuthId: string): Promise<vo
   });
 }
 
-export function setPortalCookie(token: string): void {
-  const cookieStore = cookies();
-  cookieStore.set(PORTAL_COOKIE_NAME, token, {
+/**
+ * Set the portal session cookie on a NextResponse object.
+ *
+ * IMPORTANT: In Route Handlers that return their own NextResponse, we MUST
+ * set cookies directly on the response — NOT via cookies() from next/headers.
+ * Using cookies().set() + returning NextResponse.json() causes a conflict in
+ * Next.js 14 where the response is internally rewritten to 500.
+ */
+export function setPortalCookieOnResponse(response: { cookies: { set: (name: string, value: string, opts: Record<string, unknown>) => void } }, token: string): void {
+  response.cookies.set(PORTAL_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
@@ -108,9 +115,17 @@ export function setPortalCookie(token: string): void {
   });
 }
 
-export function clearPortalCookie(): void {
-  const cookieStore = cookies();
-  cookieStore.delete(PORTAL_COOKIE_NAME);
+/**
+ * Clear the portal session cookie on a NextResponse object.
+ */
+export function clearPortalCookieOnResponse(response: { cookies: { set: (name: string, value: string, opts: Record<string, unknown>) => void } }): void {
+  response.cookies.set(PORTAL_COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: 0,
+  });
 }
 
 // ─── Context Resolution ─────────────────────────────────────────────────────

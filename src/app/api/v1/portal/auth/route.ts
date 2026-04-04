@@ -17,8 +17,8 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 import {
   getPatientContext,
   createPortalSession,
-  setPortalCookie,
-  clearPortalCookie,
+  setPortalCookieOnResponse,
+  clearPortalCookieOnResponse,
   revokeAllPortalSessions,
   PORTAL_ACTIVATION_TOKEN_MAX_AGE_MS,
 } from "@/lib/patient-auth";
@@ -246,8 +246,7 @@ async function handleMagicLinkVerify(
   const { patientAuth } = result;
 
   // Each magic link is clinic-specific → direct login
-  const token = await createPortalSession(patientAuth.id, ipAddress, userAgent);
-  setPortalCookie(token);
+  const sessionToken = await createPortalSession(patientAuth.id, ipAddress, userAgent);
 
   await auditLog({
     tenantId: patientAuth.tenant.id,
@@ -259,7 +258,11 @@ async function handleMagicLinkVerify(
     userAgent,
   });
 
-  return ok({ success: true });
+  // Set cookie directly on the response — cookies() from next/headers
+  // conflicts with NextResponse.json() in Route Handlers (causes 500)
+  const response = ok({ success: true });
+  setPortalCookieOnResponse(response, sessionToken);
+  return response;
 }
 
 // ─── Activate (first-time account setup — no password) ─────────────────────
@@ -342,8 +345,7 @@ async function handleActivate(
   const { patientAuth } = result;
 
   // Auto-login after activation
-  const token = await createPortalSession(patientAuth.id, ipAddress, userAgent);
-  setPortalCookie(token);
+  const sessionToken = await createPortalSession(patientAuth.id, ipAddress, userAgent);
 
   await auditLog({
     tenantId: patientAuth.tenant.id,
@@ -354,7 +356,9 @@ async function handleActivate(
     userAgent,
   });
 
-  return created({ success: true });
+  const response = created({ success: true });
+  setPortalCookieOnResponse(response, sessionToken);
+  return response;
 }
 
 // ─── Logout ──────────────────────────────────────────────────────────────────
@@ -380,6 +384,7 @@ async function handleLogout(
     // If context fails, just clear cookie
   }
 
-  clearPortalCookie();
-  return noContent();
+  const response = noContent();
+  clearPortalCookieOnResponse(response);
+  return response;
 }

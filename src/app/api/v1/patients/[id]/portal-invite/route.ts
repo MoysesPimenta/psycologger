@@ -50,15 +50,6 @@ export async function POST(
 
     const body = bodySchema.parse(await req.json());
 
-    // Check if portal auth already exists
-    const existing = await db.patientAuth.findUnique({
-      where: { patientId: params.id },
-    });
-
-    if (existing?.activatedAt) {
-      return apiError("CONFLICT", "Paciente já tem conta no portal.", 409);
-    }
-
     // Check tenant has portal enabled
     const tenant = await db.tenant.findUnique({
       where: { id: ctx.tenantId },
@@ -67,6 +58,70 @@ export async function POST(
 
     if (!tenant?.portalEnabled) {
       return apiError("FORBIDDEN", "O portal do paciente não está habilitado. Ative nas configurações.", 403);
+    }
+
+    // Check if portal auth already exists
+    const existing = await db.patientAuth.findUnique({
+      where: { patientId: params.id },
+    });
+
+    // If patient already activated AND email hasn't changed, no need to re-invite
+    if (existing?.activatedAt && existing.email === body.email) {
+      return apiError("CONFLICT", "Paciente já tem conta no portal com este email.", 409);
+    }
+
+    // If patient already activated but email changed, update email and send new magic link
+    if (existing?.activatedAt && existing.email !== body.email) {
+      await db.patientAuth.update({
+        where: { id: existing.id },
+        data: { email: body.email, emailVerified: false, emailVerifiedAt: null },
+      });
+
+      // Send a magic link to the new email so they can verify it
+      const { randomBytes } = await import("crypto");
+      const magicToken = randomBytes(32).toString("base64url");
+      const magicTokenExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+
+      await db.patientAuth.update({
+        where: { id: existing.id },
+        data: { magicToken, magicTokenExpiresAt },
+      });
+
+      const baseUrl = process.env.NEXTAUTH_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+      const magicUrl = `${baseUrl}/portal/magic-login/${magicToken}`;
+
+      let emailSent = true;
+      try {
+        const { sendPortalMagicLinkEmail } = await import("@/lib/email");
+        await sendPortalMagicLinkEmail({
+          to: body.email,
+          magicUrl,
+          patientName: patient.fullName,
+          tenantName: tenant.name,
+        });
+      } catch (emailErr) {
+        console.error("[portal-invite] Magic link email failed:", emailErr);
+        emailSent = false;
+      }
+
+      await auditLog({
+        tenantId: ctx.tenantId,
+        userId: ctx.userId,
+        action: "PORTAL_EMAIL_UPDATED",
+        entity: "PatientAuth",
+        entityId: existing.id,
+        summary: { patientId: params.id, oldEmail: existing.email, newEmail: body.email },
+        ipAddress,
+        userAgent,
+      });
+
+      return created({
+        id: existing.id,
+        email: body.email,
+        emailSent,
+        emailUpdated: true,
+      });
     }
 
     const activationToken = generateActivationToken();
