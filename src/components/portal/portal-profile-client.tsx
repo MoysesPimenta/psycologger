@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LogOut, Shield, Phone, Bell, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface ProfileData {
   patient: {
@@ -82,7 +83,7 @@ export function PortalProfileClient() {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/v1/portal/profile", {
+      const res = await fetchWithCsrf("/api/v1/portal/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

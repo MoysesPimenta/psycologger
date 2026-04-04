@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import Link from "next/link";
 import {
   Play, CheckCircle2, XCircle, UserX, DollarSign,
@@ -102,7 +103,7 @@ function TodayChargePrompt({
     try {
       const amountCents = Math.round(parseFloat(amount.replace(",", ".")) * 100);
       const discountCents = Math.round(parseFloat((discount || "0").replace(",", ".")) * 100);
-      const res = await fetch("/api/v1/charges", {
+      const res = await fetchWithCsrf("/api/v1/charges", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -209,7 +210,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
   async function updateStatus(id: string, status: string) {
     setLoadingId(id);
     try {
-      const res = await fetch(`/api/v1/appointments/${id}`, {
+      const res = await fetchWithCsrf(`/api/v1/appointments/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),

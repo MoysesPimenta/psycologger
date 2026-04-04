@@ -9,6 +9,7 @@ import { ChevronLeft, Trash2, Eye, EyeOff, PenLine, MessageCircle, CheckCircle }
 import { Button } from "@/components/ui/button";
 import { PortalCrisisCard } from "./portal-crisis-card";
 import { cn } from "@/lib/utils";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface JournalEntry {
   id: string;
@@ -71,7 +72,7 @@ export function PortalJournalDetailClient({ id }: { id: string }) {
       return;
     }
     setDeleting(true);
-    const res = await fetch(`/api/v1/portal/journal/${id}`, { method: "DELETE" });
+    const res = await fetchWithCsrf(`/api/v1/portal/journal/${id}`, { method: "DELETE" });
     if (res.ok) {
       router.push("/portal/journal");
       router.refresh();

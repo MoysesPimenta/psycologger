@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface AppointmentType {
   id: string;
@@ -107,7 +108,7 @@ export function AppointmentTypesClient() {
         : "/api/v1/appointment-types";
       const method = editingId ? "PATCH" : "POST";
 
-      const res = await fetch(url, {
+      const res = await fetchWithCsrf(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -121,7 +122,7 @@ export function AppointmentTypesClient() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error?.message ?? "Erro ao salvar.");
+        setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao salvar.");
         return;
       }
 
@@ -137,18 +138,18 @@ export function AppointmentTypesClient() {
   async function executeDelete(id: string) {
     setConfirmDeactivate(null);
     setActionError("");
-    const res = await fetch(`/api/v1/appointment-types/${id}`, { method: "DELETE" });
+    const res = await fetchWithCsrf(`/api/v1/appointment-types/${id}`, { method: "DELETE" });
     if (res.ok) {
       await load();
     } else {
       const data = await res.json().catch(() => ({}));
-      setActionError(data?.error?.message ?? "Erro ao desativar tipo de consulta.");
+      setActionError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao desativar tipo de consulta.");
     }
   }
 
   async function handleToggle(type: AppointmentType) {
     setActionError("");
-    const res = await fetch(`/api/v1/appointment-types/${type.id}`, {
+    const res = await fetchWithCsrf(`/api/v1/appointment-types/${type.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !type.isActive }),
@@ -157,7 +158,7 @@ export function AppointmentTypesClient() {
       await load();
     } else {
       const data = await res.json().catch(() => ({}));
-      setActionError(data?.error?.message ?? "Erro ao atualizar tipo de consulta.");
+      setActionError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao atualizar tipo de consulta.");
     }
   }
 

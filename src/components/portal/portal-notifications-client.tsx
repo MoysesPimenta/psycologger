@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { Bell, Check, Calendar, CreditCard, PenLine, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface Notification {
   id: string;
@@ -50,7 +51,7 @@ export function PortalNotificationsClient() {
       prev.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n)),
     );
     try {
-      const res = await fetch(`/api/v1/portal/notifications/${id}`, { method: "PATCH" });
+      const res = await fetchWithCsrf(`/api/v1/portal/notifications/${id}`, { method: "PATCH" });
       if (!res.ok) throw new Error("Failed to mark as read");
     } catch {
       // Revert on failure
@@ -66,7 +67,7 @@ export function PortalNotificationsClient() {
       prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })),
     );
     try {
-      const res = await fetch("/api/v1/portal/notifications/read-all", { method: "POST" });
+      const res = await fetchWithCsrf("/api/v1/portal/notifications/read-all", { method: "POST" });
       if (!res.ok) throw new Error("Failed to mark all as read");
     } catch {
       setNotifications(snapshot); // Revert on failure

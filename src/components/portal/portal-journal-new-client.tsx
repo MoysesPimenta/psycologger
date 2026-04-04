@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PortalCrisisCard } from "./portal-crisis-card";
 import Link from "next/link";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 const ENTRY_TYPES = [
   { value: "MOOD_CHECKIN", label: "Humor" },
@@ -62,7 +63,7 @@ export function PortalJournalNewClient() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/v1/portal/journal", {
+      const res = await fetchWithCsrf("/api/v1/portal/journal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,7 +81,7 @@ export function PortalJournalNewClient() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error?.message ?? "Erro ao salvar.");
+        setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao salvar.");
         return;
       }
 

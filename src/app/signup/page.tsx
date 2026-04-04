@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import { Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,7 @@ export default function SignupPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/v1/onboarding", {
+      const res = await fetchWithCsrf("/api/v1/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -46,7 +47,7 @@ export default function SignupPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error?.message ?? "Erro ao criar conta.");
+        setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao criar conta.");
         return;
       }
 

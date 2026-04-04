@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface Props {
   initialName: string;
@@ -35,7 +36,7 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
     setSaved(false);
 
     try {
-      const res = await fetch("/api/v1/profile", {
+      const res = await fetchWithCsrf("/api/v1/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -46,7 +47,7 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error?.message ?? "Erro ao salvar.");
+        setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao salvar.");
         return;
       }
 

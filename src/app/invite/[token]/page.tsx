@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import { Stethoscope, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ export default function InvitePage({ params }: { params: { token: string } }) {
     e.preventDefault();
     setAccepting(true);
     try {
-      const res = await fetch(`/api/v1/invites/${params.token}`, {
+      const res = await fetchWithCsrf(`/api/v1/invites/${params.token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),

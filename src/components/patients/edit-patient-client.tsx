@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface AppointmentTypeSummary {
   id: string;
@@ -90,7 +91,7 @@ export function EditPatientClient({
         ? Math.round(parseFloat(feeVal.replace(",", ".")) * 100)
         : null;
 
-      const res = await fetch(`/api/v1/patients/${patient.id}`, {
+      const res = await fetchWithCsrf(`/api/v1/patients/${patient.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -116,7 +117,8 @@ export function EditPatientClient({
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error ?? "Erro ao salvar");
+        const msg = typeof body?.error === "string" ? body.error : body?.message ?? "Erro ao salvar";
+        throw new Error(msg);
       }
 
       toast({ title: "Paciente atualizado!", variant: "success" });

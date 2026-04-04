@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface AppointmentTypeSummary {
   id: string;
@@ -43,7 +44,7 @@ export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?:
       const feeVal = form.defaultFeeOverrideCents.trim();
       const feeCents = feeVal ? Math.round(parseFloat(feeVal.replace(",", ".")) * 100) : null;
 
-      const res = await fetch("/api/v1/patients", {
+      const res = await fetchWithCsrf("/api/v1/patients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

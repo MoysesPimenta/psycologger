@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import { formatDate, formatCurrency, chargeStatusLabel, paymentMethodLabel } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,14 +86,14 @@ export function ChargesClient() {
     setPayingId(chargeId);
     const method = payMethodMap[chargeId] ?? "PIX";
     try {
-      const res = await fetch("/api/v1/payments", {
+      const res = await fetchWithCsrf("/api/v1/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chargeId, amountCents, method }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error?.message ?? "Erro ao registrar pagamento.");
+        throw new Error(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao registrar pagamento.");
       }
       toast({ title: "Pagamento registrado!", variant: "success" });
       fetchCharges();

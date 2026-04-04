@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import { format, addMinutes, addWeeks, addMonths, nextDay, getDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -222,7 +223,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
     setSavingPatient(true);
     setPatientError("");
     try {
-      const res = await fetch("/api/v1/patients", {
+      const res = await fetchWithCsrf("/api/v1/patients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -234,7 +235,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        setPatientError(d?.error?.message ?? "Erro ao criar paciente.");
+        setPatientError(typeof d?.error === "string" ? d.error : d?.error?.message ?? d?.message ?? "Erro ao criar paciente.");
         return;
       }
       const j = await res.json();
@@ -290,7 +291,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
         body.notifyMethods  = notif.methods;
       }
 
-      const res = await fetch("/api/v1/appointments", {
+      const res = await fetchWithCsrf("/api/v1/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -298,7 +299,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
 
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        setError(d?.error?.message ?? "Erro ao criar consulta.");
+        setError(typeof d?.error === "string" ? d.error : d?.error?.message ?? d?.message ?? "Erro ao criar consulta.");
         return;
       }
 

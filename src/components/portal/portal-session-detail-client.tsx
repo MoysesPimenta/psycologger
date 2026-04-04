@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, Calendar, Clock, MapPin, Video, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface AppointmentDetail {
   id: string;
@@ -47,7 +48,7 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
     if (!confirm("Tem certeza que deseja cancelar esta sessão?")) return;
     setCanceling(true);
     try {
-      const res = await fetch("/api/v1/portal/appointments", {
+      const res = await fetchWithCsrf("/api/v1/portal/appointments", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appointmentId: id, action: "cancel" }),
@@ -57,7 +58,7 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
         setAppt((prev) => prev ? { ...prev, status: "CANCELED" } : null);
       } else {
         const data = await res.json().catch(() => null);
-        alert(data?.error?.message ?? "Erro ao cancelar.");
+        alert(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao cancelar.");
       }
     } catch {
       alert("Erro de conexão.");

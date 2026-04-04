@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import { ptBR } from "date-fns/locale";
 import {
   Calendar, Clock, MapPin, Video, User, Stethoscope, FileText,
@@ -189,7 +190,7 @@ function PaymentModal({
         return;
       }
 
-      const res = await fetch("/api/v1/payments", {
+      const res = await fetchWithCsrf("/api/v1/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -202,7 +203,7 @@ function PaymentModal({
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData?.error?.message ?? "Erro ao registrar pagamento.");
+        throw new Error(typeof errData?.error === "string" ? errData.error : errData?.error?.message ?? errData?.message ?? "Erro ao registrar pagamento.");
       }
       const payData = await res.json();
 
@@ -377,14 +378,14 @@ export function AppointmentDetailClient({
   const hasExistingCharge = appt.charges.length > 0;
 
   async function patch(body: Record<string, unknown>) {
-    const res = await fetch(`/api/v1/appointments/${appt.id}`, {
+    const res = await fetchWithCsrf(`/api/v1/appointments/${appt.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(data.error ?? "Erro ao atualizar consulta.");
+      throw new Error(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao atualizar consulta.");
     }
     return res.json();
   }
@@ -439,7 +440,7 @@ export function AppointmentDetailClient({
         const amountCents = Math.round(parsedAmount * 100);
         const discountCents = Math.round(parsedDiscount * 100);
         if (discountCents > amountCents) throw new Error("Desconto não pode exceder o valor.");
-        const res = await fetch("/api/v1/charges", {
+        const res = await fetchWithCsrf("/api/v1/charges", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1100,7 +1101,7 @@ function ChargesCard({
     try {
       const amount = Math.round(parseFloat(editForm.amountCents.replace(",", ".")) * 100);
       const discount = Math.round(parseFloat((editForm.discountCents || "0").replace(",", ".")) * 100);
-      const res = await fetch(`/api/v1/charges/${id}`, {
+      const res = await fetchWithCsrf(`/api/v1/charges/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amountCents: amount, discountCents: discount, dueDate: editForm.dueDate }),
@@ -1122,7 +1123,7 @@ function ChargesCard({
   async function deleteCharge(id: string) {
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/v1/charges/${id}`, { method: "DELETE" });
+      const res = await fetchWithCsrf(`/api/v1/charges/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       const updated = charges.filter((c) => c.id !== id);
       setCharges(updated);

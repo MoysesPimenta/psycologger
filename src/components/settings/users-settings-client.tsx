@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { roleLabel, formatRelative } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface Member {
   id: string;
@@ -64,14 +65,15 @@ export function UsersSettingsClient() {
     e.preventDefault();
     setInviting(true);
     try {
-      const res = await fetch("/api/v1/users", {
+      const res = await fetchWithCsrf("/api/v1/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error?.message);
+        const errorMsg = typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao enviar convite";
+        throw new Error(errorMsg);
       }
       const result = await res.json();
       if (result.data?.emailSent === false) {

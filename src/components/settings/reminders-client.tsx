@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface ReminderTemplate {
   id: string;
@@ -124,7 +125,7 @@ export function RemindersClient() {
   async function handleSave(type: string) {
     setSaving(true);
     try {
-      const res = await fetch("/api/v1/reminder-templates", {
+      const res = await fetchWithCsrf("/api/v1/reminder-templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, ...form }),

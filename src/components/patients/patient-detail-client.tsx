@@ -14,6 +14,7 @@ import { formatDate, formatDateTime, formatCurrency, chargeStatusLabel, initials
 import { cn } from "@/lib/utils";
 import { SOFT_DELETE_RETENTION_MS } from "@/lib/constants";
 import PatientJournalTab from "@/components/journal/patient-journal-tab";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface AppointmentTypeSummary {
   id: string;
@@ -110,7 +111,7 @@ export function PatientDetailClient({
   async function doToggle(newValue: boolean) {
     setTogglingActive(true);
     try {
-      const res = await fetch(`/api/v1/patients/${patient.id}`, {
+      const res = await fetchWithCsrf(`/api/v1/patients/${patient.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: newValue }),
@@ -327,7 +328,7 @@ function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]
   async function handleDeleteSession(id: string) {
     setActioningId(id);
     try {
-      const res = await fetch(`/api/v1/sessions/${id}`, { method: "DELETE" });
+      const res = await fetchWithCsrf(`/api/v1/sessions/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setSessions((prev: any[]) => prev.map((s) => s.id === id ? { ...s, deletedAt: new Date().toISOString() } : s));
     } catch {
@@ -341,7 +342,7 @@ function SessionsTab({ sessions: initialSessions, patientId }: { sessions: any[]
   async function handleRestoreSession(id: string) {
     setActioningId(id);
     try {
-      const res = await fetch(`/api/v1/sessions/${id}`, {
+      const res = await fetchWithCsrf(`/api/v1/sessions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ restore: true }),
@@ -453,7 +454,7 @@ function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: 
   async function handleDeleteFile(id: string) {
     setActioningId(id);
     try {
-      const res = await fetch(`/api/v1/patients/${patientId}/files/${id}`, { method: "DELETE" });
+      const res = await fetchWithCsrf(`/api/v1/patients/${patientId}/files/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setFiles((prev: any[]) => prev.map((f) => f.id === id ? { ...f, deletedAt: new Date().toISOString() } : f));
     } catch {
@@ -467,7 +468,7 @@ function FilesTab({ files: initialFiles, patientId, canViewClinical }: { files: 
   async function handleRestoreFile(id: string) {
     setActioningId(id);
     try {
-      const res = await fetch(`/api/v1/patients/${patientId}/files/${id}`, { method: "PATCH" });
+      const res = await fetchWithCsrf(`/api/v1/patients/${patientId}/files/${id}`, { method: "PATCH" });
       if (!res.ok) throw new Error();
       setFiles((prev: any[]) => prev.map((f) => f.id === id ? { ...f, deletedAt: null } : f));
     } catch {
@@ -604,7 +605,7 @@ function FinancialPaymentModal({
         setSaving(false);
         return;
       }
-      const res = await fetch("/api/v1/payments", {
+      const res = await fetchWithCsrf("/api/v1/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -617,7 +618,8 @@ function FinancialPaymentModal({
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData?.error?.message ?? "Erro ao registrar pagamento.");
+        const errorMessage = typeof errData?.error === "string" ? errData.error : errData?.error?.message ?? errData?.message ?? "Erro ao registrar pagamento.";
+        throw new Error(errorMessage);
       }
       const payData = await res.json();
 
@@ -902,7 +904,7 @@ function ProfileTab({
     try {
       const feeVal = billingForm.defaultFeeOverrideCents.trim();
       const feeCents = feeVal ? Math.round(parseFloat(feeVal.replace(",", ".")) * 100) : null;
-      const res = await fetch(`/api/v1/patients/${patient.id}`, {
+      const res = await fetchWithCsrf(`/api/v1/patients/${patient.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

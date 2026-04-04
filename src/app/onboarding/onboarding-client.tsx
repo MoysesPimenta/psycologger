@@ -17,6 +17,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import Link from "next/link";
 import { Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ export function OnboardingClient({ userName, userEmail }: Props) {
     setError("");
 
     try {
-      const res = await fetch("/api/v1/onboarding", {
+      const res = await fetchWithCsrf("/api/v1/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -63,7 +64,7 @@ export function OnboardingClient({ userName, userEmail }: Props) {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error?.message ?? "Erro ao configurar clínica. Tente novamente.");
+        setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao configurar clínica. Tente novamente.");
         return;
       }
 

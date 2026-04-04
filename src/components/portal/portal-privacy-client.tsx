@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { Shield, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface ConsentRecord {
   id: string;
@@ -45,7 +46,7 @@ export function PortalPrivacyClient() {
   }, []);
 
   async function handleConsent(consentType: string, action: "accept" | "revoke") {
-    await fetch("/api/v1/portal/consents", {
+    await fetchWithCsrf("/api/v1/portal/consents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ consentType, version: CONSENT_VERSION, action }),

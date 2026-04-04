@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +55,7 @@ export function NewChargeClient() {
     setError("");
 
     try {
-      const res = await fetch("/api/v1/charges", {
+      const res = await fetchWithCsrf("/api/v1/charges", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -69,7 +70,7 @@ export function NewChargeClient() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error?.message ?? "Erro ao criar cobrança.");
+        setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao criar cobrança.");
         return;
       }
 

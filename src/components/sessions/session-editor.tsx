@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -126,9 +127,9 @@ function FileAttachmentPanel({
       const formData = new FormData();
       formData.append("file", file);
       try {
-        const res = await fetch(`/api/v1/sessions/${sessionId}/files`, { method: "POST", body: formData });
+        const res = await fetchWithCsrf(`/api/v1/sessions/${sessionId}/files`, { method: "POST", body: formData });
         const json = await res.json();
-        if (!res.ok) { toast({ title: json.error ?? "Erro ao enviar arquivo", variant: "destructive" }); continue; }
+        if (!res.ok) { toast({ title: typeof json?.error === "string" ? json.error : json?.error?.message ?? json?.message ?? "Erro ao enviar arquivo", variant: "destructive" }); continue; }
         updateFiles((prev) => [json.data, ...prev]);
         toast({ title: `${file.name} enviado`, variant: "success" });
       } catch {
@@ -146,7 +147,7 @@ function FileAttachmentPanel({
     setDeletingId(fileId);
     setConfirmDelete(null);
     try {
-      const res = await fetch(`/api/v1/sessions/${sessionId}/files/${fileId}`, { method: "DELETE" });
+      const res = await fetchWithCsrf(`/api/v1/sessions/${sessionId}/files/${fileId}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       updateFiles((prev) => prev.filter((f) => f.id !== fileId));
       toast({ title: "Arquivo excluído", variant: "success" });
@@ -379,7 +380,7 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
         ? { patientId: patient!.id, appointmentId: appointment?.id, templateKey, noteText, tags, sessionDate }
         : { noteText, templateKey, tags };
 
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const res = await fetchWithCsrf(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (!res.ok) throw new Error();
       const data = await res.json();
       toast({ title: isNew ? "Sessão criada!" : "Sessão salva!", variant: "success" });
@@ -406,7 +407,7 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
     if (!savedSessionId) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/v1/sessions/${savedSessionId}`, { method: "DELETE" });
+      const res = await fetchWithCsrf(`/api/v1/sessions/${savedSessionId}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       toast({ title: "Sessão excluída", variant: "success" });
       router.push(patient ? `/app/patients/${patient.id}` : "/app/today");
