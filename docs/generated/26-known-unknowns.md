@@ -1,0 +1,239 @@
+# Psycologger — Known Unknowns & Ambiguities
+
+This document tracks everything that is ambiguous, missing evidence, contradictory, or requiring manual verification. These items should be clarified with the team or investigated before making assumptions.
+
+## Deployment & Infrastructure
+
+### Vercel Cron Status in Production
+- **Question:** Is the Vercel cron job actually running in production?
+- **Evidence:** `vercel.json` configures cron via `crons` array; `/api/cron/payment-reminders` endpoint exists with logic to dispatch email reminders
+- **Gap:** No visibility into actual cron execution history, failure logs, or email delivery statistics
+- **Impact:** If cron fails silently, appointment reminders are not sent and charges go unpaid
+- **Action needed:** Check Vercel dashboard for cron execution logs and recent runs
+
+### Environment Variables in Vercel
+- **Question:** Are all environment variables actually set in the Vercel production dashboard?
+- **Evidence:** `DEPLOY_ENV_VARS.md` lists required vars (ENCRYPTION_KEY, DATABASE_URL, RESEND_API_KEY, etc.)
+- **Gap:** No automation to verify vars are set; docs only reference the list, not actual Vercel configuration
+- **Impact:** Missing ENCRYPTION_KEY or DATABASE_URL causes app to crash at startup
+- **Action needed:** Cross-check `.env.example` against Vercel dashboard settings manually
+
+### Upstash Redis Configuration
+- **Question:** Is Upstash Redis actually connected in production?
+- **Evidence:** Code references Redis for rate limiting; fallback to in-memory rate limiting exists if Redis is unavailable
+- **Gap:** Rate limiting may be ineffective across serverless instances due to in-memory fallback
+- **Impact:** If Redis is not set up, rate limiting is per-instance and can be bypassed by hitting different serverless functions
+- **Action needed:** Verify `REDIS_URL` is set and test rate limit behavior under load
+
+### Supabase Storage Buckets
+- **Question:** Are the S3/R2 buckets created and configured?
+- **Evidence:** Code references `"session-files"` bucket for SessionFile storage; file upload endpoints assume bucket exists
+- **Gap:** No bucket creation automation or initialization script
+- **Impact:** File upload API will fail if bucket does not exist
+- **Action needed:** Verify R2 or S3 buckets are created and have correct CORS and permissions
+
+### Database Backups
+- **Question:** Are database backups automated and tested?
+- **Evidence:** Supabase provides automated backups, but no backup verification process visible in codebase
+- **Gap:** No restore testing or backup monitoring
+- **Impact:** Backup may fail silently; recovery time unknown
+- **Action needed:** Verify backup schedule and test restore procedure
+
+## Encryption & Key Management
+
+### ENCRYPTION_KEY Validation
+- **Question:** Is ENCRYPTION_KEY actually set and validated?
+- **Evidence:** Startup validation added recently; app panics if key is missing
+- **Gap:** No indication that key rotation or key backup procedures are documented
+- **Impact:** If key is lost, all encrypted data becomes unrecoverable
+- **Action needed:** Document key storage, rotation schedule, and recovery procedure
+
+### Encryption Key Rotation in Production
+- **Question:** What happens when encryption key is rotated in production?
+- **Evidence:** `EncryptionKeyRotation` model exists with versioning; old keys retained for decryption
+- **Gap:** No runbook for key rotation; mechanics exist but workflow is undocumented
+- **Impact:** If rotation is done incorrectly, new data may use wrong key or old data may become unreadable
+- **Action needed:** Document and test key rotation procedure end-to-end
+
+### Deterministic Encryption for CPF Search
+- **Question:** How is CPF search performed if CPF is plaintext?
+- **Evidence:** CPF stored plaintext in `PatientProfile.cpf`; search functionality uses exact match
+- **Gap:** If CPF is moved to encrypted field later, deterministic encryption must be used for search compatibility
+- **Impact:** Plaintext CPF is a compliance risk; encrypted CPF requires schema change and data migration
+- **Action needed:** Design and implement CPF encryption with deterministic encryption for search
+
+## Data & Compliance
+
+### Production Tenant Count
+- **Question:** How many tenants exist in production?
+- **Evidence:** Seed script creates 1 demo tenant; no tenant creation logs visible
+- **Gap:** No way to query tenant count or growth metrics
+- **Impact:** Capacity planning is impossible without knowing user base
+- **Action needed:** Add tenant metrics to monitoring dashboard
+
+### LGPD Data Deletion Workflow
+- **Question:** Is there an automated LGPD data deletion workflow?
+- **Evidence:** `PatientConsent` model tracks consent expiry; no deletion automation visible
+- **Gap:** Consent tracking exists but no mechanism to delete data on request or expiry
+- **Impact:** Compliance risk if data is not deleted on request within required timeline
+- **Action needed:** Implement data subject access request (DSAR) and deletion workflow
+
+### Clinical Notes Encryption
+- **Question:** Are `SessionRecord.notes` actually encrypted?
+- **Evidence:** Code does not show encryption of session notes before storage; notes are flagged as sensitive
+- **Gap:** Gap between stated security invariants (notes encrypted) and actual implementation (notes plaintext)
+- **Impact:** Clinical notes readable in database; HIPAA/LGPD compliance risk
+- **Action needed:** Add encryption to session note creation and decrypt on read
+
+## Features & Integrations
+
+### Google Calendar Sync Status
+- **Question:** When is Google Calendar sync expected to ship?
+- **Evidence:** `CalendarSync` model exists; no implementation in API routes
+- **Gap:** No timeline or issue tracking for this feature
+- **Impact:** Appointments not synced to external calendars; users must maintain separate calendar
+- **Action needed:** Clarify priority and timeline with product team
+
+### NFSe Integration Timeline
+- **Question:** When is Brazilian NFSe tax document integration expected?
+- **Evidence:** `NFSeDocument` model exists; no implementation visible
+- **Gap:** No timeline or integration plan documented
+- **Impact:** Charges cannot be issued as tax documents; compliance risk for Brazilian businesses
+- **Action needed:** Clarify priority and tax requirements with product/legal
+
+### Appointment Reminder Cron
+- **Question:** Is the appointment reminder cron implemented?
+- **Evidence:** Only `/api/cron/payment-reminders` cron exists; no appointment reminder cron in `vercel.json`
+- **Gap:** Missing appointment reminder workflow despite patient portal notifications feature
+- **Impact:** Patients do not receive appointment reminders
+- **Action needed:** Implement appointment reminder cron or clarify if it's out of scope
+
+### Patient Portal Adoption
+- **Question:** Is the patient portal actually being used in production?
+- **Evidence:** Portal feature complete with journal, consent management, appointment view, notification preferences
+- **Gap:** No usage metrics or adoption data visible
+- **Impact:** Portal may be unused; effort may be misaligned with actual patient needs
+- **Action needed:** Gather portal usage analytics and patient feedback
+
+## Code Quality & Architecture
+
+### Prisma `as never` Type Casts
+- **Question:** Why do multiple files use `as never` type casts?
+- **Evidence:** Pattern appears in session creation, appointment handling, charge creation
+- **Gap:** Unclear if this is a Prisma version issue, TypeScript strict mode issue, or intentional workaround
+- **Impact:** Type safety may be compromised; future Prisma updates may break these casts
+- **Action needed:** Investigate root cause and replace with proper type-safe pattern
+
+### Internationalization (i18n)
+- **Question:** Is there a plan to support languages other than Portuguese?
+- **Evidence:** All UI strings hardcoded in Portuguese; no i18n framework integrated
+- **Gap:** Expanding to other languages would require significant refactoring
+- **Impact:** Product is locked to Brazilian market; expansion to other countries blocked
+- **Action needed:** Clarify product roadmap; consider adding i18n framework (e.g., next-i18next)
+
+### SWR for Real-Time Sync
+- **Question:** Is SWR needed for appointment sync across tabs?
+- **Evidence:** No SWR library integrated; Prisma query results cached at request level only
+- **Gap:** Appointments modified in one browser tab may not reflect immediately in another tab
+- **Impact:** Users may see stale appointment data; concurrent edits possible
+- **Action needed:** Evaluate real-time sync requirements and add SWR if needed
+
+### Libsodium Removal Status
+- **Question:** Was libsodium fully cleaned after removal from package.json?
+- **Evidence:** Removed from `package.json` but no confirmation of code cleanup
+- **Gap:** May be dead code references or build artifacts remaining
+- **Impact:** Potential security or dependency issues if old code is still present
+- **Action needed:** Audit codebase for remaining libsodium references
+
+## Performance & Scalability
+
+### Load Testing & Capacity Planning
+- **Question:** Has load testing been performed?
+- **Evidence:** No load testing or capacity planning visible in codebase or docs
+- **Gap:** Unknown capacity limits, scaling behavior, or bottlenecks
+- **Impact:** Unexpected behavior under load; no SLO baselines
+- **Action needed:** Perform load testing and document capacity limits
+
+### Expected User Load
+- **Question:** What is the expected user load (tenants, psychologists, patients, API RPS)?
+- **Evidence:** No metrics or projections visible
+- **Gap:** Impossible to capacity plan or design for growth
+- **Impact:** Infrastructure may be under- or over-provisioned
+- **Action needed:** Define user growth projections with product team
+
+### Rate Limit Configuration
+- **Question:** Are rate limits appropriate for actual user behavior?
+- **Evidence:** Hardcoded limits (5/min login, 3/min patient login, 10/min file upload)
+- **Gap:** No data on actual request patterns or burst behavior
+- **Impact:** Limits may be too strict (blocking users) or too loose (allowing abuse)
+- **Action needed:** Monitor actual usage patterns and adjust limits based on data
+
+### N+1 Query Audit
+- **Question:** Are there N+1 query issues in the codebase?
+- **Evidence:** No query performance audit visible; some routes fetch Appointments then Charges in loops
+- **Gap:** Potential performance degradation as data grows
+- **Impact:** Slow API responses with large datasets
+- **Action needed:** Audit all API routes for N+1 queries and optimize with batch loading or joins
+
+## Testing & Staging
+
+### Staging Environment
+- **Question:** Is there a staging environment for pre-release testing?
+- **Evidence:** Only `.env.example` references localhost and production; no staging config visible
+- **Gap:** No safe place to test changes before production
+- **Impact:** Changes deployed directly to production; risk of breaking changes
+- **Action needed:** Set up staging environment with production-like data (anonymized)
+
+### Test Coverage
+- **Question:** What is the test coverage and critical path coverage?
+- **Evidence:** No test files visible in generated docs
+- **Gap:** Unclear which features have automated tests
+- **Impact:** Risk of regression on untested features
+- **Action needed:** Establish minimum test coverage requirements and add tests for critical paths
+
+### Audit Log Review Process
+- **Question:** Are audit logs reviewed regularly?
+- **Evidence:** Audit logs exported as CSV; no alerting or monitoring visible
+- **Gap:** No automation to detect suspicious activity
+- **Impact:** Security incidents may go unnoticed
+- **Action needed:** Set up audit log monitoring and alerting for anomalies
+
+## Documentation & Runbooks
+
+### Missing Runbooks
+- **Question:** Are runbooks documented for operational procedures?
+- **Evidence:** No runbooks visible in codebase
+- **Gap:** Operational team may not know how to handle incidents (e.g., encryption key rotation, data deletion, cron failure)
+- **Impact:** Slow incident response; inconsistent procedures
+- **Action needed:** Document runbooks for: key rotation, data deletion (LGPD), cron debugging, customer onboarding, scaling
+
+### Tenant Onboarding Procedure
+- **Question:** What is the tenant onboarding procedure?
+- **Evidence:** Seed script creates demo tenant; no onboarding workflow visible
+- **Gap:** No clear process for self-serve tenant creation or manual admin onboarding
+- **Impact:** Blocking new customers from signing up
+- **Action needed:** Document or implement tenant self-service onboarding
+
+### Email Delivery Monitoring
+- **Question:** Is email delivery monitored and success rates tracked?
+- **Evidence:** Resend configured for email delivery; no monitoring dashboard visible
+- **Gap:** Undelivered emails may go unnoticed
+- **Impact:** Reminders and notifications fail silently
+- **Action needed:** Set up Resend webhook integration and monitor delivery metrics
+
+## Summary of Critical Actions
+
+| Area | Action | Priority |
+|------|--------|----------|
+| Deployment | Verify Vercel cron is running | Critical |
+| Encryption | Document key rotation procedure | Critical |
+| Compliance | Implement LGPD data deletion | High |
+| Security | Encrypt clinical notes | High |
+| Security | Encrypt CPF for compliance | High |
+| Testing | Set up staging environment | High |
+| Operations | Create operational runbooks | High |
+| Performance | Perform load testing | Medium |
+| Features | Clarify Google Calendar timeline | Medium |
+| Monitoring | Add audit log alerting | Medium |
+| Code | Investigate `as never` pattern | Low |
+| Code | Audit for N+1 queries | Low |

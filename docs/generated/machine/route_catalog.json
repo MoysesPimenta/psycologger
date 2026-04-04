@@ -1,0 +1,871 @@
+{
+  "generated": "2026-04-04",
+  "app": "Psycologger",
+  "routes": {
+    "frontend": [
+      {
+        "path": "/",
+        "type": "page",
+        "auth": "none",
+        "audience": "public",
+        "component": "src/app/page.tsx",
+        "description": "Landing page"
+      },
+      {
+        "path": "/login",
+        "type": "page",
+        "auth": "none",
+        "audience": "public",
+        "component": "src/app/login/page.tsx",
+        "description": "Staff login page (magic link via email)"
+      },
+      {
+        "path": "/signup",
+        "type": "page",
+        "auth": "none",
+        "audience": "public",
+        "component": "src/app/signup/page.tsx",
+        "description": "Staff registration page"
+      },
+      {
+        "path": "/pricing",
+        "type": "page",
+        "auth": "none",
+        "audience": "public",
+        "component": "src/app/pricing/page.tsx",
+        "description": "Pricing information page"
+      },
+      {
+        "path": "/terms",
+        "type": "page",
+        "auth": "none",
+        "audience": "public",
+        "component": "src/app/terms/page.tsx",
+        "description": "Terms of service page"
+      },
+      {
+        "path": "/privacy",
+        "type": "page",
+        "auth": "none",
+        "audience": "public",
+        "component": "src/app/privacy/page.tsx",
+        "description": "Privacy policy page"
+      },
+      {
+        "path": "/invite/[token]",
+        "type": "page",
+        "auth": "none",
+        "audience": "public",
+        "component": "src/app/invite/[token]/page.tsx",
+        "description": "Tenant invitation acceptance page"
+      },
+      {
+        "path": "/onboarding",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "authenticated",
+        "component": "src/app/onboarding/page.tsx",
+        "description": "Initial clinic setup and profile creation"
+      },
+      {
+        "path": "/docs",
+        "type": "page",
+        "auth": "none",
+        "audience": "public",
+        "component": "src/app/docs/page.tsx",
+        "description": "Documentation landing page"
+      },
+      {
+        "path": "/docs/guide",
+        "type": "page",
+        "auth": "none",
+        "audience": "public",
+        "component": "src/app/docs/guide/page.tsx",
+        "description": "User guide and feature documentation"
+      },
+      {
+        "path": "/docs/api",
+        "type": "page",
+        "auth": "none",
+        "audience": "public",
+        "component": "src/app/docs/api/page.tsx",
+        "description": "API documentation and reference"
+      },
+      {
+        "path": "/app/today",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/today/page.tsx",
+        "description": "Today's appointments dashboard for clinicians"
+      },
+      {
+        "path": "/app/calendar",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/calendar/page.tsx",
+        "description": "Calendar view of all appointments"
+      },
+      {
+        "path": "/app/patients",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/patients/page.tsx",
+        "description": "Patient list with search and filtering"
+      },
+      {
+        "path": "/app/patients/new",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/patients/new/page.tsx",
+        "description": "Create new patient form"
+      },
+      {
+        "path": "/app/patients/[id]",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/patients/[id]/page.tsx",
+        "description": "Patient detail view with appointments and history"
+      },
+      {
+        "path": "/app/patients/[id]/edit",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/patients/[id]/edit/page.tsx",
+        "description": "Edit patient profile and preferences"
+      },
+      {
+        "path": "/app/appointments/new",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/appointments/new/page.tsx",
+        "description": "Schedule new appointment"
+      },
+      {
+        "path": "/app/appointments/[id]",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/appointments/[id]/page.tsx",
+        "description": "View and manage appointment details"
+      },
+      {
+        "path": "/app/sessions/[id]",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/sessions/[id]/page.tsx",
+        "description": "Clinical session notes editor and viewer"
+      },
+      {
+        "path": "/app/financial",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/financial/page.tsx",
+        "description": "Financial overview and management"
+      },
+      {
+        "path": "/app/financial/charges",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/financial/charges/page.tsx",
+        "description": "View and manage charges"
+      },
+      {
+        "path": "/app/financial/charges/new",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/financial/charges/new/page.tsx",
+        "description": "Create new charge"
+      },
+      {
+        "path": "/app/reports",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/reports/page.tsx",
+        "description": "Reports and analytics dashboard"
+      },
+      {
+        "path": "/app/journal-inbox",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/journal-inbox/page.tsx",
+        "description": "Patient journal entries pending review"
+      },
+      {
+        "path": "/app/audit",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/audit/page.tsx",
+        "description": "Audit log and access history"
+      },
+      {
+        "path": "/app/settings",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/settings/page.tsx",
+        "description": "Settings hub and navigation"
+      },
+      {
+        "path": "/app/settings/profile",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/settings/profile/page.tsx",
+        "description": "User profile settings"
+      },
+      {
+        "path": "/app/settings/clinic",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/settings/clinic/page.tsx",
+        "description": "Clinic configuration and information"
+      },
+      {
+        "path": "/app/settings/users",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/settings/users/page.tsx",
+        "description": "Team member management and roles"
+      },
+      {
+        "path": "/app/settings/appointment-types",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/settings/appointment-types/page.tsx",
+        "description": "Configure appointment types and pricing"
+      },
+      {
+        "path": "/app/settings/reminders",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/settings/reminders/page.tsx",
+        "description": "Configure reminder templates"
+      },
+      {
+        "path": "/app/settings/export",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/settings/export/page.tsx",
+        "description": "Data export and backup"
+      },
+      {
+        "path": "/app/settings/integrations",
+        "type": "page",
+        "auth": "nextauth",
+        "audience": "staff",
+        "component": "src/app/app/settings/integrations/page.tsx",
+        "description": "Third-party integration configuration (Google Calendar, NFSe)"
+      },
+      {
+        "path": "/sa/login",
+        "type": "page",
+        "auth": "none",
+        "audience": "superadmin",
+        "component": "src/app/sa/login/page.tsx",
+        "description": "Superadmin login page"
+      },
+      {
+        "path": "/sa/dashboard",
+        "type": "page",
+        "auth": "superadmin",
+        "audience": "superadmin",
+        "component": "src/app/sa/dashboard/page.tsx",
+        "description": "Superadmin dashboard with platform metrics"
+      },
+      {
+        "path": "/sa/users",
+        "type": "page",
+        "auth": "superadmin",
+        "audience": "superadmin",
+        "component": "src/app/sa/users/page.tsx",
+        "description": "Manage platform users"
+      },
+      {
+        "path": "/sa/tenants",
+        "type": "page",
+        "auth": "superadmin",
+        "audience": "superadmin",
+        "component": "src/app/sa/tenants/page.tsx",
+        "description": "Manage tenants"
+      },
+      {
+        "path": "/sa/tenants/[id]",
+        "type": "page",
+        "auth": "superadmin",
+        "audience": "superadmin",
+        "component": "src/app/sa/tenants/[id]/page.tsx",
+        "description": "Tenant detail view and management"
+      },
+      {
+        "path": "/sa/impersonate",
+        "type": "page",
+        "auth": "superadmin",
+        "audience": "superadmin",
+        "component": "src/app/sa/impersonate/page.tsx",
+        "description": "Impersonate users for support and debugging"
+      },
+      {
+        "path": "/portal/login",
+        "type": "page",
+        "auth": "none",
+        "audience": "patient",
+        "component": "src/app/portal/login/page.tsx",
+        "description": "Patient portal login"
+      },
+      {
+        "path": "/portal/activate/[token]",
+        "type": "page",
+        "auth": "none",
+        "audience": "patient",
+        "component": "src/app/portal/activate/[token]/page.tsx",
+        "description": "Patient account activation from invite"
+      },
+      {
+        "path": "/portal/magic-login/[token]",
+        "type": "page",
+        "auth": "none",
+        "audience": "patient",
+        "component": "src/app/portal/magic-login/[token]/page.tsx",
+        "description": "Magic link login for patients"
+      },
+      {
+        "path": "/portal/dashboard",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/dashboard/page.tsx",
+        "description": "Patient dashboard with overview"
+      },
+      {
+        "path": "/portal/sessions",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/sessions/page.tsx",
+        "description": "List of upcoming and past sessions"
+      },
+      {
+        "path": "/portal/sessions/[id]",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/sessions/[id]/page.tsx",
+        "description": "Session detail with session notes and summary"
+      },
+      {
+        "path": "/portal/journal",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/journal/page.tsx",
+        "description": "Journal entries list"
+      },
+      {
+        "path": "/portal/journal/new",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/journal/new/page.tsx",
+        "description": "Create new journal entry"
+      },
+      {
+        "path": "/portal/journal/[id]",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/journal/[id]/page.tsx",
+        "description": "View and edit journal entry"
+      },
+      {
+        "path": "/portal/payments",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/payments/page.tsx",
+        "description": "View charges and payment history"
+      },
+      {
+        "path": "/portal/profile",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/profile/page.tsx",
+        "description": "Patient profile and preferences"
+      },
+      {
+        "path": "/portal/notifications",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/notifications/page.tsx",
+        "description": "Patient notifications center"
+      },
+      {
+        "path": "/portal/privacy",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/privacy/page.tsx",
+        "description": "Privacy settings and data controls"
+      },
+      {
+        "path": "/portal/help",
+        "type": "page",
+        "auth": "patient-auth",
+        "audience": "patient",
+        "component": "src/app/portal/(authenticated)/help/page.tsx",
+        "description": "Patient help and support information"
+      }
+    ],
+    "api": [
+      {
+        "method": "GET,POST",
+        "path": "/api/auth/[...nextauth]",
+        "auth": "nextauth",
+        "permission": "none",
+        "handler": "src/app/api/auth/[...nextauth]/route.ts",
+        "description": "NextAuth.js authentication endpoints (magic link, session management)",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": true
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/onboarding",
+        "auth": "nextauth",
+        "permission": "onboarding:complete",
+        "handler": "src/app/api/v1/onboarding/route.ts",
+        "description": "Complete initial clinic onboarding setup",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/invites/[token]",
+        "auth": "none",
+        "permission": "none",
+        "handler": "src/app/api/v1/invites/[token]/route.ts",
+        "description": "Accept pending invitation to join tenant",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": true
+      },
+      {
+        "method": "GET,PATCH",
+        "path": "/api/v1/profile",
+        "auth": "nextauth",
+        "permission": "profile:read,profile:write",
+        "handler": "src/app/api/v1/profile/route.ts",
+        "description": "Get and update user profile information",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/users",
+        "auth": "nextauth",
+        "permission": "users:list,users:create",
+        "handler": "src/app/api/v1/users/route.ts",
+        "description": "List users in tenant and send invitations",
+        "pagination": true,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,PATCH",
+        "path": "/api/v1/settings",
+        "auth": "nextauth",
+        "permission": "settings:read,settings:write",
+        "handler": "src/app/api/v1/settings/route.ts",
+        "description": "Get and update tenant settings",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/integrations",
+        "auth": "nextauth",
+        "permission": "integrations:read",
+        "handler": "src/app/api/v1/integrations/route.ts",
+        "description": "List active integrations for tenant",
+        "pagination": false,
+        "audit": false,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/appointment-types",
+        "auth": "nextauth",
+        "permission": "appointment-types:list,appointment-types:create",
+        "handler": "src/app/api/v1/appointment-types/route.ts",
+        "description": "List and create appointment types",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "PATCH,DELETE",
+        "path": "/api/v1/appointment-types/[id]",
+        "auth": "nextauth",
+        "permission": "appointment-types:write,appointment-types:delete",
+        "handler": "src/app/api/v1/appointment-types/[id]/route.ts",
+        "description": "Update and delete appointment types",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/patients",
+        "auth": "nextauth",
+        "permission": "patients:list,patients:create",
+        "handler": "src/app/api/v1/patients/route.ts",
+        "description": "List patients with pagination and filtering, create new patient",
+        "pagination": true,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,PATCH,DELETE",
+        "path": "/api/v1/patients/[id]",
+        "auth": "nextauth",
+        "permission": "patients:read,patients:write,patients:delete",
+        "handler": "src/app/api/v1/patients/[id]/route.ts",
+        "description": "Get, update, and delete patient record",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/patients/[id]/portal-invite",
+        "auth": "nextauth",
+        "permission": "patients:invite",
+        "handler": "src/app/api/v1/patients/[id]/portal-invite/route.ts",
+        "description": "Send patient portal activation invite",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "PATCH,DELETE",
+        "path": "/api/v1/patients/[id]/files/[fileId]",
+        "auth": "nextauth",
+        "permission": "files:write,files:delete",
+        "handler": "src/app/api/v1/patients/[id]/files/[fileId]/route.ts",
+        "description": "Update and delete patient files",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/appointments",
+        "auth": "nextauth",
+        "permission": "appointments:list,appointments:create",
+        "handler": "src/app/api/v1/appointments/route.ts",
+        "description": "List appointments and create new appointment",
+        "pagination": true,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,PATCH",
+        "path": "/api/v1/appointments/[id]",
+        "auth": "nextauth",
+        "permission": "appointments:read,appointments:write",
+        "handler": "src/app/api/v1/appointments/[id]/route.ts",
+        "description": "Get and update appointment details",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/sessions",
+        "auth": "nextauth",
+        "permission": "sessions:list,sessions:create",
+        "handler": "src/app/api/v1/sessions/route.ts",
+        "description": "List clinical sessions and create new session",
+        "pagination": true,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,PATCH,DELETE",
+        "path": "/api/v1/sessions/[id]",
+        "auth": "nextauth",
+        "permission": "sessions:read,sessions:write,sessions:delete",
+        "handler": "src/app/api/v1/sessions/[id]/route.ts",
+        "description": "Get, update, and delete clinical session notes (soft delete)",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/sessions/[id]/files",
+        "auth": "nextauth",
+        "permission": "files:list,files:create",
+        "handler": "src/app/api/v1/sessions/[id]/files/route.ts",
+        "description": "List and upload session files",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,DELETE",
+        "path": "/api/v1/sessions/[id]/files/[fileId]",
+        "auth": "nextauth",
+        "permission": "files:read,files:delete",
+        "handler": "src/app/api/v1/sessions/[id]/files/[fileId]/route.ts",
+        "description": "Get and delete specific session file",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/charges",
+        "auth": "nextauth",
+        "permission": "charges:list,charges:create",
+        "handler": "src/app/api/v1/charges/route.ts",
+        "description": "List charges and create new charge",
+        "pagination": true,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "PATCH,DELETE",
+        "path": "/api/v1/charges/[id]",
+        "auth": "nextauth",
+        "permission": "charges:write,charges:delete",
+        "handler": "src/app/api/v1/charges/[id]/route.ts",
+        "description": "Update and delete charge records",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/payments",
+        "auth": "nextauth",
+        "permission": "payments:create",
+        "handler": "src/app/api/v1/payments/route.ts",
+        "description": "Record payment against a charge",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/reports",
+        "auth": "nextauth",
+        "permission": "reports:read",
+        "handler": "src/app/api/v1/reports/route.ts",
+        "description": "Generate financial and clinical reports",
+        "pagination": false,
+        "audit": false,
+        "rateLimit": false
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/audit",
+        "auth": "nextauth",
+        "permission": "audit:read",
+        "handler": "src/app/api/v1/audit/route.ts",
+        "description": "Query audit logs with filtering and pagination",
+        "pagination": true,
+        "audit": false,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/reminder-templates",
+        "auth": "nextauth",
+        "permission": "reminders:read,reminders:write",
+        "handler": "src/app/api/v1/reminder-templates/route.ts",
+        "description": "Manage appointment reminder email templates",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/journal-inbox",
+        "auth": "nextauth",
+        "permission": "journal:review",
+        "handler": "src/app/api/v1/journal-inbox/route.ts",
+        "description": "List journal entries pending therapist review",
+        "pagination": true,
+        "audit": false,
+        "rateLimit": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/journal-inbox/[id]/review",
+        "auth": "nextauth",
+        "permission": "journal:review",
+        "handler": "src/app/api/v1/journal-inbox/[id]/review/route.ts",
+        "description": "Mark journal entry as reviewed by therapist",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/cron/payment-reminders",
+        "auth": "cron",
+        "permission": "none",
+        "handler": "src/app/api/v1/cron/payment-reminders/route.ts",
+        "description": "Cron job to send payment reminders (authenticated via secret)",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/portal/auth",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/auth/route.ts",
+        "description": "Patient portal login and session management",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": true
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/portal/dashboard",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/dashboard/route.ts",
+        "description": "Patient dashboard data (upcoming sessions, balance, messages)",
+        "pagination": false,
+        "audit": false,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,PATCH",
+        "path": "/api/v1/portal/appointments",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/appointments/route.ts",
+        "description": "Get patient's appointments and reschedule requests (if enabled)",
+        "pagination": true,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/portal/charges",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/charges/route.ts",
+        "description": "Get patient's charges and payment history",
+        "pagination": true,
+        "audit": false,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/portal/journal",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/journal/route.ts",
+        "description": "List patient's journal entries and create new entry",
+        "pagination": true,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,PATCH,DELETE",
+        "path": "/api/v1/portal/journal/[id]",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/journal/[id]/route.ts",
+        "description": "Get, update, and delete patient's journal entry",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/portal/notifications",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/notifications/route.ts",
+        "description": "Get patient's notifications",
+        "pagination": true,
+        "audit": false,
+        "rateLimit": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/v1/portal/notifications/[id]",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/notifications/[id]/route.ts",
+        "description": "Mark notification as read",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/portal/notifications/read-all",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/notifications/read-all/route.ts",
+        "description": "Mark all notifications as read",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,PATCH",
+        "path": "/api/v1/portal/profile",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/profile/route.ts",
+        "description": "Get and update patient portal profile and preferences",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET,POST",
+        "path": "/api/v1/portal/consents",
+        "auth": "patient-auth",
+        "permission": "none",
+        "handler": "src/app/api/v1/portal/consents/route.ts",
+        "description": "Manage patient consent records (terms, privacy, data sharing)",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      }
+    ]
+  }
+}

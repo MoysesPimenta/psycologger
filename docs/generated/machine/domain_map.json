@@ -1,0 +1,537 @@
+{
+  "generated": "2026-04-04",
+  "app": "Psycologger",
+  "domains": [
+    {
+      "name": "Authentication",
+      "description": "Dual authentication system for staff (NextAuth) and patients (PatientAuth). Manages user sessions, magic link auth, and access control.",
+      "entities": [
+        "User",
+        "Account",
+        "Session",
+        "VerificationToken",
+        "PatientAuth",
+        "PatientPortalSession"
+      ],
+      "keyFiles": [
+        "src/lib/auth.ts",
+        "src/lib/patient-auth.ts",
+        "src/middleware.ts",
+        "src/app/api/auth/[...nextauth]/route.ts",
+        "src/app/api/v1/portal/auth/route.ts"
+      ],
+      "apiRoutes": [
+        "/api/auth/[...nextauth]",
+        "/api/v1/portal/auth"
+      ],
+      "frontendRoutes": [
+        "/login",
+        "/signup",
+        "/onboarding",
+        "/portal/login",
+        "/portal/activate/[token]",
+        "/portal/magic-login/[token]"
+      ]
+    },
+    {
+      "name": "Organization",
+      "description": "Multi-tenant structure with roles, memberships, and team management. Supports clinic configuration and staff access control.",
+      "entities": [
+        "Tenant",
+        "Membership",
+        "MembershipStatus",
+        "Role",
+        "Invite"
+      ],
+      "keyFiles": [
+        "src/lib/tenant.ts",
+        "src/lib/rbac.ts",
+        "src/app/api/v1/users/route.ts",
+        "src/app/api/v1/settings/route.ts"
+      ],
+      "apiRoutes": [
+        "/api/v1/users",
+        "/api/v1/settings",
+        "/api/v1/invites/[token]",
+        "/sa/dashboard",
+        "/sa/users",
+        "/sa/tenants"
+      ],
+      "frontendRoutes": [
+        "/app/settings/clinic",
+        "/app/settings/users",
+        "/app/settings/profile",
+        "/sa/dashboard",
+        "/sa/users",
+        "/sa/tenants/[id]",
+        "/sa/impersonate"
+      ]
+    },
+    {
+      "name": "Patients",
+      "description": "Patient management including demographics, contacts, preferences, consent records, and clinic relationships. Supports patient portal access and archiving.",
+      "entities": [
+        "Patient",
+        "PatientContact",
+        "PatientAuth",
+        "PatientPreference",
+        "PatientNotification",
+        "ConsentRecord"
+      ],
+      "keyFiles": [
+        "src/app/api/v1/patients/route.ts",
+        "src/app/api/v1/patients/[id]/route.ts",
+        "src/lib/patient-auth.ts",
+        "src/components/patients/patients-client.tsx"
+      ],
+      "apiRoutes": [
+        "/api/v1/patients",
+        "/api/v1/patients/[id]",
+        "/api/v1/patients/[id]/portal-invite",
+        "/api/v1/patients/[id]/files/[fileId]",
+        "/api/v1/portal/profile",
+        "/api/v1/portal/consents"
+      ],
+      "frontendRoutes": [
+        "/app/patients",
+        "/app/patients/new",
+        "/app/patients/[id]",
+        "/app/patients/[id]/edit",
+        "/portal/dashboard",
+        "/portal/profile",
+        "/portal/privacy"
+      ]
+    },
+    {
+      "name": "Appointments",
+      "description": "Scheduling and calendar management. Includes appointment types, recurring appointments, Google Calendar sync, and status tracking.",
+      "entities": [
+        "Appointment",
+        "AppointmentType",
+        "AppointmentStatus",
+        "Recurrence",
+        "ReminderTemplate",
+        "ReminderLog"
+      ],
+      "keyFiles": [
+        "src/app/api/v1/appointments/route.ts",
+        "src/app/api/v1/appointment-types/route.ts",
+        "src/app/api/v1/reminder-templates/route.ts",
+        "src/components/appointments/calendar-client.tsx",
+        "src/lib/constants.ts"
+      ],
+      "apiRoutes": [
+        "/api/v1/appointments",
+        "/api/v1/appointments/[id]",
+        "/api/v1/appointment-types",
+        "/api/v1/appointment-types/[id]",
+        "/api/v1/reminder-templates",
+        "/api/v1/cron/payment-reminders",
+        "/api/v1/portal/appointments"
+      ],
+      "frontendRoutes": [
+        "/app/calendar",
+        "/app/today",
+        "/app/appointments/new",
+        "/app/appointments/[id]",
+        "/app/settings/appointment-types",
+        "/app/settings/reminders",
+        "/portal/sessions"
+      ]
+    },
+    {
+      "name": "Clinical Sessions",
+      "description": "EMR functionality for clinical notes, session templates (FREE, SOAP, BIRP), revision history, and soft-delete with archival. Restricted access per HIPAA requirements.",
+      "entities": [
+        "ClinicalSession",
+        "SessionRevision",
+        "JournalEntry",
+        "JournalEntryType",
+        "JournalVisibility"
+      ],
+      "keyFiles": [
+        "src/app/api/v1/sessions/route.ts",
+        "src/app/api/v1/sessions/[id]/route.ts",
+        "src/components/sessions/session-editor.tsx",
+        "src/lib/audit.ts"
+      ],
+      "apiRoutes": [
+        "/api/v1/sessions",
+        "/api/v1/sessions/[id]",
+        "/api/v1/sessions/[id]/files",
+        "/api/v1/sessions/[id]/files/[fileId]",
+        "/api/v1/journal-inbox",
+        "/api/v1/journal-inbox/[id]/review",
+        "/api/v1/portal/journal",
+        "/api/v1/portal/journal/[id]"
+      ],
+      "frontendRoutes": [
+        "/app/sessions/[id]",
+        "/app/journal-inbox",
+        "/portal/journal",
+        "/portal/journal/new",
+        "/portal/journal/[id]"
+      ]
+    },
+    {
+      "name": "Financial",
+      "description": "Billing and payment management including charges, payments, invoices, and NFSe integration. Supports multiple payment methods and automated invoice generation.",
+      "entities": [
+        "Charge",
+        "ChargeStatus",
+        "Payment",
+        "PaymentMethod",
+        "NfseInvoice",
+        "NfseStatus",
+        "PaymentReminderLog"
+      ],
+      "keyFiles": [
+        "src/app/api/v1/charges/route.ts",
+        "src/app/api/v1/charges/[id]/route.ts",
+        "src/app/api/v1/payments/route.ts",
+        "src/components/financial/charges-client.tsx"
+      ],
+      "apiRoutes": [
+        "/api/v1/charges",
+        "/api/v1/charges/[id]",
+        "/api/v1/payments",
+        "/api/v1/reports",
+        "/api/v1/cron/payment-reminders",
+        "/api/v1/portal/charges"
+      ],
+      "frontendRoutes": [
+        "/app/financial",
+        "/app/financial/charges",
+        "/app/financial/charges/new",
+        "/app/reports",
+        "/portal/payments"
+      ]
+    },
+    {
+      "name": "Patient Portal",
+      "description": "Self-service patient interface for viewing sessions, managing journal entries, payments, notifications, and preferences. Portal can be enabled/disabled per tenant with feature flags.",
+      "entities": [
+        "PatientAuth",
+        "PatientPortalSession",
+        "PatientPreference",
+        "PatientNotification",
+        "JournalEntry",
+        "ConsentRecord"
+      ],
+      "keyFiles": [
+        "src/lib/patient-auth.ts",
+        "src/app/api/v1/portal/auth/route.ts",
+        "src/app/api/v1/portal/dashboard/route.ts",
+        "src/components/portal/portal-shell.tsx",
+        "src/middleware.ts"
+      ],
+      "apiRoutes": [
+        "/api/v1/portal/auth",
+        "/api/v1/portal/dashboard",
+        "/api/v1/portal/appointments",
+        "/api/v1/portal/charges",
+        "/api/v1/portal/journal",
+        "/api/v1/portal/journal/[id]",
+        "/api/v1/portal/notifications",
+        "/api/v1/portal/notifications/[id]",
+        "/api/v1/portal/notifications/read-all",
+        "/api/v1/portal/profile",
+        "/api/v1/portal/consents"
+      ],
+      "frontendRoutes": [
+        "/portal/login",
+        "/portal/activate/[token]",
+        "/portal/magic-login/[token]",
+        "/portal/dashboard",
+        "/portal/sessions",
+        "/portal/sessions/[id]",
+        "/portal/journal",
+        "/portal/journal/new",
+        "/portal/journal/[id]",
+        "/portal/payments",
+        "/portal/profile",
+        "/portal/notifications",
+        "/portal/privacy",
+        "/portal/help"
+      ]
+    },
+    {
+      "name": "System",
+      "description": "Cross-cutting concerns: audit logging, file storage, integrations (Google Calendar, NFSe), email delivery, and support infrastructure. Handles compliance and data integrity.",
+      "entities": [
+        "AuditLog",
+        "FileObject",
+        "IntegrationCredential",
+        "GoogleCalendarToken",
+        "NfseInvoice"
+      ],
+      "keyFiles": [
+        "src/lib/audit.ts",
+        "src/lib/storage.ts",
+        "src/lib/email.ts",
+        "src/lib/rbac.ts",
+        "src/app/api/v1/integrations/route.ts",
+        "src/app/api/v1/audit/route.ts"
+      ],
+      "apiRoutes": [
+        "/api/v1/integrations",
+        "/api/v1/audit",
+        "/api/v1/sessions/[id]/files",
+        "/api/v1/sessions/[id]/files/[fileId]",
+        "/api/v1/patients/[id]/files/[fileId]"
+      ],
+      "frontendRoutes": [
+        "/app/settings/integrations",
+        "/app/settings/export",
+        "/app/audit"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "User",
+      "to": "Tenant",
+      "type": "many-to-many",
+      "through": "Membership",
+      "description": "Users belong to tenants via memberships with roles (SUPERADMIN, TENANT_ADMIN, PSYCHOLOGIST, ASSISTANT, READONLY)"
+    },
+    {
+      "from": "User",
+      "to": "Patient",
+      "type": "one-to-many",
+      "through": null,
+      "description": "User (psychologist) is primary provider for zero or more patients"
+    },
+    {
+      "from": "User",
+      "to": "Appointment",
+      "type": "one-to-many",
+      "through": null,
+      "description": "User (provider) schedules zero or more appointments"
+    },
+    {
+      "from": "User",
+      "to": "ClinicalSession",
+      "type": "one-to-many",
+      "through": null,
+      "description": "User (provider) creates clinical session notes for patient sessions"
+    },
+    {
+      "from": "User",
+      "to": "Charge",
+      "type": "one-to-many",
+      "through": null,
+      "description": "User (provider) is responsible for charges billed"
+    },
+    {
+      "from": "User",
+      "to": "AuditLog",
+      "type": "one-to-many",
+      "through": null,
+      "description": "User actions are logged in audit trail"
+    },
+    {
+      "from": "Patient",
+      "to": "Appointment",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Patient has zero or more appointments scheduled"
+    },
+    {
+      "from": "Patient",
+      "to": "ClinicalSession",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Patient has zero or more clinical sessions with notes"
+    },
+    {
+      "from": "Patient",
+      "to": "Charge",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Patient is billed with zero or more charges"
+    },
+    {
+      "from": "Patient",
+      "to": "FileObject",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Patient has zero or more associated files (documents, records)"
+    },
+    {
+      "from": "Patient",
+      "to": "PatientContact",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Patient has zero or more emergency/responsible contacts"
+    },
+    {
+      "from": "Patient",
+      "to": "JournalEntry",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Patient writes zero or more journal entries via portal"
+    },
+    {
+      "from": "Patient",
+      "to": "ConsentRecord",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Patient has zero or more consent records (terms, privacy, data sharing)"
+    },
+    {
+      "from": "Appointment",
+      "to": "ClinicalSession",
+      "type": "one-to-one",
+      "through": null,
+      "description": "Appointment may have zero or one associated clinical session after completion"
+    },
+    {
+      "from": "Appointment",
+      "to": "Charge",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Appointment may generate one or more charges"
+    },
+    {
+      "from": "Appointment",
+      "to": "Recurrence",
+      "type": "many-to-one",
+      "through": null,
+      "description": "Multiple appointments can be part of same recurrence rule"
+    },
+    {
+      "from": "Appointment",
+      "to": "ReminderLog",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Appointment has reminder messages sent (24h, 1h before)"
+    },
+    {
+      "from": "ClinicalSession",
+      "to": "SessionRevision",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Clinical session has revision history tracking edits"
+    },
+    {
+      "from": "ClinicalSession",
+      "to": "FileObject",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Clinical session may have zero or more attached files"
+    },
+    {
+      "from": "ClinicalSession",
+      "to": "Charge",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Clinical session may generate charges separate from appointment"
+    },
+    {
+      "from": "Charge",
+      "to": "Payment",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Charge may have zero or more payment records"
+    },
+    {
+      "from": "Charge",
+      "to": "NfseInvoice",
+      "type": "one-to-one",
+      "through": null,
+      "description": "Charge may have zero or one NFSe invoice (for Brazil tax compliance)"
+    },
+    {
+      "from": "Charge",
+      "to": "PaymentReminderLog",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Charge has payment reminder messages sent to patient"
+    },
+    {
+      "from": "AppointmentType",
+      "to": "Appointment",
+      "type": "one-to-many",
+      "through": null,
+      "description": "AppointmentType defines default duration and pricing for appointments"
+    },
+    {
+      "from": "AppointmentType",
+      "to": "Patient",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Patient may have default AppointmentType for billing"
+    },
+    {
+      "from": "PatientAuth",
+      "to": "PatientPortalSession",
+      "type": "one-to-many",
+      "through": null,
+      "description": "PatientAuth has zero or more active portal sessions"
+    },
+    {
+      "from": "Tenant",
+      "to": "Patient",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Tenant has zero or more patients"
+    },
+    {
+      "from": "Tenant",
+      "to": "Appointment",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Tenant schedules zero or more appointments"
+    },
+    {
+      "from": "Tenant",
+      "to": "ClinicalSession",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Tenant records zero or more clinical sessions"
+    },
+    {
+      "from": "Tenant",
+      "to": "IntegrationCredential",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Tenant may have zero or more integrations (Google Calendar, NFSe provider)"
+    },
+    {
+      "from": "Tenant",
+      "to": "AuditLog",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Tenant audit trail logs all actions within tenant"
+    },
+    {
+      "from": "Tenant",
+      "to": "ReminderTemplate",
+      "type": "one-to-many",
+      "through": null,
+      "description": "Tenant defines custom reminder email templates"
+    },
+    {
+      "from": "JournalEntry",
+      "to": "User",
+      "type": "many-to-one",
+      "through": null,
+      "description": "Journal entry may be reviewed by therapist"
+    },
+    {
+      "from": "PatientNotification",
+      "to": "Patient",
+      "type": "many-to-one",
+      "through": null,
+      "description": "Patient receives zero or more notifications (session reminders, payment reminders, etc.)"
+    },
+    {
+      "from": "FileObject",
+      "to": "User",
+      "type": "many-to-one",
+      "through": null,
+      "description": "FileObject uploaded by specific user (uploader)"
+    }
+  ]
+}

@@ -1512,12 +1512,61 @@ npm run db:migrate:deploy
 
 ---
 
-## Last Updated
+---
 
-- **Date**: March 30, 2026
-- **By**: Claude Code Agent
-- **Changes**: Initial comprehensive context file created
+## Production-Readiness Changes (April 4, 2026)
+
+The following changes were implemented as part of a comprehensive production-readiness audit:
+
+### Security Hardening (commit 58ff454)
+- **Timing-safe password comparison**: `crypto.timingSafeEqual()` in `src/lib/patient-auth.ts` (replaced manual XOR)
+- **SameSite strict cookies**: Portal cookie changed from "lax" to "strict"
+- **Diagnostic endpoint removed**: Deleted `src/app/api/v1/portal/email-test/route.ts` (leaked API key prefixes)
+- **Portal invite rate limiting**: 5 invites/hour per patient in `src/app/api/v1/patients/[id]/portal-invite/route.ts`
+- **Date range validation**: `from` must be before `to` in appointments API
+- **Session restore guard**: Cannot restore a session that isn't deleted
+- **Optimistic UI with rollback**: Portal notifications mark-read has undo on failure
+
+### Production Recommendations (commit 9a76653)
+1. **CSRF Protection**: Double-submit cookie pattern (`src/lib/csrf.ts`, `src/lib/csrf-client.ts`). Middleware validates `X-CSRF-Token` header on POST/PATCH/PUT/DELETE. Exempt: GET, cron, portal auth.
+2. **CSP Improvement**: Added `nonce-based script-src` with `strict-dynamic` in middleware. In CSP3 browsers, nonce takes precedence over `unsafe-inline`.
+3. **Portal Idle Timeout**: 30-minute inactivity auto-revoke. New `lastActivityAt` field on `PatientPortalSession`. Touched on every request (fire-and-forget).
+4. **Encryption Key Rotation**: Versioned payloads (1-byte version prefix). `ENCRYPTION_KEY_PREVIOUS` env var for old key. `needsReEncryption()` and `reEncrypt()` helpers.
+5. **Users Pagination**: `/api/v1/users` now uses `parsePagination`/`buildMeta`.
+6. **setTimeout Cleanup**: All 4 settings components use `useRef` + `useEffect` cleanup.
+7. **Env Validation at Startup**: `src/lib/env-check.ts` validates `ENCRYPTION_KEY` (32 bytes), `CRON_SECRET` (≥16 chars), `RESEND_API_KEY` (`re_` prefix), `DATABASE_URL`, `NEXTAUTH_SECRET`. Runs via `src/instrumentation.ts`.
+8. **Unit Tests**: 43 new tests in `tests/unit/` for crypto (encryption + key rotation), patient-auth (password hashing), env-check, CSRF, API pagination.
+
+### New Files
+- `src/lib/csrf.ts` — Server-side CSRF validation
+- `src/lib/csrf-client.ts` — Client-side CSRF token helper
+- `src/lib/env-check.ts` — Startup environment validation
+- `src/instrumentation.ts` — Next.js instrumentation hook
+- `prisma/migrations/20260404_portal_idle_timeout/` — Adds `lastActivityAt` to PatientPortalSession
+- `tests/unit/crypto.test.ts` — Encryption + key rotation tests
+- `tests/unit/patient-auth.test.ts` — Password hashing tests
+- `tests/unit/env-check.test.ts` — Env validation tests
+- `tests/unit/csrf.test.ts` — CSRF token generation tests
+- `tests/unit/api-pagination.test.ts` — Pagination helper tests
+
+### New Environment Variables
+- `ENCRYPTION_KEY_PREVIOUS` (optional) — Previous encryption key for key rotation
+- `CRON_SECRET` — Now validated at startup (≥16 chars)
+
+### Comprehensive Documentation Suite
+A full documentation package (30 files, ~19,650 lines) was generated at `docs/generated/`:
+- **Core Docs (00-21)**: Repository overview, architecture, route map, auth/RBAC, middleware, database, business domains, frontend/backend, API reference, screens, components, state, config, integrations, security, testing, dev setup, tech debt, roadmap
+- **AI Memory Pack (22-27)**: Developer handoff, canonical context, invariants, system context summary, known unknowns, permission matrix
+- **Machine-readable**: `machine/route_catalog.json`, `machine/domain_map.json`
 
 ---
 
-**REMINDER**: This file is the source of truth. Update it whenever the codebase changes.
+## Last Updated
+
+- **Date**: April 4, 2026
+- **By**: Claude Code Agent (Opus)
+- **Changes**: Production-readiness audit fixes, 8 security/architecture recommendations implemented, comprehensive documentation suite generated
+
+---
+
+**REMINDER**: This file is the source of truth. Update it whenever the codebase changes. Full documentation at `docs/generated/`.
