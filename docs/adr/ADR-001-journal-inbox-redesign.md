@@ -275,6 +275,8 @@ The current inbox continues to work during development. The redesign is purely a
 
 No breaking changes. No data migration. Backward compatible.
 
+> **Note:** The `JournalNote` table was created via Supabase MCP migration on 2026-04-04. All notes CRUD endpoints and `notesCount` aggregation are fully operational.
+
 ---
 
 ## Consequences
