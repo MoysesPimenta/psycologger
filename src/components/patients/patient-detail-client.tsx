@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   User, Calendar, FileText, DollarSign, Phone, Mail,
   Tag, Edit, Plus, Lock, Clock, ChevronLeft, Trash2,
-  ToggleLeft, ToggleRight, RotateCcw, AlertTriangle, Check, X, BookOpen
+  ToggleLeft, ToggleRight, RotateCcw, AlertTriangle, Check, X, BookOpen, Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -893,6 +893,7 @@ function ProfileTab({
       : "",
   });
   const [savingBilling, setSavingBilling] = useState(false);
+  const [sendingInvite, setSendingInvite] = useState(false);
 
   const selectedType = appointmentTypes.find((t) => t.id === billingForm.defaultAppointmentTypeId);
   const effectiveFee = patient.defaultFeeOverrideCents != null
@@ -927,6 +928,38 @@ function ProfileTab({
     }
   }
 
+  async function sendPortalInvite() {
+    if (!patient.email) {
+      toast({ title: "Paciente não possui email registrado", variant: "destructive" });
+      return;
+    }
+    setSendingInvite(true);
+    try {
+      const res = await fetchWithCsrf(`/api/v1/patients/${patient.id}/portal-invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: patient.email }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const msg = typeof body?.error === "string" ? body.error : body?.message ?? "Erro ao enviar convite";
+        throw new Error(msg);
+      }
+      toast({
+        title: "Convite enviado com sucesso!",
+        description: `Email enviado para ${patient.email}`,
+        variant: "success",
+      });
+    } catch (err) {
+      toast({
+        title: err instanceof Error ? err.message : "Erro ao enviar convite do portal",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingInvite(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* General info */}
@@ -947,6 +980,28 @@ function ProfileTab({
           </div>
         ) : null)}
       </div>
+
+      {/* Portal invite */}
+      {patient.email && (
+        <div className="bg-white rounded-xl border p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+              <Mail className="h-4 w-4 text-gray-400" />
+              Portal do Paciente
+            </h3>
+          </div>
+          <p className="text-sm text-gray-600">Envie um convite para que o paciente acesse o portal e acompanhe suas sessões, pagamentos e diário pessoal.</p>
+          <Button
+            onClick={sendPortalInvite}
+            disabled={sendingInvite}
+            size="sm"
+            className="w-full sm:w-auto"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            {sendingInvite ? "Enviando..." : "Enviar convite"}
+          </Button>
+        </div>
+      )}
 
       {/* Billing defaults */}
       <div className="bg-white rounded-xl border p-6 space-y-4">

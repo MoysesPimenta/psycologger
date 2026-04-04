@@ -11,6 +11,8 @@ import { getAuthContext } from "@/lib/tenant";
 import { ok, noContent, handleApiError, NotFoundError } from "@/lib/api";
 import { requirePermission, getPatientScope } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { randomBytes } from "crypto";
+import { PORTAL_MAGIC_LINK_EXPIRY_MS, generateActivationToken } from "@/lib/patient-auth";
 
 async function resolvePatient(id: string, ctx: Awaited<ReturnType<typeof getAuthContext>>) {
   const scope = getPatientScope(ctx);
@@ -68,7 +70,7 @@ export async function PATCH(
     requirePermission(ctx, "patients:edit");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
-    await resolvePatient(params.id, ctx);
+    const existingPatient = await resolvePatient(params.id, ctx);
     const body = updateSchema.parse(await req.json());
 
     const patient = await db.patient.update({
@@ -114,7 +116,119 @@ export async function PATCH(
       userAgent,
     });
 
-    return ok(patient);
+    // ── Auto-sync PatientAuth when email is set or changed ──
+    let portalEmailSynced = false;
+    const newEmail = body.email;
+    const emailChanged = newEmail !== undefined && newEmail !== null && newEmail !== existingPatient.email;
+
+    if (emailChanged) {
+      try {
+        const tenant = await db.tenant.findUnique({
+          where: { id: ctx.tenantId },
+          select: { name: true, portalEnabled: true },
+        });
+
+        if (tenant?.portalEnabled) {
+          const existingAuth = await db.patientAuth.findUnique({
+            where: { patientId: params.id },
+          });
+
+          const baseUrl = process.env.NEXTAUTH_URL ||
+            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+          if (existingAuth) {
+            // ── Existing PatientAuth: update email + send magic link ──
+            const oldEmail = existingAuth.email;
+
+            await db.patientAuth.update({
+              where: { id: existingAuth.id },
+              data: {
+                email: newEmail,
+                emailVerified: false,
+                emailVerifiedAt: null,
+              },
+            });
+
+            const magicToken = randomBytes(32).toString("base64url");
+            const magicTokenExpiresAt = new Date(Date.now() + PORTAL_MAGIC_LINK_EXPIRY_MS);
+
+            await db.patientAuth.update({
+              where: { id: existingAuth.id },
+              data: { magicToken, magicTokenExpiresAt },
+            });
+
+            const magicUrl = `${baseUrl}/portal/magic-login/${magicToken}`;
+
+            try {
+              const { sendPortalMagicLinkEmail } = await import("@/lib/email");
+              await sendPortalMagicLinkEmail({
+                to: newEmail,
+                magicUrl,
+                patientName: patient.fullName,
+                tenantName: tenant.name,
+              });
+              portalEmailSynced = true;
+            } catch (emailErr) {
+              console.error("[patient-patch] Magic link email failed:", emailErr);
+            }
+
+            await auditLog({
+              tenantId: ctx.tenantId,
+              userId: ctx.userId,
+              action: "PORTAL_EMAIL_UPDATED",
+              entity: "PatientAuth",
+              entityId: existingAuth.id,
+              summary: { patientId: params.id, oldEmail, newEmail },
+              ipAddress,
+              userAgent,
+            });
+          } else {
+            // ── No PatientAuth yet: create one + send activation invite ──
+            const activationToken = generateActivationToken();
+
+            const newAuth = await db.patientAuth.create({
+              data: {
+                tenantId: ctx.tenantId,
+                patientId: params.id,
+                email: newEmail,
+                activationToken,
+              },
+            });
+
+            const activateUrl = `${baseUrl}/portal/activate/${activationToken}`;
+
+            try {
+              const { sendPortalInviteEmail } = await import("@/lib/email");
+              await sendPortalInviteEmail({
+                to: newEmail,
+                activateUrl,
+                patientName: patient.fullName,
+                tenantName: tenant.name,
+              });
+              portalEmailSynced = true;
+            } catch (emailErr) {
+              console.error("[patient-patch] Portal invite email failed:", emailErr);
+            }
+
+            await auditLog({
+              tenantId: ctx.tenantId,
+              userId: ctx.userId,
+              action: "PORTAL_ACCOUNT_ACTIVATED",
+              entity: "PatientAuth",
+              entityId: newAuth.id,
+              summary: { patientId: params.id, email: newEmail, autoInvite: true },
+              ipAddress,
+              userAgent,
+            });
+          }
+        }
+      } catch (portalErr) {
+        // Portal sync failures must never break the main patient update
+        console.error("[patient-patch] Portal email sync failed:", portalErr);
+      }
+    }
+
+    return ok({ ...patient, portalEmailSynced });
   } catch (err) {
     return handleApiError(err);
   }

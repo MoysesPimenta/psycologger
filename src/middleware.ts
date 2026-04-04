@@ -57,14 +57,6 @@ export default withAuth(
       }
     }
 
-    // CSRF validation for state-changing requests
-    if (!validateCsrf(req)) {
-      return NextResponse.json(
-        { error: { code: "CSRF_FAILED", message: "Invalid or missing CSRF token" } },
-        { status: 403 },
-      );
-    }
-
     // Inject tenant header from cookie if present (for SSR)
     const tenantId = req.cookies.get("psycologger-tenant")?.value;
     const headers = new Headers(req.headers);
@@ -73,6 +65,19 @@ export default withAuth(
     }
 
     const response = NextResponse.next({ request: { headers } });
+
+    // Set CSRF cookie BEFORE validating — fresh visitors (e.g., magic link users)
+    // need the cookie available for their first POST request
+    setCsrfCookie(req, response);
+
+    // CSRF validation for state-changing requests
+    // Now the cookie is set, so validateCsrf can work for fresh visitors
+    if (!validateCsrf(req)) {
+      return NextResponse.json(
+        { error: { code: "CSRF_FAILED", message: "Invalid or missing CSRF token" } },
+        { status: 403 },
+      );
+    }
 
     // CSP header — Next.js 14 injects inline scripts for RSC hydration data
     // that do NOT carry nonce attributes (no built-in nonce support without
@@ -94,9 +99,6 @@ export default withAuth(
       "form-action 'self'",
       "base-uri 'self'",
     ].join("; ");
-
-    // Set CSRF cookie (non-httpOnly so JS can read it)
-    setCsrfCookie(req, response);
 
     response.headers.set("Content-Security-Policy", csp);
     response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");

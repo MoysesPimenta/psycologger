@@ -121,7 +121,18 @@ export function EditPatientClient({
         throw new Error(msg);
       }
 
+      const resData = await res.json().catch(() => null);
       toast({ title: "Paciente atualizado!", variant: "success" });
+
+      // If the email changed and portal invite was sent, notify the user
+      if (resData?.data?.portalEmailSynced) {
+        toast({
+          title: "Link do portal enviado!",
+          description: `Um novo link de acesso foi enviado para ${form.email}`,
+          variant: "success",
+        });
+      }
+
       router.push(`/app/patients/${patient.id}`);
       router.refresh();
     } catch (err) {
