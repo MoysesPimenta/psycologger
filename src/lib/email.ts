@@ -6,9 +6,29 @@
 import { Resend } from "resend";
 import { roleLabel } from "@/lib/utils";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-initialize the Resend client so env vars are available at call time,
+// not at module-load time (important for Vercel/serverless cold starts).
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    const key = process.env.RESEND_API_KEY;
+    if (!key) throw new Error("RESEND_API_KEY is not set");
+    if (key.startsWith("re_test_")) {
+      console.warn(
+        "[email] WARNING: Using a Resend TEST API key (re_test_*). " +
+        "Emails will ONLY be delivered to the account owner's verified email. " +
+        "Switch to a live key (re_*) and verify your domain to send to all recipients."
+      );
+    }
+    _resend = new Resend(key);
+  }
+  return _resend;
+}
 
-const FROM_EMAIL = process.env.EMAIL_FROM ?? "Psycologger <noreply@psycologger.com>";
+function getFromEmail(): string {
+  return process.env.EMAIL_FROM ?? "Psycologger <noreply@psycologger.com>";
+}
+
 const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
 // ─── HTML escaping ────────────────────────────────────────────────────────────
@@ -315,6 +335,74 @@ export async function sendPortalInviteEmail({
   return sendEmail({ to, subject, html });
 }
 
+// ─── Patient Portal Password Reset ──────────────────────────────────────────
+
+export async function sendPortalPasswordResetEmail({
+  to,
+  resetUrl,
+  patientName,
+  tenantName,
+}: {
+  to: string;
+  resetUrl: string;
+  patientName: string;
+  tenantName: string;
+}) {
+  const subject = `Redefinição de senha — ${esc(tenantName)}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+      <h2 style="color:#1e3a8a;">Redefinir senha</h2>
+      <p>Olá, ${esc(patientName)}!</p>
+      <p>Recebemos uma solicitação para redefinir a senha da sua conta no portal de <strong>${esc(tenantName)}</strong>.</p>
+      <div style="text-align:center; margin:24px 0;">
+        <a href="${esc(resetUrl)}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; padding:12px 32px; border-radius:8px; font-weight:600;">
+          Redefinir minha senha
+        </a>
+      </div>
+      <p style="color:#6b7280; font-size:13px;">
+        Este link expira em 1 hora e só pode ser usado uma vez.<br/>
+        Se você não solicitou essa redefinição, ignore este email — sua senha permanece inalterada.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({ to, subject, html });
+}
+
+// ─── Patient Portal Magic Link ──────────────────────────────────────────────────
+
+export async function sendPortalMagicLinkEmail({
+  to,
+  magicUrl,
+  patientName,
+  tenantName,
+}: {
+  to: string;
+  magicUrl: string;
+  patientName: string;
+  tenantName: string;
+}) {
+  const subject = `Seu link de acesso — ${esc(tenantName)}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+      <h2 style="color:#1e3a8a;">Acesso ao Portal</h2>
+      <p>Olá, ${esc(patientName)}!</p>
+      <p>Clique no botão abaixo para acessar o portal de <strong>${esc(tenantName)}</strong> sem precisar digitar sua senha.</p>
+      <div style="text-align:center; margin:24px 0;">
+        <a href="${esc(magicUrl)}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; padding:12px 32px; border-radius:8px; font-weight:600;">
+          Acessar o portal
+        </a>
+      </div>
+      <p style="color:#6b7280; font-size:13px;">
+        Este link expira em 30 minutos e só pode ser usado uma vez.<br/>
+        Se você não solicitou o acesso, ignore este email.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({ to, subject, html });
+}
+
 // ─── Base send ────────────────────────────────────────────────────────────────
 
 async function sendEmail({
@@ -331,26 +419,56 @@ async function sendEmail({
     return { id: "dev-email-id" };
   }
 
-  if (!process.env.RESEND_API_KEY) {
-    console.error("[email] RESEND_API_KEY is not set — email will not be sent");
-    throw new Error("Email service not configured: RESEND_API_KEY missing");
-  }
+  const fromEmail = getFromEmail();
+  const resend = getResend();
 
-  console.log(`[email] Sending to=${to} from=${FROM_EMAIL} subject="${subject}"`);
+  // Extract the domain from the from address for diagnostics
+  const fromDomainMatch = fromEmail.match(/@([^>]+)/);
+  const fromDomain = fromDomainMatch?.[1]?.trim();
+
+  console.log(
+    `[email] Sending to="${to}" from="${fromEmail}" (domain=${fromDomain}) subject="${subject}"`
+  );
 
   const { data, error } = await resend.emails.send({
-    from: FROM_EMAIL,
-    to,
+    from: fromEmail,
+    to: [to], // Resend v4 prefers array format
     subject,
     html,
   });
 
   if (error) {
-    console.error("[email] Resend error:", JSON.stringify(error));
-    throw new Error(`Email send failed: ${error.message}`);
+    // Log full error details for debugging
+    const errObj = error as unknown as Record<string, unknown>;
+    console.error(
+      `[email] Resend FAILED to="${to}" from="${fromEmail}" ` +
+      `statusCode=${errObj.statusCode ?? "?"} name=${errObj.name ?? "?"} ` +
+      `message="${error.message}" full=${JSON.stringify(error)}`
+    );
+
+    // Surface actionable advice for common errors
+    if (errObj.statusCode === 403) {
+      console.error(
+        `[email] 403 Forbidden — likely causes:\n` +
+        `  1. Domain "${fromDomain}" is not verified in your Resend dashboard\n` +
+        `  2. Using a test API key (re_test_*) — only sends to the account owner email\n` +
+        `  3. DNS records (DKIM/SPF) not fully propagated yet\n` +
+        `  Fix: Go to https://resend.com/domains and verify that "${fromDomain}" shows status "Verified"`
+      );
+    }
+    if (errObj.statusCode === 422) {
+      console.error(
+        `[email] 422 Validation Error — check that "to" address "${to}" is valid ` +
+        `and "from" address "${fromEmail}" is correctly formatted as "Name <email@domain>"`
+      );
+    }
+
+    throw new Error(
+      `Email send failed (${errObj.statusCode ?? "unknown"}): ${error.message}`
+    );
   }
 
-  console.log(`[email] Sent OK id=${data?.id} to=${to}`);
+  console.log(`[email] Sent OK id=${data?.id} to="${to}"`);
   return data;
 }
 

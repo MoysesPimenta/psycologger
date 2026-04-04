@@ -816,6 +816,10 @@ model PatientAuth {
   lockedUntil     DateTime?
   activatedAt     DateTime?
   activationToken String?   @unique
+  resetToken      String?   @unique
+  resetTokenExpiresAt DateTime?
+  magicToken      String?   @unique
+  magicTokenExpiresAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

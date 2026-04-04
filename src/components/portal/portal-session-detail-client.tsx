@@ -29,18 +29,42 @@ const STATUS_LABELS: Record<string, string> = {
 export function PortalSessionDetailClient({ id }: { id: string }) {
   const [appt, setAppt] = useState<AppointmentDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [canceling, setCanceling] = useState(false);
+  const [canceled, setCanceled] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/v1/portal/appointments?pageSize=200`)
+    fetch(`/api/v1/portal/appointments?id=${encodeURIComponent(id)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
         if (json?.data) {
-          const found = json.data.find((a: AppointmentDetail) => a.id === id);
-          setAppt(found ?? null);
+          setAppt(json.data);
         }
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleCancel() {
+    if (!confirm("Tem certeza que deseja cancelar esta sessão?")) return;
+    setCanceling(true);
+    try {
+      const res = await fetch("/api/v1/portal/appointments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appointmentId: id, action: "cancel" }),
+      });
+      if (res.ok) {
+        setCanceled(true);
+        setAppt((prev) => prev ? { ...prev, status: "CANCELED" } : null);
+      } else {
+        const data = await res.json().catch(() => null);
+        alert(data?.error?.message ?? "Erro ao cancelar.");
+      }
+    } catch {
+      alert("Erro de conexão.");
+    } finally {
+      setCanceling(false);
+    }
+  }
 
   if (loading) {
     return <div className="animate-pulse space-y-4">
@@ -128,6 +152,25 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
             <Video className="h-4 w-4" />
             Entrar na sala
           </a>
+        )}
+
+        {/* Cancel button */}
+        {(appt.status === "SCHEDULED" || appt.status === "CONFIRMED") && !canceled && (
+          (() => {
+            const hoursUntil = (new Date(appt.startsAt).getTime() - Date.now()) / (60 * 60 * 1000);
+            return hoursUntil >= 24 ? (
+              <button
+                onClick={handleCancel}
+                disabled={canceling}
+                className="w-full mt-3 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                {canceling ? "Cancelando..." : "Cancelar sessão"}
+              </button>
+            ) : null;
+          })()
+        )}
+        {canceled && (
+          <p className="text-sm text-red-500 mt-3 text-center">Sessão cancelada.</p>
         )}
       </div>
 

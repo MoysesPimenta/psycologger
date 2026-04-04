@@ -132,6 +132,8 @@ export async function GET(req: NextRequest) {
         paymentsVisible: ctx.tenant.portalPaymentsVisible,
         journalEnabled: ctx.tenant.portalJournalEnabled,
         rescheduleEnabled: ctx.tenant.portalRescheduleEnabled,
+        safetyText: ctx.tenant.portalSafetyText,
+        crisisPhone: ctx.tenant.portalSafetyCrisisPhone,
       },
     });
   } catch (err) {

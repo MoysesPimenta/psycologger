@@ -12,6 +12,7 @@ export function PortalLoginClient() {
   const [tenantId, setTenantId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +47,36 @@ export function PortalLoginClient() {
       router.refresh();
     } catch {
       setError("Erro de conexão. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleMagicLink() {
+    if (!email || !tenantId) {
+      setError("Preencha o email e código da clínica.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/v1/portal/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "magic-link-request",
+          email: email.toLowerCase().trim(),
+          tenantId: tenantId.trim(),
+        }),
+      });
+      if (res.ok) {
+        setMagicLinkSent(true);
+      } else {
+        const data = await res.json().catch(() => null);
+        setError(data?.error?.message ?? "Erro ao enviar link.");
+      }
+    } catch {
+      setError("Erro de conexão.");
     } finally {
       setLoading(false);
     }
@@ -116,14 +147,39 @@ export function PortalLoginClient() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Entrando..." : "Entrar"}
           </Button>
+
+          <div className="relative my-2">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-slate-50 text-gray-400">ou</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleMagicLink}
+            disabled={loading || magicLinkSent}
+            className="w-full px-4 py-2 text-sm font-medium text-brand-600 border border-brand-200 rounded-lg hover:bg-brand-50 transition-colors disabled:opacity-50"
+          >
+            {magicLinkSent ? "Link enviado! Verifique seu email" : "Entrar com link mágico"}
+          </button>
         </form>
 
-        <p className="text-center text-xs text-gray-400">
-          Recebeu um convite?{" "}
-          <Link href="/portal/activate" className="text-brand-600 hover:underline">
-            Ative sua conta
-          </Link>
-        </p>
+        <div className="text-center space-y-2">
+          <p className="text-xs text-gray-400">
+            <Link href="/portal/forgot-password" className="text-brand-600 hover:underline">
+              Esqueceu sua senha?
+            </Link>
+          </p>
+          <p className="text-xs text-gray-400">
+            Recebeu um convite?{" "}
+            <Link href="/portal/activate" className="text-brand-600 hover:underline">
+              Ative sua conta
+            </Link>
+          </p>
+        </div>
 
         <p className="text-center text-[10px] text-gray-300 mt-8">
           Este aplicativo não substitui atendimento de emergência.

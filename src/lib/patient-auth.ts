@@ -54,6 +54,10 @@ export function generateActivationToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
+export function generateMagicToken(): string {
+  return randomBytes(32).toString("base64url");
+}
+
 // ─── Session Management ─────────────────────────────────────────────────────
 
 const dbAny = db as any; // eslint-disable-line @typescript-eslint/no-explicit-any

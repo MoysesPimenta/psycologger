@@ -77,3 +77,9 @@ export const PORTAL_JOURNAL_RATE_LIMIT = 30;
 
 /** Portal journal rate-limit window (1 hour). */
 export const PORTAL_JOURNAL_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+
+/** Portal password reset rate limit: max per email within the window. */
+export const PORTAL_PASSWORD_RESET_RATE_LIMIT = 3;
+
+/** Portal password reset rate-limit window (1 hour). */
+export const PORTAL_PASSWORD_RESET_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
