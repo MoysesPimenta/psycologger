@@ -1699,6 +1699,181 @@ Scheduled daily (8 AM). Sends appointment reminder emails 24 hours before.
 
 ---
 
+## Journal Inbox (Staff Only)
+
+### GET /api/v1/journal-inbox/patients
+
+Returns patient summary with aggregated counts for the journal inbox sidebar.
+
+**Authorization**: Required (PSYCHOLOGIST, TENANT_ADMIN)
+
+**Query Parameters**:
+- `skip`: number (default 0)
+- `take`: number (default 20)
+
+**Response** (200 OK):
+```json
+{
+  "patients": [
+    {
+      "patientId": "string (uuid)",
+      "fullName": "string",
+      "preferredName": "string (optional)",
+      "unreadCount": "number",
+      "flaggedCount": "number",
+      "discussCount": "number",
+      "totalShared": "number",
+      "lastEntryAt": "ISO 8601 timestamp (nullable)",
+      "latestMoodScore": "number (1-5, nullable)"
+    }
+  ],
+  "total": "number"
+}
+```
+
+**Notes**: Uses raw SQL with PostgreSQL FILTER clauses for efficient aggregation.
+
+**Audit**: `journal-inbox.patients.list`
+
+---
+
+### GET /api/v1/journal-inbox/trends
+
+Returns time-series score data for a patient.
+
+**Authorization**: Required (PSYCHOLOGIST, TENANT_ADMIN)
+
+**Query Parameters**:
+- `patientId`: string (uuid, required)
+- `days`: number (7|30|90|365, optional, default 30)
+
+**Response** (200 OK):
+```json
+{
+  "patientId": "string (uuid)",
+  "timeframe": "string (7|30|90|365)",
+  "data": [
+    {
+      "date": "ISO 8601 date",
+      "score": "number (1-5)",
+      "count": "number (entries on that date)"
+    }
+  ]
+}
+```
+
+**Notes**: No decryption needed — scores are plain integers. Safety cap: 500 data points.
+
+**Audit**: `journal-inbox.trends.read`
+
+---
+
+### POST /api/v1/journal-inbox/[id]/notes
+
+Create a therapist private note on a journal entry.
+
+**Authorization**: Required (PSYCHOLOGIST)
+
+**URL Parameters**:
+- `id`: string (uuid, journal entry ID)
+
+**Request Body**:
+```json
+{
+  "noteText": "string (required, min 1 character)"
+}
+```
+
+**Response** (201 CREATED):
+```json
+{
+  "id": "string (uuid)",
+  "journalEntryId": "string (uuid)",
+  "authorId": "string (uuid)",
+  "authorName": "string",
+  "noteText": "string (plaintext)",
+  "createdAt": "ISO 8601 timestamp",
+  "updatedAt": "ISO 8601 timestamp"
+}
+```
+
+**Errors**:
+- 404 NOT_FOUND: Journal entry not found
+- 400 BAD_REQUEST: Empty noteText
+
+**Notes**: Encrypted at rest. Returns plaintext version. Only author can delete.
+
+**Audit**: `journal-inbox.notes.created`
+
+---
+
+### GET /api/v1/journal-inbox/[id]/notes
+
+List therapist notes for a journal entry.
+
+**Authorization**: Required (PSYCHOLOGIST)
+
+**URL Parameters**:
+- `id`: string (uuid, journal entry ID)
+
+**Query Parameters**:
+- `skip`: number (default 0)
+- `take`: number (default 50)
+
+**Response** (200 OK):
+```json
+{
+  "journalEntryId": "string (uuid)",
+  "notes": [
+    {
+      "id": "string (uuid)",
+      "authorId": "string (uuid)",
+      "authorName": "string",
+      "noteText": "string (decrypted)",
+      "createdAt": "ISO 8601 timestamp",
+      "updatedAt": "ISO 8601 timestamp"
+    }
+  ],
+  "total": "number"
+}
+```
+
+**Errors**:
+- 404 NOT_FOUND: Journal entry not found
+
+**Notes**: Returns decrypted notes with author info.
+
+**Audit**: `journal-inbox.notes.listed`
+
+---
+
+### DELETE /api/v1/journal-inbox/notes/[noteId]
+
+Soft-delete a therapist note.
+
+**Authorization**: Required (PSYCHOLOGIST)
+
+**URL Parameters**:
+- `noteId`: string (uuid)
+
+**Response** (200 OK):
+```json
+{
+  "id": "string (uuid)",
+  "deletedAt": "ISO 8601 timestamp"
+}
+```
+
+**Errors**:
+- 404 NOT_FOUND: Note not found
+- 403 FORBIDDEN: Not the note author
+
+**Notes**: Only the note author can delete. Uses soft-delete via `deletedAt` field.
+
+**Audit**: `journal-inbox.notes.deleted`
+
+---
+
 ## Patient Portal
 
 ### POST /api/portal/auth/magic-link

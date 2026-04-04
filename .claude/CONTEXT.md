@@ -1561,6 +1561,43 @@ A full documentation package (30 files, ~19,650 lines) was generated at `docs/ge
 
 ---
 
+## Journal Inbox Redesign (April 4, 2026)
+
+### What changed
+- **Patient-first navigation**: The journal inbox was redesigned from a flat chronological list to a three-panel layout (patient sidebar → entry list → detail panel)
+- **New `JournalNote` model**: Therapists can now add private encrypted notes on any journal entry (never visible to patients)
+- **Trend chart**: New recharts `LineChart` showing mood/anxiety/energy/sleep score trends over time (7d/30d/90d/all)
+- **Patient profile tab**: New "Diário" tab in the patient detail page with trend chart + journal entry list
+- **API enrichment**: Entry list now includes `notesCount`, supports `patientId` filtering
+
+### New files
+- `prisma/migrations/20260404_journal_notes/migration.sql` — JournalNote table
+- `src/app/api/v1/journal-inbox/patients/route.ts` — Patient summary aggregation
+- `src/app/api/v1/journal-inbox/trends/route.ts` — Score time-series endpoint
+- `src/app/api/v1/journal-inbox/[id]/notes/route.ts` — Notes GET/POST
+- `src/app/api/v1/journal-inbox/notes/[noteId]/route.ts` — Notes DELETE
+- `src/components/journal/journal-trend-chart.tsx` — Recharts line chart
+- `src/components/journal/journal-patient-sidebar.tsx` — Patient sidebar with search
+- `src/components/journal/journal-therapist-notes.tsx` — Notes CRUD UI
+- `src/components/journal/patient-journal-tab.tsx` — Patient profile journal tab
+- `tests/unit/journal-inbox.test.ts` — 15 unit tests
+- `docs/adr/ADR-001-journal-inbox-redesign.md` — Architecture decision record
+
+### Modified files
+- `prisma/schema.prisma` — Added JournalNote model + relations on User, Tenant, JournalEntry
+- `src/app/api/v1/journal-inbox/route.ts` — Added patientId filter + notesCount in response
+- `src/components/journal/journal-inbox-client.tsx` — Complete rewrite to three-panel layout
+- `src/components/patients/patient-detail-client.tsx` — Added "Diário" tab
+- `package.json` — Added recharts dependency
+
+### New environment variables
+- None required
+
+### New dependency
+- `recharts ^2.15.0` — Chart library for trend visualization (run `npm install` to install)
+
+---
+
 ## Last Updated
 
 - **Date**: April 4, 2026

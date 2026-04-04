@@ -718,7 +718,7 @@
         "auth": "nextauth",
         "permission": "journal:review",
         "handler": "src/app/api/v1/journal-inbox/route.ts",
-        "description": "List journal entries pending therapist review",
+        "description": "List journal entries pending therapist review (optional patientId query param to filter by patient)",
         "pagination": true,
         "audit": false,
         "rateLimit": false
@@ -730,6 +730,70 @@
         "permission": "journal:review",
         "handler": "src/app/api/v1/journal-inbox/[id]/review/route.ts",
         "description": "Mark journal entry as reviewed by therapist",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/journal-inbox/patients",
+        "auth": "session",
+        "permission": "patients:list",
+        "handler": "src/app/api/v1/journal-inbox/patients/route.ts",
+        "description": "Patient summary list for journal inbox sidebar with aggregated counts",
+        "pagination": false,
+        "audit": false,
+        "rateLimit": false,
+        "responseFields": ["patientId", "fullName", "preferredName", "unreadCount", "flaggedCount", "discussCount", "totalShared", "lastEntryAt", "latestMoodScore"]
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/journal-inbox/trends",
+        "auth": "session",
+        "permission": "patients:list",
+        "handler": "src/app/api/v1/journal-inbox/trends/route.ts",
+        "description": "Time-series score data (mood/anxiety/energy/sleep) for a patient's shared journal entries",
+        "pagination": false,
+        "audit": false,
+        "rateLimit": false,
+        "queryParams": {
+          "patientId": "required",
+          "days": "optional (7|30|90|365)"
+        },
+        "responseFields": ["id", "date", "moodScore", "anxietyScore", "energyScore", "sleepScore", "entryType"]
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/journal-inbox/[id]/notes",
+        "auth": "session",
+        "permission": "patients:list",
+        "handler": "src/app/api/v1/journal-inbox/[id]/notes/route.ts",
+        "description": "List therapist private notes on a journal entry",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/journal-inbox/[id]/notes",
+        "auth": "session",
+        "permission": "patients:list",
+        "handler": "src/app/api/v1/journal-inbox/[id]/notes/route.ts",
+        "description": "Create a therapist private note on a journal entry",
+        "pagination": false,
+        "audit": true,
+        "rateLimit": false,
+        "bodyFields": {
+          "noteText": "string (1-5000 chars)"
+        }
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/journal-inbox/notes/[noteId]",
+        "auth": "session",
+        "permission": "patients:list",
+        "handler": "src/app/api/v1/journal-inbox/notes/[noteId]/route.ts",
+        "description": "Soft-delete a therapist note (author only)",
         "pagination": false,
         "audit": true,
         "rateLimit": false

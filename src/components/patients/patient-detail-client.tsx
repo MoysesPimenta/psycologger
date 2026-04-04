@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   User, Calendar, FileText, DollarSign, Phone, Mail,
   Tag, Edit, Plus, Lock, Clock, ChevronLeft, Trash2,
-  ToggleLeft, ToggleRight, RotateCcw, AlertTriangle, Check, X
+  ToggleLeft, ToggleRight, RotateCcw, AlertTriangle, Check, X, BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDate, formatDateTime, formatCurrency, chargeStatusLabel, initials } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { SOFT_DELETE_RETENTION_MS } from "@/lib/constants";
+import PatientJournalTab from "@/components/journal/patient-journal-tab";
 
 interface AppointmentTypeSummary {
   id: string;
@@ -20,7 +21,7 @@ interface AppointmentTypeSummary {
   defaultPriceCents: number;
 }
 
-type Tab = "timeline" | "sessions" | "files" | "financial" | "profile";
+type Tab = "timeline" | "sessions" | "journal" | "files" | "financial" | "profile";
 
 function daysUntilHardDelete(deletedAt: string): number {
   const hardDeleteAt = new Date(deletedAt).getTime() + SOFT_DELETE_RETENTION_MS;
@@ -89,6 +90,7 @@ export function PatientDetailClient({
   const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "timeline", label: "Timeline", icon: Clock },
     { id: "sessions", label: "Sessões", icon: FileText },
+    { id: "journal", label: "Diário", icon: BookOpen },
     { id: "files", label: "Arquivos", icon: FileText },
     { id: "financial", label: "Financeiro", icon: DollarSign },
     { id: "profile", label: "Perfil", icon: User },
@@ -226,7 +228,7 @@ export function PatientDetailClient({
       <div className="border-b">
         <nav className="flex gap-1 overflow-x-auto scrollbar-thin">
           {tabs.map((t) => {
-            if ((t.id === "sessions") && !canViewClinical) return null;
+            if ((t.id === "sessions" || t.id === "journal") && !canViewClinical) return null;
             const Icon = t.icon;
             return (
               <button
@@ -259,6 +261,15 @@ export function PatientDetailClient({
           <div className="text-center py-12 text-gray-500">
             <Lock className="h-8 w-8 mx-auto mb-2 text-gray-300" />
             <p>Você não tem permissão para visualizar notas clínicas.</p>
+          </div>
+        )}
+        {tab === "journal" && canViewClinical && (
+          <PatientJournalTab patientId={patient.id} />
+        )}
+        {tab === "journal" && !canViewClinical && (
+          <div className="text-center py-12 text-gray-500">
+            <Lock className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+            <p>Você não tem permissão para visualizar o diário.</p>
           </div>
         )}
         {tab === "files" && (

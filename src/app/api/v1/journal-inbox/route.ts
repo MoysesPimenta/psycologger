@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
     const { page, pageSize, skip } = parsePagination(searchParams);
     const tab = searchParams.get("tab") ?? "unread"; // "unread" | "discuss" | "all"
 
+    const patientId = searchParams.get("patientId"); // Optional: filter by specific patient
+
     const where: Record<string, unknown> = {
       tenantId: ctx.tenantId,
       visibility: "SHARED",
@@ -28,6 +30,11 @@ export async function GET(req: NextRequest) {
       // Only entries from patients assigned to this therapist
       therapistId: ctx.userId,
     };
+
+    // Filter by specific patient when provided
+    if (patientId) {
+      where.patientId = patientId;
+    }
 
     if (tab === "unread") {
       where.reviewedAt = null;
@@ -42,6 +49,9 @@ export async function GET(req: NextRequest) {
         include: {
           patient: {
             select: { id: true, fullName: true, preferredName: true },
+          },
+          _count: {
+            select: { notes: { where: { deletedAt: null } } },
           },
         },
         orderBy: { createdAt: "desc" as const },
@@ -62,7 +72,10 @@ export async function GET(req: NextRequest) {
             noteText = "[Não foi possível descriptografar esta entrada]";
           }
         }
-        return { ...entry, noteText };
+        const notesCount = (entry as Record<string, unknown>)._count
+          ? ((entry as Record<string, unknown>)._count as Record<string, number>).notes ?? 0
+          : 0;
+        return { ...entry, noteText, notesCount };
       }),
     );
 

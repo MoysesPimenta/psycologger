@@ -147,7 +147,8 @@
         "SessionRevision",
         "JournalEntry",
         "JournalEntryType",
-        "JournalVisibility"
+        "JournalVisibility",
+        "JournalNote"
       ],
       "keyFiles": [
         "src/app/api/v1/sessions/route.ts",
@@ -162,12 +163,17 @@
         "/api/v1/sessions/[id]/files/[fileId]",
         "/api/v1/journal-inbox",
         "/api/v1/journal-inbox/[id]/review",
+        "/api/v1/journal-inbox/patients",
+        "/api/v1/journal-inbox/trends",
+        "/api/v1/journal-inbox/[id]/notes",
+        "/api/v1/journal-inbox/notes/[noteId]",
         "/api/v1/portal/journal",
         "/api/v1/portal/journal/[id]"
       ],
       "frontendRoutes": [
         "/app/sessions/[id]",
         "/app/journal-inbox",
+        "/app/patients/[id]",
         "/portal/journal",
         "/portal/journal/new",
         "/portal/journal/[id]"
@@ -532,6 +538,27 @@
       "type": "many-to-one",
       "through": null,
       "description": "FileObject uploaded by specific user (uploader)"
+    },
+    {
+      "from": "JournalNote",
+      "to": "JournalEntry",
+      "type": "many-to-one",
+      "through": null,
+      "description": "JournalNote is a private encrypted note attached to a journal entry by a therapist"
+    },
+    {
+      "from": "JournalNote",
+      "to": "User",
+      "type": "many-to-one",
+      "through": null,
+      "description": "JournalNote is authored by a therapist (never visible to patients)"
+    },
+    {
+      "from": "JournalNote",
+      "to": "Tenant",
+      "type": "many-to-one",
+      "through": null,
+      "description": "JournalNote belongs to a tenant for multi-tenant isolation"
     }
   ]
 }

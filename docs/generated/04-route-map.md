@@ -536,11 +536,58 @@ Complete REST API with 40+ endpoints. All API routes require authentication unle
 
 - **Route:** `/api/v1/journal-inbox`
 - **Method:** GET
-- **Query Params:** page, limit, status (pending|reviewed)
-- **Purpose:** Get patient journal entries awaiting review
+- **Query Params:** page, limit, status (pending|reviewed), patientId (filter)
+- **Purpose:** Get patient journal entries awaiting review (now supports patientId filter)
 - **Auth Required:** Yes
 - **Roles:** PSYCHOLOGIST, TENANT_ADMIN
 - **Response:** Paginated pending entries with patient and date
+
+**Patient Summary Aggregation**
+
+- **Route:** `/api/v1/journal-inbox/patients`
+- **Method:** GET
+- **Purpose:** Get patient summary with aggregated counts for inbox sidebar
+- **Auth Required:** Yes
+- **Roles:** PSYCHOLOGIST, TENANT_ADMIN
+- **Response:** Patient list with unreadCount, flaggedCount, discussCount, totalShared, lastEntryAt, latestMoodScore
+
+**Score Time-Series Data**
+
+- **Route:** `/api/v1/journal-inbox/trends`
+- **Method:** GET
+- **Query Params:** patientId (required), days (7|30|90|365, optional)
+- **Purpose:** Get score time-series data for trend chart
+- **Auth Required:** Yes
+- **Roles:** PSYCHOLOGIST, TENANT_ADMIN
+- **Response:** Array of time-series data points (up to 500 points)
+
+**List Therapist Notes on Entry**
+
+- **Route:** `/api/v1/journal-inbox/[id]/notes`
+- **Method:** GET
+- **Purpose:** List therapist notes on a journal entry
+- **Auth Required:** Yes
+- **Roles:** PSYCHOLOGIST
+- **Response:** Decrypted notes with author info and timestamps
+
+**Create Therapist Note**
+
+- **Route:** `/api/v1/journal-inbox/[id]/notes`
+- **Method:** POST
+- **Purpose:** Create private therapist note on entry
+- **Auth Required:** Yes
+- **Roles:** PSYCHOLOGIST
+- **Payload:** noteText (string)
+- **Response:** Created note (plaintext version)
+
+**Delete Therapist Note**
+
+- **Route:** `/api/v1/journal-inbox/notes/[noteId]`
+- **Method:** DELETE
+- **Purpose:** Soft-delete a therapist note
+- **Auth Required:** Yes
+- **Roles:** PSYCHOLOGIST (note author only)
+- **Response:** Deletion confirmation
 
 **Review Journal Entry**
 

@@ -489,6 +489,38 @@ model SessionFile {
 - Large files (> 10MB) stored separately
 - URLs are signed/temporary (24-hour expiry)
 
+#### JournalNote (NEW)
+```prisma
+model JournalNote {
+  id                    String      @id @default(cuid())
+  tenantId              String
+  tenant                Tenant      @relation(fields: [tenantId], references: [id])
+
+  journalEntryId        String
+  journalEntry          JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  authorId              String
+  author                User        @relation(fields: [authorId], references: [id])
+
+  noteText              String      // Encrypted at rest (AES-256-GCM)
+
+  deletedAt             DateTime?   // Soft-delete
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@index([journalEntryId])
+  @@index([tenantId, authorId])
+}
+```
+
+**Private Therapist Annotations:**
+- Encrypted at rest with AES-256-GCM (same key as journal entry notes)
+- Only therapist author can view/delete
+- Soft-deleted via `deletedAt` field
+- NEVER visible to patients through portal API
+- Decryption happens in application layer
+
 ### Financial Models
 
 #### Charge (Invoice)

@@ -223,6 +223,7 @@ model User {
 
   journalEntriesAsTherapist JournalEntry[] @relation("JournalTherapist")
   journalEntriesReviewed    JournalEntry[] @relation("JournalReviewer")
+  journalNotes              JournalNote[]  @relation("JournalNoteAuthor")
 
   @@index([email])
   @@index([createdAt])
@@ -289,6 +290,7 @@ model Tenant {
   patientAuths         PatientAuth[]
   patientPreferences   PatientPreference[]
   journalEntries       JournalEntry[]
+  journalNotes         JournalNote[]
   patientNotifications PatientNotification[]
   consentRecords       ConsentRecord[]
 
@@ -908,12 +910,32 @@ model JournalEntry {
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   therapist User?    @relation("JournalTherapist", fields: [therapistId], references: [id], onDelete: SetNull)
   reviewer  User?    @relation("JournalReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  notes     JournalNote[]
 
   @@index([tenantId, patientId])
   @@index([tenantId, therapistId, visibility])
   @@index([tenantId, patientId, createdAt])
   @@index([tenantId, discussNextSession])
   @@index([tenantId, flaggedForSupport])
+}
+
+model JournalNote {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @db.Uuid
+  journalEntryId String    @db.Uuid
+  authorId       String    @db.Uuid
+  noteText       String    @db.Text // Encrypted at rest (AES-256-GCM)
+  deletedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  author       User         @relation("JournalNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([journalEntryId])
+  @@index([tenantId, authorId])
 }
 
 model PatientNotification {
