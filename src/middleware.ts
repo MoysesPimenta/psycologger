@@ -29,10 +29,8 @@ function isPublicPortalRoute(pathname: string): boolean {
   return (
     pathname === "/portal/login" ||
     pathname.startsWith("/portal/activate/") ||
-    pathname === "/portal/forgot-password" ||
-    pathname.startsWith("/portal/reset-password/") ||
     pathname.startsWith("/portal/magic-login/") ||
-    // Auth API (login, activate, forgot, reset, magic-link — all via POST actions)
+    // Auth API (magic-link-request, magic-link-verify, activate, logout — all via POST actions)
     pathname === "/api/v1/portal/auth" ||
     pathname.startsWith("/api/v1/portal/auth/") ||
     // Diagnostic endpoint (protected by its own bearer token check)
