@@ -28,6 +28,7 @@ const CONSENT_VERSION = "2026-04-01";
 export function PortalPrivacyClient() {
   const [records, setRecords] = useState<ConsentRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -46,16 +47,27 @@ export function PortalPrivacyClient() {
   }, []);
 
   async function handleConsent(consentType: string, action: "accept" | "revoke") {
-    await fetchWithCsrf("/api/v1/portal/consents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ consentType, version: CONSENT_VERSION, action }),
-    });
-    // Refresh
-    const res = await fetch("/api/v1/portal/consents");
-    if (res.ok) {
-      const json = await res.json();
-      setRecords(json.data);
+    try {
+      const res = await fetchWithCsrf("/api/v1/portal/consents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ consentType, version: CONSENT_VERSION, action }),
+      });
+      if (!res.ok) {
+        setError("Erro ao atualizar consentimento.");
+        return;
+      }
+      // Refresh
+      const refreshRes = await fetch("/api/v1/portal/consents");
+      if (refreshRes.ok) {
+        const json = await refreshRes.json();
+        setRecords(json.data);
+        setError(null);
+      } else {
+        setError("Erro ao atualizar consentimento.");
+      }
+    } catch {
+      setError("Erro ao atualizar consentimento.");
     }
   }
 
@@ -66,6 +78,12 @@ export function PortalPrivacyClient() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold text-gray-900">Privacidade e Consentimentos</h1>
+
+      {error && (
+        <div className="rounded-md bg-red-50 p-4 mb-4">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
 
       {loading ? (
         <div className="animate-pulse space-y-3">

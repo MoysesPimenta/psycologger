@@ -5,6 +5,7 @@ import { ExternalLink, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface IntegrationStatus {
   type: string;
@@ -56,6 +57,7 @@ function StatusBadge({ status }: { status: string }) {
 export function IntegrationsClient() {
   const [statuses, setStatuses] = useState<Record<string, IntegrationStatus>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch current integration statuses
@@ -70,12 +72,18 @@ export function IntegrationsClient() {
       })
       .catch((err) => {
         console.warn("[integrations] Failed to load integration statuses:", err);
+        setError("Erro ao carregar status das integrações.");
       })
       .finally(() => setLoading(false));
   }, []);
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="rounded-md bg-red-50 p-4 mb-4">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
       {INTEGRATIONS.map((integration) => {
         const status = statuses[integration.type];
         const currentStatus = status?.status ?? "INACTIVE";

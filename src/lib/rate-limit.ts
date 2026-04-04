@@ -116,6 +116,7 @@ export async function rateLimit(
   const limiter = await getUpstashLimiter(limit, windowMs);
   if (limiter) {
     try {
+      // Upstash Ratelimit is dynamically imported; cast is necessary to call its methods
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (limiter as any).limit(key);
       return { allowed: result.success, remaining: result.remaining };

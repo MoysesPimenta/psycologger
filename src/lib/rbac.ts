@@ -170,7 +170,11 @@ export function can(ctx: AuthContext, permission: Permission): boolean {
       return ctx.tenant.adminCanViewClinical;
     }
     if (ctx.role === "ASSISTANT") {
-      return ctx.membership.canViewClinicalNotes === true;
+      // Use membership override first, then tenant setting
+      if (ctx.membership.canViewClinicalNotes !== null && ctx.membership.canViewClinicalNotes !== undefined) {
+        return ctx.membership.canViewClinicalNotes;
+      }
+      return ctx.tenant.adminCanViewClinical;
     }
   }
 
@@ -220,7 +224,7 @@ export class ForbiddenError extends Error {
 
 export class UnauthorizedError extends Error {
   readonly status = 401;
-  constructor(message = "Authentication required") {
+  constructor(message = "Autenticação necessária") {
     super(message);
     this.name = "UnauthorizedError";
   }

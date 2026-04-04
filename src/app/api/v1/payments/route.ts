@@ -95,8 +95,7 @@ export async function POST(req: NextRequest) {
 
       if (isPartial) {
         // 2a. Partial payment — create remainder charge and close the original
-        // @ts-ignore — stale Prisma client in VM; Vercel regenerates on deploy
-        remainder = await (tx.charge as any).create({
+        remainder = await tx.charge.create({
           data: {
             tenantId: ctx.tenantId,
             patientId: charge.patientId,

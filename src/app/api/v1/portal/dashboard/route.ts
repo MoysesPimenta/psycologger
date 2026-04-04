@@ -8,7 +8,6 @@ import { ok, handleApiError } from "@/lib/api";
 import { getPatientContext } from "@/lib/patient-auth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
 
 export async function GET(req: NextRequest) {
   try {
@@ -58,7 +57,7 @@ export async function GET(req: NextRequest) {
 
         // Recent journal entries (last 5)
         ctx.tenant.portalJournalEnabled
-          ? dbAny.journalEntry.findMany({
+          ? db.journalEntry.findMany({
               where: {
                 tenantId: ctx.tenantId,
                 patientId: ctx.patientId,
@@ -78,7 +77,7 @@ export async function GET(req: NextRequest) {
           : [],
 
         // Unread notifications count
-        dbAny.patientNotification.count({
+        db.patientNotification.count({
           where: {
             tenantId: ctx.tenantId,
             patientId: ctx.patientId,
@@ -89,9 +88,9 @@ export async function GET(req: NextRequest) {
 
     // Redact videoLink if appointment is too far out
     let safeNextAppointment = nextAppointment;
-    if (nextAppointment?.videoLink) {
-      const minutesUntil =
-        (new Date(nextAppointment.startsAt).getTime() - Date.now()) / 60_000;
+    if (nextAppointment?.videoLink && nextAppointment?.startsAt) {
+      const startsAtTime = new Date(nextAppointment.startsAt).getTime();
+      const minutesUntil = (startsAtTime - Date.now()) / 60_000;
       if (minutesUntil > ctx.tenant.portalVideoLinkAdvanceMin) {
         safeNextAppointment = { ...nextAppointment, videoLink: null };
       }

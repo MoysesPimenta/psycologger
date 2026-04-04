@@ -101,6 +101,8 @@ export async function auditLog(params: AuditParams): Promise<void> {
         action: params.action,
         entity: params.entity ?? null,
         entityId: params.entityId ?? null,
+        // Prisma's Json type is opaque and cannot be directly assigned from Record<string, unknown>
+        // The runtime type is correct, but TypeScript requires the cast
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         summaryJson: params.summary ? (redact(params.summary) as any) : undefined,
         ipAddress: params.ipAddress ?? null,

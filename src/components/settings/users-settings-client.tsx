@@ -27,7 +27,8 @@ const roles = [
 export function UsersSettingsClient() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("PSYCHOLOGIST");
   const [inviting, setInviting] = useState(false);
@@ -56,7 +57,10 @@ export function UsersSettingsClient() {
         if (!r.ok) throw new Error("Erro ao carregar membros.");
         return r.json();
       })
-      .then((d) => { setMembers(d.data ?? []); })
+      .then((d) => {
+        setMembers(d.data ?? []);
+        setLoadError(null);
+      })
       .catch((err) => { setLoadError(err.message ?? "Erro ao carregar membros."); })
       .finally(() => setLoading(false));
   }, []);
@@ -168,6 +172,13 @@ export function UsersSettingsClient() {
           </div>
         )}
       </div>
+
+      {/* Error display */}
+      {error && (
+        <div className="rounded-md bg-red-50 p-4 mb-4">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
 
       {/* Members list */}
       <div className="bg-white rounded-xl border">

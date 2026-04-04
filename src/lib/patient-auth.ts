@@ -61,8 +61,6 @@ export function generateMagicToken(): string {
 
 // ─── Session Management ─────────────────────────────────────────────────────
 
-const dbAny = db as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-
 export async function createPortalSession(
   patientAuthId: string,
   ipAddress?: string,
@@ -72,7 +70,7 @@ export async function createPortalSession(
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + PORTAL_SESSION_MAX_AGE_MS);
 
-  await dbAny.patientPortalSession.create({
+  await db.patientPortalSession.create({
     data: {
       patientAuthId,
       tokenHash,
@@ -86,14 +84,14 @@ export async function createPortalSession(
 }
 
 export async function revokePortalSession(sessionId: string, patientAuthId: string): Promise<void> {
-  await dbAny.patientPortalSession.updateMany({
+  await db.patientPortalSession.updateMany({
     where: { id: sessionId, patientAuthId },
     data: { revokedAt: new Date() },
   });
 }
 
 export async function revokeAllPortalSessions(patientAuthId: string): Promise<void> {
-  await dbAny.patientPortalSession.updateMany({
+  await db.patientPortalSession.updateMany({
     where: { patientAuthId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
@@ -143,8 +141,8 @@ export async function getPatientContext(req?: Request): Promise<PatientContext> 
   const tokenHash = hashToken(token);
 
   // Find active session
-  const session = await dbAny.patientPortalSession.findUnique({
-    where: { tokenHash } as never,
+  const session = await db.patientPortalSession.findUnique({
+    where: { tokenHash },
     include: {
       patientAuth: {
         include: {
@@ -184,18 +182,23 @@ export async function getPatientContext(req?: Request): Promise<PatientContext> 
   const lastActivity = session.lastActivityAt ? new Date(session.lastActivityAt) : new Date(session.createdAt);
   if (Date.now() - lastActivity.getTime() > PORTAL_IDLE_TIMEOUT_MS) {
     // Auto-revoke the idle session
-    await dbAny.patientPortalSession.update({
+    await db.patientPortalSession.update({
       where: { id: session.id },
       data: { revokedAt: new Date() },
     });
     throw new UnauthorizedError("Portal session expired due to inactivity");
   }
 
-  // Touch lastActivityAt (fire-and-forget to avoid latency)
-  dbAny.patientPortalSession.update({
-    where: { id: session.id },
-    data: { lastActivityAt: new Date() },
-  }).catch(() => {/* non-critical */});
+  // Touch lastActivityAt with proper error handling
+  try {
+    await db.patientPortalSession.update({
+      where: { id: session.id },
+      data: { lastActivityAt: new Date() },
+    });
+  } catch (err) {
+    console.error("[patient-auth] Failed to update lastActivityAt:", err);
+    // Continue — activity tracking failure should not block the request
+  }
 
   const { patientAuth } = session;
 

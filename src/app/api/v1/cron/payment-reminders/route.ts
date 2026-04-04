@@ -20,7 +20,6 @@ import { formatCurrencyPlain, formatDatePlain } from "@/lib/utils";
 const CRON_SECRET = process.env.CRON_SECRET;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
 
 interface ChargeWithRelations {
   id: string;
@@ -34,8 +33,8 @@ interface ChargeWithRelations {
 }
 
 async function hasReminderBeenSent(chargeId: string, type: string, tenantId: string): Promise<boolean> {
-  const count = await dbAny.paymentReminderLog.count({
-    where: { chargeId, type, tenantId },
+  const count = await db.paymentReminderLog.count({
+    where: { chargeId, type: type as any, tenantId },
   });
   return count > 0;
 }
@@ -48,14 +47,14 @@ async function logReminder(data: {
   status: string;
   errorMsg?: string;
 }) {
-  await dbAny.paymentReminderLog.create({
+  await db.paymentReminderLog.create({
     data: {
       tenantId: data.tenantId,
       chargeId: data.chargeId,
-      type: data.type,
+      type: data.type as any,
       channel: "EMAIL",
       recipient: data.recipient,
-      status: data.status,
+      status: data.status as any,
       errorMsg: data.errorMsg ?? null,
     },
   });
@@ -66,11 +65,11 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (!CRON_SECRET) {
     console.error("[cron/payment-reminders] CRON_SECRET env var is not set — rejecting request");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
   if (authHeader !== `Bearer ${CRON_SECRET}`) {
     console.warn("[cron/payment-reminders] Invalid authorization header — rejecting request");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
   const now = new Date();

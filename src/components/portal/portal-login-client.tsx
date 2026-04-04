@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Mail } from "lucide-react";
 import Link from "next/link";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 export function PortalLoginClient() {
   const [email, setEmail] = useState("");
@@ -17,7 +18,7 @@ export function PortalLoginClient() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/v1/portal/auth", {
+      const res = await fetchWithCsrf("/api/v1/portal/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

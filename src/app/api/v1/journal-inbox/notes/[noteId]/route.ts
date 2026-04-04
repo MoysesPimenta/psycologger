@@ -9,7 +9,6 @@ import { getAuthContext } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
 
 export async function DELETE(
   req: NextRequest,
@@ -19,7 +18,7 @@ export async function DELETE(
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
 
-    const note = await dbAny.journalNote.findUnique({
+    const note = await db.journalNote.findUnique({
       where: { id: params.noteId },
       select: { id: true, tenantId: true, authorId: true, deletedAt: true },
     });
@@ -28,7 +27,7 @@ export async function DELETE(
       throw new NotFoundError("Journal note");
     }
 
-    await dbAny.journalNote.update({
+    await db.journalNote.update({
       where: { id: params.noteId },
       data: { deletedAt: new Date() },
     });

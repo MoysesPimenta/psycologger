@@ -63,6 +63,7 @@ export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?:
       const data = await res.json();
       toast({ title: "Paciente criado!", variant: "success" });
       router.push(`/app/patients/${data.data.id}`);
+      router.refresh();
     } catch {
       toast({ title: "Erro ao criar paciente", variant: "destructive" });
     } finally {

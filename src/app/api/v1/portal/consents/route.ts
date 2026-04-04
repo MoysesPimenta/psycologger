@@ -11,7 +11,6 @@ import { getPatientContext } from "@/lib/patient-auth";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
 
 const consentSchema = z.object({
   consentType: z.enum(["TERMS_OF_USE", "PRIVACY_POLICY", "DATA_SHARING", "JOURNAL_SHARING"]),
@@ -23,7 +22,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await getPatientContext(req);
 
-    const records = await dbAny.consentRecord.findMany({
+    const records = await db.consentRecord.findMany({
       where: {
         tenantId: ctx.tenantId,
         patientId: ctx.patientId,
@@ -44,7 +43,7 @@ export async function POST(req: NextRequest) {
     const body = consentSchema.parse(await req.json());
 
     if (body.action === "accept") {
-      const record = await dbAny.consentRecord.create({
+      const record = await db.consentRecord.create({
         data: {
           tenantId: ctx.tenantId,
           patientId: ctx.patientId,
@@ -70,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Revoke: find the latest active consent of this type and mark as revoked
-    const existing = await dbAny.consentRecord.findFirst({
+    const existing = await db.consentRecord.findFirst({
       where: {
         tenantId: ctx.tenantId,
         patientId: ctx.patientId,
@@ -81,7 +80,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existing) {
-      await dbAny.consentRecord.update({
+      await db.consentRecord.update({
         where: { id: existing.id },
         data: { revokedAt: new Date() },
       });

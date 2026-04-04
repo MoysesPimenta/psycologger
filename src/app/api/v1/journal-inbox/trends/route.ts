@@ -20,6 +20,20 @@ export async function GET(req: NextRequest) {
       return apiError("BAD_REQUEST", "patientId is required", 400);
     }
 
+    // Validate patientId format (UUID)
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(patientId)) {
+      return apiError("BAD_REQUEST", "patientId inválido", 400);
+    }
+
+    // Verify patient belongs to tenant and is assigned to this therapist
+    const patient = await db.patient.findFirst({
+      where: { id: patientId, tenantId: ctx.tenantId, assignedUserId: ctx.userId },
+    });
+    if (!patient) {
+      return apiError("NOT_FOUND", "Paciente não encontrado", 404);
+    }
+
     // Parse and validate days parameter
     let sinceDate: Date | undefined;
     if (daysParam) {
@@ -37,10 +51,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Cast db for type safety
-    const dbAny = db as any;
+  
 
     // Query journal entries with score data
-    const entries = await dbAny.journalEntry.findMany({
+    const entries = await db.journalEntry.findMany({
       where: {
         tenantId: ctx.tenantId,
         patientId,

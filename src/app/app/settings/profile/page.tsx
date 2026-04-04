@@ -11,10 +11,10 @@ export default async function ProfileSettingsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  const user = await (db.user as any).findUnique({
+  const user = await db.user.findUnique({
     where: { id: session.user.id },
     select: { id: true, name: true, email: true, phone: true },
-  }) as { id: string; name: string | null; email: string; phone: string | null } | null;
+  });
 
   if (!user) redirect("/login");
 

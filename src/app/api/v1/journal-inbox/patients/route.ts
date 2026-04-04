@@ -9,10 +9,26 @@ export async function GET(req: NextRequest) {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
 
-    const dbAny = db as any;
+  
 
     // Get aggregated stats for all shared journal entries by patient
-    const stats = await dbAny.$queryRaw`
+    // NOTE: $queryRaw with tagged template literals (backticks) is safe — Prisma parameterizes
+    // the query automatically. Parameters like ctx.tenantId and ctx.userId are safely escaped.
+    interface PatientStats {
+      patientId: string;
+      totalShared: bigint;
+      unreadCount: bigint;
+      flaggedCount: bigint;
+      discussCount: bigint;
+      lastEntryAt: Date | null;
+    }
+
+    interface LatestMood {
+      patientId: string;
+      moodScore: number;
+    }
+
+    const stats = await db.$queryRaw<PatientStats[]>`
       SELECT
         "patientId",
         COUNT(*) AS "totalShared",
@@ -32,16 +48,18 @@ export async function GET(req: NextRequest) {
     `;
 
     // Extract patient IDs
-    const patientIds = stats.map((s: any) => s.patientId);
+    const patientIds = stats.map((s) => s.patientId);
 
     // Fetch patient info (names)
-    const patients = await dbAny.patient.findMany({
+    const patients = await db.patient.findMany({
       where: { id: { in: patientIds } },
       select: { id: true, fullName: true, preferredName: true },
     });
 
     // Get latest mood score per patient
-    const latestMoods = await dbAny.$queryRaw`
+    // NOTE: $queryRaw with tagged template literals (backticks) is safe — Prisma parameterizes
+    // the query automatically. Parameters like ctx.tenantId and ctx.userId are safely escaped.
+    const latestMoods = await db.$queryRaw<LatestMood[]>`
       SELECT DISTINCT ON ("patientId") "patientId", "moodScore"
       FROM "JournalEntry"
       WHERE "tenantId" = ${ctx.tenantId}::uuid
@@ -54,14 +72,14 @@ export async function GET(req: NextRequest) {
 
     // Create lookup maps
     const patientMap = new Map<string, Record<string, unknown>>(
-      patients.map((p: any) => [p.id, p]),
+      patients.map((p) => [p.id, p]),
     );
     const moodMap = new Map<string, number>(
-      latestMoods.map((m: any) => [m.patientId, m.moodScore]),
+      latestMoods.map((m) => [m.patientId, m.moodScore]),
     );
 
     // Merge and format response
-    const data = stats.map((stat: any) => {
+    const data = stats.map((stat) => {
       const patient = patientMap.get(stat.patientId);
       const latestMoodScore = moodMap.get(stat.patientId);
 

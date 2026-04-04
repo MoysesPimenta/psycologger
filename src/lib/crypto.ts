@@ -128,12 +128,11 @@ export async function decrypt(encryptedBase64: string): Promise<string> {
 
   const versioned = isVersionedPayload(combined);
 
-  // Try current key first
+  // Try current key first with detected format
   try {
     return decryptWithKey(combined, currentKey, versioned);
-  } catch (currentErr) {
-    // If versioned format, the current key should work — don't try previous
-    // unless we also support fallback for versioned payloads from a rotated key
+  } catch {
+    // Continue to fallbacks
   }
 
   // Try legacy format (no version byte) with current key
@@ -148,25 +147,18 @@ export async function decrypt(encryptedBase64: string): Promise<string> {
   // Try previous key (both formats)
   const previousKey = getPreviousEncryptionKey();
   if (previousKey) {
+    // Try previous key with versioned format
     try {
       return decryptWithKey(combined, previousKey, versioned);
     } catch {
-      // Try legacy format with previous key
+      // Continue
     }
-    if (versioned) {
-      try {
-        return decryptWithKey(combined, previousKey, false);
-      } catch {
-        // Fall through to error
-      }
-    }
-    // Also try previous key with legacy format even if not versioned
-    if (!versioned) {
-      try {
-        return decryptWithKey(combined, previousKey, false);
-      } catch {
-        // Fall through to error
-      }
+
+    // Try previous key with legacy format
+    try {
+      return decryptWithKey(combined, previousKey, false);
+    } catch {
+      // Fall through to error
     }
   }
 

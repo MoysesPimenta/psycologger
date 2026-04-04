@@ -16,7 +16,6 @@ import { rateLimit } from "@/lib/rate-limit";
 import { PORTAL_JOURNAL_RATE_LIMIT, PORTAL_JOURNAL_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
 
 const createSchema = z.object({
   entryType: z.enum([
@@ -55,8 +54,8 @@ export async function GET(req: NextRequest) {
     };
 
     const [total, entries] = await Promise.all([
-      dbAny.journalEntry.count({ where }),
-      dbAny.journalEntry.findMany({
+      db.journalEntry.count({ where }),
+      db.journalEntry.findMany({
         where,
         select: {
           id: true,
@@ -122,7 +121,7 @@ export async function POST(req: NextRequest) {
     // Encrypt noteText at rest
     const encryptedNote = body.noteText ? await encrypt(body.noteText) : null;
 
-    const entry = await dbAny.journalEntry.create({
+    const entry = await db.journalEntry.create({
       data: {
         tenantId: ctx.tenantId,
         patientId: ctx.patientId,

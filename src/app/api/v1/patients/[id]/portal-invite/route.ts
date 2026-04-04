@@ -15,9 +15,6 @@ import { sendPortalInviteEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/rate-limit";
 import { PORTAL_INVITE_RATE_LIMIT, PORTAL_INVITE_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
-
 const bodySchema = z.object({
   email: z.string().email().toLowerCase(),
 });
@@ -54,8 +51,8 @@ export async function POST(
     const body = bodySchema.parse(await req.json());
 
     // Check if portal auth already exists
-    const existing = await dbAny.patientAuth.findUnique({
-      where: { patientId: params.id } as never,
+    const existing = await db.patientAuth.findUnique({
+      where: { patientId: params.id },
     });
 
     if (existing?.activatedAt) {
@@ -65,8 +62,8 @@ export async function POST(
     // Check tenant has portal enabled
     const tenant = await db.tenant.findUnique({
       where: { id: ctx.tenantId },
-      select: { name: true, portalEnabled: true } as never,
-    }) as { name: string; portalEnabled: boolean } | null;
+      select: { name: true, portalEnabled: true },
+    });
 
     if (!tenant?.portalEnabled) {
       return apiError("FORBIDDEN", "O portal do paciente não está habilitado. Ative nas configurações.", 403);
@@ -75,8 +72,8 @@ export async function POST(
     const activationToken = generateActivationToken();
 
     // Upsert: if an invite was already sent but not activated, replace it
-    const patientAuth = await dbAny.patientAuth.upsert({
-      where: { patientId: params.id } as never,
+    const patientAuth = await db.patientAuth.upsert({
+      where: { patientId: params.id },
       update: {
         email: body.email,
         activationToken,

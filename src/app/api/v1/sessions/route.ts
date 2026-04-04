@@ -3,13 +3,14 @@
  * POST /api/v1/sessions
  */
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
 import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError, BadRequestError } from "@/lib/api";
 import { requirePermission, getPatientScope } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { rateLimit } from "@/lib/rate-limit";
 
 const createSchema = z.object({
   appointmentId: z.string().uuid().optional(),
@@ -75,6 +76,15 @@ export async function POST(req: NextRequest) {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "sessions:create");
     const { ipAddress, userAgent } = extractRequestMeta(req);
+
+    // Rate limit session creation: 100 per hour per user
+    const rl = await rateLimit(`sessions:${ctx.userId}`, 100, 3600 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: { code: "RATE_LIMITED", message: "Limite de sessões atingido. Tente novamente mais tarde." } },
+        { status: 429 }
+      );
+    }
 
     const body = createSchema.parse(await req.json());
 

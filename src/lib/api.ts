@@ -60,7 +60,7 @@ export function handleApiError(err: unknown): NextResponse {
     return apiError("FORBIDDEN", err.message, 403);
   }
   if (err instanceof ZodError) {
-    return apiError("VALIDATION_ERROR", "Invalid input", 400, err.flatten());
+    return apiError("VALIDATION_ERROR", "Entrada inválida", 400, err.flatten());
   }
   if (err instanceof NotFoundError) {
     return apiError("NOT_FOUND", err.message, 404);
@@ -72,13 +72,13 @@ export function handleApiError(err: unknown): NextResponse {
     return apiError("BAD_REQUEST", err.message, 400);
   }
   console.error("[api] Unhandled error:", err);
-  return apiError("INTERNAL_ERROR", "An unexpected error occurred", 500);
+  return apiError("INTERNAL_ERROR", "Um erro inesperado ocorreu", 500);
 }
 
 export class NotFoundError extends Error {
   readonly status = 404;
-  constructor(resource = "Resource") {
-    super(`${resource} not found`);
+  constructor(resource = "Recurso") {
+    super(`${resource} não encontrado`);
     this.name = "NotFoundError";
   }
 }

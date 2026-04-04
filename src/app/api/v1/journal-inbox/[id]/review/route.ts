@@ -10,7 +10,6 @@ import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
 
 export async function PATCH(
   req: NextRequest,
@@ -22,7 +21,7 @@ export async function PATCH(
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Only SHARED entries assigned to this therapist
-    const entry = await dbAny.journalEntry.findFirst({
+    const entry = await db.journalEntry.findFirst({
       where: {
         id: params.id,
         tenantId: ctx.tenantId,
@@ -40,7 +39,7 @@ export async function PATCH(
       return ok({ alreadyReviewed: true });
     }
 
-    await dbAny.journalEntry.update({
+    await db.journalEntry.update({
       where: { id: params.id },
       data: {
         reviewedAt: new Date(),

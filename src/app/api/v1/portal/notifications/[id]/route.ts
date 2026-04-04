@@ -8,7 +8,6 @@ import { db } from "@/lib/db";
 import { getPatientContext } from "@/lib/patient-auth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
 
 export async function PATCH(
   req: NextRequest,
@@ -17,7 +16,7 @@ export async function PATCH(
   try {
     const ctx = await getPatientContext(req);
 
-    const notif = await dbAny.patientNotification.findFirst({
+    const notif = await db.patientNotification.findFirst({
       where: {
         id: params.id,
         tenantId: ctx.tenantId,
@@ -30,7 +29,7 @@ export async function PATCH(
     }
 
     if (!notif.readAt) {
-      await dbAny.patientNotification.update({
+      await db.patientNotification.update({
         where: { id: params.id },
         data: { readAt: new Date() },
       });

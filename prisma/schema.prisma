@@ -583,6 +583,9 @@ model ClinicalSession {
   updatedAt DateTime @updatedAt
 
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Note: onDelete:SetNull is intentional. Appointments use soft-delete (deletedAt),
+  // so actual FK deletion is rare. If a hard delete occurs, the session survives
+  // with appointmentId=null rather than being cascade-deleted.
   appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Restrict)
   provider    User         @relation("SessionProvider", fields: [providerUserId], references: [id], onDelete: Restrict)

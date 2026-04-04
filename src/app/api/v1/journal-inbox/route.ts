@@ -9,9 +9,6 @@ import { getAuthContext } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { decrypt } from "@/lib/crypto";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
-
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
@@ -43,8 +40,8 @@ export async function GET(req: NextRequest) {
     }
 
     const [total, entries] = await Promise.all([
-      dbAny.journalEntry.count({ where }),
-      dbAny.journalEntry.findMany({
+      db.journalEntry.count({ where }),
+      db.journalEntry.findMany({
         where,
         include: {
           patient: {
@@ -54,7 +51,7 @@ export async function GET(req: NextRequest) {
             select: { notes: { where: { deletedAt: null } } },
           },
         },
-        orderBy: { createdAt: "desc" as const },
+        orderBy: { createdAt: "desc" },
         skip,
         take: pageSize,
       }),

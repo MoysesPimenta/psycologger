@@ -3,19 +3,21 @@
  * POST /api/v1/charges
  */
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
 import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError, BadRequestError } from "@/lib/api";
-import { requirePermission } from "@/lib/rbac";
+import { requirePermission, ForbiddenError } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { sendPaymentCreatedNotification } from "@/lib/email";
+import { rateLimit } from "@/lib/rate-limit";
 
 const createSchema = z.object({
   patientId: z.string().uuid(),
   appointmentId: z.string().uuid().optional(),
   sessionId: z.string().uuid().optional(),
+  providerUserId: z.string().uuid().optional(),
   amountCents: z.number().int().positive().max(100_000_000), // max R$1,000,000.00
   discountCents: z.number().int().min(0).max(100_000_000).default(0),
   currency: z.string().length(3).default("BRL"),
@@ -104,7 +106,24 @@ export async function POST(req: NextRequest) {
     requirePermission(ctx, "charges:create");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
+    // Rate limit charges creation: 100 per hour per user
+    const rl = await rateLimit(`charges:${ctx.userId}`, 100, 3600 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: { code: "RATE_LIMITED", message: "Limite de cobranças atingido. Tente novamente mais tarde." } },
+        { status: 429 }
+      );
+    }
+
     const body = createSchema.parse(await req.json());
+
+    // Determine providerUserId - default to current user if not specified
+    const providerUserId = body.providerUserId ?? ctx.userId;
+
+    // Privilege escalation check: PSYCHOLOGIST can only create charges for themselves
+    if (ctx.role === "PSYCHOLOGIST" && providerUserId !== ctx.userId) {
+      throw new ForbiddenError("Psicólogos só podem criar cobranças próprias");
+    }
 
     // Validate patient belongs to this tenant
     const patient = await db.patient.findFirst({
@@ -142,7 +161,7 @@ export async function POST(req: NextRequest) {
         patientId: body.patientId,
         appointmentId: body.appointmentId ?? null,
         sessionId: body.sessionId ?? null,
-        providerUserId: ctx.userId,
+        providerUserId: providerUserId,
         amountCents: body.amountCents,
         discountCents: body.discountCents,
         currency: body.currency,
@@ -202,8 +221,7 @@ export async function POST(req: NextRequest) {
           description: body.description,
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (db as any).paymentReminderLog.create({
+        await db.paymentReminderLog.create({
           data: {
             tenantId: ctx.tenantId,
             chargeId: charge.id,

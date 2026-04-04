@@ -65,8 +65,7 @@ export function CalendarClient({
     if (res.ok) {
       const json = await res.json();
       // Never show cancelled appointments on the calendar — they are not real slots
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setAppointments((json.data as any[]).filter((a: any) => a.status !== "CANCELED"));
+      setAppointments((json.data as Appointment[]).filter((a: Appointment) => a.status !== "CANCELED"));
     }
     setLoading(false);
   }, [currentDate, view]);

@@ -97,6 +97,7 @@ export function RemindersClient() {
   const [form, setForm] = useState({ subject: "", body: "", isActive: true });
   const [saving, setSaving] = useState(false);
   const [savedType, setSavedType] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/reminder-templates")
@@ -107,6 +108,9 @@ export function RemindersClient() {
           for (const t of json.data) map[t.type] = t;
           setTemplates((prev) => ({ ...prev, ...map }));
         }
+      })
+      .catch(() => {
+        setError("Erro ao carregar modelos de lembretes.");
       })
       .finally(() => setLoading(false));
   }, []);
@@ -130,14 +134,19 @@ export function RemindersClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, ...form }),
       });
-      if (res.ok) {
-        const json = await res.json();
-        setTemplates((prev) => ({ ...prev, [type]: json.data }));
-        setEditing(null);
-        setSavedType(type);
-        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-        savedTimerRef.current = setTimeout(() => setSavedType(null), 3000);
+      if (!res.ok) {
+        setError("Erro ao salvar modelo de lembrete.");
+        return;
       }
+      const json = await res.json();
+      setTemplates((prev) => ({ ...prev, [type]: json.data }));
+      setEditing(null);
+      setSavedType(type);
+      setError(null);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => setSavedType(null), 3000);
+    } catch {
+      setError("Erro ao salvar modelo de lembrete.");
     } finally {
       setSaving(false);
     }
@@ -266,6 +275,11 @@ export function RemindersClient() {
 
   return (
     <div className="space-y-8">
+      {error && (
+        <div className="rounded-md bg-red-50 p-4 mb-4">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
       {/* Appointment Reminders */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Lembretes de consulta</h3>

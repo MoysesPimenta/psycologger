@@ -23,8 +23,8 @@ export async function GET(
     });
 
     if (!invite) throw new NotFoundError("Invite");
-    if (invite.acceptedAt) return apiError("CONFLICT", "Este convite já foi utilizado.", 409);
-    if (invite.expiresAt < new Date()) return apiError("GONE", "Este convite expirou.", 410);
+    if (invite.acceptedAt) return apiError("CONFLICT", "Token de convite inválido ou expirado.", 409);
+    if (invite.expiresAt < new Date()) return apiError("GONE", "Token de convite inválido ou expirado.", 410);
 
     return ok({ email: invite.email, role: invite.role, tenant: invite.tenant });
   } catch (err) {
@@ -58,8 +58,8 @@ export async function POST(
     });
 
     if (!invite) throw new NotFoundError("Invite");
-    if (invite.acceptedAt) return apiError("CONFLICT", "Este convite já foi utilizado.", 409);
-    if (invite.expiresAt < new Date()) return apiError("GONE", "Este convite expirou.", 410);
+    if (invite.acceptedAt) return apiError("CONFLICT", "Token de convite inválido ou expirado.", 409);
+    if (invite.expiresAt < new Date()) return apiError("GONE", "Token de convite inválido ou expirado.", 410);
 
     const result = await db.$transaction(async (tx) => {
       // Find or create user

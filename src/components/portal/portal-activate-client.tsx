@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 export function PortalActivateClient({ token }: { token: string }) {
   const router = useRouter();
@@ -15,7 +16,7 @@ export function PortalActivateClient({ token }: { token: string }) {
 
     async function activate() {
       try {
-        const res = await fetch("/api/v1/portal/auth", {
+        const res = await fetchWithCsrf("/api/v1/portal/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "activate", token }),

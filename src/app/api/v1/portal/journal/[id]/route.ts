@@ -14,7 +14,6 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/crypto";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
 
 const updateSchema = z.object({
   entryType: z.enum([
@@ -38,7 +37,7 @@ export async function GET(
   try {
     const ctx = await getPatientContext(req);
 
-    const entry = await dbAny.journalEntry.findFirst({
+    const entry = await db.journalEntry.findFirst({
       where: {
         id: params.id,
         tenantId: ctx.tenantId,
@@ -77,7 +76,7 @@ export async function PATCH(
     const ctx = await getPatientContext(req);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
-    const entry = await dbAny.journalEntry.findFirst({
+    const entry = await db.journalEntry.findFirst({
       where: {
         id: params.id,
         tenantId: ctx.tenantId,
@@ -120,7 +119,7 @@ export async function PATCH(
     }
 
     // Use updateMany with tenant+patient scope for defense-in-depth
-    const updateResult = await dbAny.journalEntry.updateMany({
+    const updateResult = await db.journalEntry.updateMany({
       where: {
         id: params.id,
         tenantId: ctx.tenantId,
@@ -159,7 +158,7 @@ export async function DELETE(
     const ctx = await getPatientContext(req);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
-    const entry = await dbAny.journalEntry.findFirst({
+    const entry = await db.journalEntry.findFirst({
       where: {
         id: params.id,
         tenantId: ctx.tenantId,
@@ -177,7 +176,7 @@ export async function DELETE(
     }
 
     // Soft delete — scoped to tenant+patient for defense-in-depth
-    await dbAny.journalEntry.updateMany({
+    await db.journalEntry.updateMany({
       where: {
         id: params.id,
         tenantId: ctx.tenantId,

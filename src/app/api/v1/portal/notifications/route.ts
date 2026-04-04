@@ -8,7 +8,6 @@ import { ok, handleApiError, parsePagination, buildMeta } from "@/lib/api";
 import { getPatientContext } from "@/lib/patient-auth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,8 +21,8 @@ export async function GET(req: NextRequest) {
     };
 
     const [total, notifications] = await Promise.all([
-      dbAny.patientNotification.count({ where }),
-      dbAny.patientNotification.findMany({
+      db.patientNotification.count({ where }),
+      db.patientNotification.findMany({
         where,
         orderBy: { createdAt: "desc" as const },
         skip,

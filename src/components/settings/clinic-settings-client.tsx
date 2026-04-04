@@ -30,7 +30,7 @@ export function ClinicSettingsClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -73,6 +73,9 @@ export function ClinicSettingsClient() {
           });
         }
       })
+      .catch(() => {
+        setError("Erro ao carregar as configurações da clínica.");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -85,7 +88,7 @@ export function ClinicSettingsClient() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError("");
+    setError(null);
     setSuccess(false);
 
     try {
@@ -366,7 +369,11 @@ export function ClinicSettingsClient() {
         </CardContent>
       </Card>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <div className="rounded-md bg-red-50 p-4 mb-4">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
       {success && <p className="text-sm text-green-600">Configurações salvas com sucesso.</p>}
 
       <div className="flex justify-end">

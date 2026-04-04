@@ -33,9 +33,6 @@ import { sendPortalMagicLinkEmail } from "@/lib/email";
 import { PORTAL_MAGIC_LINK_EXPIRY_MS } from "@/lib/patient-auth";
 import { randomBytes } from "crypto";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
-
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
 const magicLinkRequestSchema = z.object({
@@ -90,7 +87,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await getPatientContext(req);
 
-    const sessions = await dbAny.patientPortalSession.findMany({
+    const sessions = await db.patientPortalSession.findMany({
       where: {
         patientAuthId: ctx.patientAuthId,
         revokedAt: null,
@@ -103,7 +100,7 @@ export async function GET(req: NextRequest) {
         createdAt: true,
         expiresAt: true,
       },
-      orderBy: { createdAt: "desc" as const },
+      orderBy: { createdAt: "desc" },
     });
 
     return ok(sessions);
@@ -132,7 +129,7 @@ async function handleMagicLinkRequest(
   });
 
   // Find ALL active PatientAuth records for this email (across all tenants)
-  const allAuths = await dbAny.patientAuth.findMany({
+  const allAuths = await db.patientAuth.findMany({
     where: {
       email: input.email,
       status: "ACTIVE",
@@ -159,7 +156,7 @@ async function handleMagicLinkRequest(
     const magicToken = randomBytes(32).toString("base64url");
     const magicTokenExpiresAt = new Date(Date.now() + PORTAL_MAGIC_LINK_EXPIRY_MS);
 
-    await dbAny.patientAuth.update({
+    await db.patientAuth.update({
       where: { id: auth.id },
       data: { magicToken, magicTokenExpiresAt },
     });
@@ -205,9 +202,8 @@ async function handleMagicLinkVerify(
 
   // Atomic token consumption via transaction
   const result = await db.$transaction(async (tx) => {
-    const txAny = tx as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    const patientAuth = await txAny.patientAuth.findUnique({
-      where: { magicToken: input.token } as never,
+    const patientAuth = await tx.patientAuth.findUnique({
+      where: { magicToken: input.token },
       include: {
         tenant: { select: { id: true, name: true, portalEnabled: true } },
       },
@@ -218,7 +214,7 @@ async function handleMagicLinkVerify(
     }
 
     if (!patientAuth.magicTokenExpiresAt || new Date(patientAuth.magicTokenExpiresAt) < new Date()) {
-      await txAny.patientAuth.update({
+      await tx.patientAuth.update({
         where: { id: patientAuth.id },
         data: { magicToken: null, magicTokenExpiresAt: null },
       });
@@ -226,7 +222,7 @@ async function handleMagicLinkVerify(
     }
 
     // Consume token atomically
-    await txAny.patientAuth.update({
+    await tx.patientAuth.update({
       where: { id: patientAuth.id },
       data: {
         magicToken: null,
@@ -281,9 +277,8 @@ async function handleActivate(
 
   // Atomic token consumption
   const result = await db.$transaction(async (tx) => {
-    const txAny = tx as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    const patientAuth = await txAny.patientAuth.findUnique({
-      where: { activationToken: input.token } as never,
+    const patientAuth = await tx.patientAuth.findUnique({
+      where: { activationToken: input.token },
       include: {
         patient: { select: { id: true } },
         tenant: { select: { id: true, portalEnabled: true } },
@@ -300,7 +295,7 @@ async function handleActivate(
 
     const tokenAge = Date.now() - new Date(patientAuth.updatedAt ?? patientAuth.createdAt).getTime();
     if (tokenAge > PORTAL_ACTIVATION_TOKEN_MAX_AGE_MS) {
-      await txAny.patientAuth.update({
+      await tx.patientAuth.update({
         where: { id: patientAuth.id },
         data: { activationToken: null },
       });
@@ -308,7 +303,7 @@ async function handleActivate(
     }
 
     // Activate — no password needed (magic-link only)
-    await txAny.patientAuth.update({
+    await tx.patientAuth.update({
       where: { id: patientAuth.id },
       data: {
         activatedAt: new Date(),
@@ -319,11 +314,11 @@ async function handleActivate(
     });
 
     // Create preferences if not exist
-    const existingPref = await txAny.patientPreference.findUnique({
-      where: { patientId: patientAuth.patientId } as never,
+    const existingPref = await tx.patientPreference.findUnique({
+      where: { patientId: patientAuth.patientId },
     });
     if (!existingPref) {
-      await txAny.patientPreference.create({
+      await tx.patientPreference.create({
         data: {
           patientId: patientAuth.patientId,
           tenantId: patientAuth.tenant.id,

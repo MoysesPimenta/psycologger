@@ -105,7 +105,7 @@ export function PortalProfileClient() {
 
   async function handleLogout() {
     try {
-      const res = await fetch("/api/v1/portal/auth", {
+      const res = await fetchWithCsrf("/api/v1/portal/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "logout" }),

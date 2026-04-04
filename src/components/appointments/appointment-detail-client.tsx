@@ -1140,7 +1140,7 @@ function ChargesCard({
     try {
       const amount = Math.round(parseFloat(newChargeForm.amountCents.replace(",", ".")) * 100);
       const discount = Math.round(parseFloat((newChargeForm.discountCents || "0").replace(",", ".")) * 100);
-      const res = await fetch("/api/v1/charges", {
+      const res = await fetchWithCsrf("/api/v1/charges", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

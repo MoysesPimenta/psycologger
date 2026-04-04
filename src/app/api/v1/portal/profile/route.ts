@@ -11,7 +11,6 @@ import { getPatientContext } from "@/lib/patient-auth";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbAny = db as any;
 
 const updateSchema = z.object({
   notifySessionReminder: z.boolean().optional(),
@@ -41,7 +40,7 @@ export async function GET(req: NextRequest) {
           dob: true,
         },
       }),
-      dbAny.patientPreference.findUnique({
+      db.patientPreference.findUnique({
         where: { patientId: ctx.patientId } as never,
       }),
     ]);
@@ -67,7 +66,7 @@ export async function PATCH(req: NextRequest) {
     const body = updateSchema.parse(await req.json());
 
     // Upsert preference
-    const preference = await dbAny.patientPreference.upsert({
+    const preference = await db.patientPreference.upsert({
       where: { patientId: ctx.patientId } as never,
       update: body,
       create: {
