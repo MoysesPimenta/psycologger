@@ -30,6 +30,8 @@ export interface PatientContext {
   email: string;
   patientName: string;
   preferredName: string | null;
+  /** Whether the patient has an active TERMS_OF_USE consent */
+  hasActiveConsent: boolean;
   tenant: {
     portalEnabled: boolean;
     portalPaymentsVisible: boolean;
@@ -227,6 +229,17 @@ export async function getPatientContext(req?: Request): Promise<PatientContext> 
     throw new ForbiddenError("O portal do paciente não está habilitado nesta clínica.");
   }
 
+  // Verify the patient has an active TERMS_OF_USE consent
+  const activeConsent = await db.consentRecord.findFirst({
+    where: {
+      tenantId: patientAuth.tenant.id,
+      patientId: patientAuth.patient.id,
+      consentType: "TERMS_OF_USE",
+      revokedAt: null,
+    },
+    orderBy: { acceptedAt: "desc" },
+  });
+
   return {
     patientAuthId: patientAuth.id,
     patientId: patientAuth.patient.id,
@@ -234,6 +247,7 @@ export async function getPatientContext(req?: Request): Promise<PatientContext> 
     email: patientAuth.email,
     patientName: patientAuth.patient.fullName,
     preferredName: patientAuth.patient.preferredName,
+    hasActiveConsent: !!activeConsent,
     tenant: {
       portalEnabled: patientAuth.tenant.portalEnabled,
       portalPaymentsVisible: patientAuth.tenant.portalPaymentsVisible,

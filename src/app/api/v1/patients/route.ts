@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       }
       // Verify target user belongs to this tenant
       const targetMembership = await db.membership.findFirst({
-        where: { tenantId: ctx.tenantId, userId: body.assignedUserId, status: "ACTIVE" as never },
+        where: { tenantId: ctx.tenantId, userId: body.assignedUserId, status: "ACTIVE" },
       });
       if (!targetMembership) {
         throw new BadRequestError(

@@ -4,6 +4,7 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import { ok, apiError, handleApiError } from "@/lib/api";
 import { parsePagination, buildMeta } from "@/lib/api";
 import { getPatientContext } from "@/lib/patient-auth";
@@ -58,13 +59,13 @@ export async function GET(req: NextRequest) {
     const tab = searchParams.get("tab") ?? "upcoming"; // "upcoming" | "past"
     const now = new Date();
 
-    const where = {
+    const where: Prisma.AppointmentWhereInput = {
       tenantId: ctx.tenantId,
       patientId: ctx.patientId,
       ...(tab === "upcoming"
-        ? { startsAt: { gte: now }, status: { in: ["SCHEDULED", "CONFIRMED"] as const } }
+        ? { startsAt: { gte: now }, status: { in: ["SCHEDULED", "CONFIRMED"] } }
         : { startsAt: { lt: now } }),
-    } as never;
+    };
 
     const [total, appointments] = await Promise.all([
       db.appointment.count({ where }),

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Calendar, PenLine, CreditCard, User, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SessionTimeoutWarning } from "./session-timeout-warning";
 
 const NAV_ITEMS = [
   { icon: Home, label: "Início", href: "/portal/dashboard" },
@@ -18,6 +19,8 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <SessionTimeoutWarning />
+
       {/* Top bar */}
       <header className="fixed top-0 inset-x-0 z-40 bg-white border-b h-14 flex items-center justify-between px-4 max-w-lg mx-auto">
         <Link href="/portal/dashboard" className="text-lg font-bold text-brand-600">

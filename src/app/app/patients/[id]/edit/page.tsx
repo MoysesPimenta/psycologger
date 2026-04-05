@@ -40,8 +40,8 @@ export default async function EditPatientPage({ params }: { params: { id: string
   const providers = await db.membership.findMany({
     where: {
       tenantId: ctx.tenantId,
-      status: "ACTIVE" as never,
-      role: { in: ["PSYCHOLOGIST" as never, "TENANT_ADMIN" as never] },
+      status: "ACTIVE",
+      role: { in: ["PSYCHOLOGIST", "TENANT_ADMIN"] as const },
     },
     select: {
       user: { select: { id: true, name: true } },
@@ -55,7 +55,7 @@ export default async function EditPatientPage({ params }: { params: { id: string
         <p className="text-sm text-gray-500 mt-1">{patient.fullName}</p>
       </div>
       <EditPatientClient
-        patient={patient as never}
+        patient={patient as any}
         appointmentTypes={appointmentTypes}
         providers={providers.map((m) => m.user)}
       />

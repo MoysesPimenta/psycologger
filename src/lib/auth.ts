@@ -58,10 +58,12 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Expose token fields to the client-side session object
+      // Expose only the user ID to the client-side session object.
+      // isSuperAdmin is intentionally NOT exposed to the client to prevent
+      // information leakage — it is only available server-side via the JWT token
+      // and checked in middleware/tenant resolution.
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.isSuperAdmin = (token.isSuperAdmin as boolean) ?? false;
       }
       return session;
     },

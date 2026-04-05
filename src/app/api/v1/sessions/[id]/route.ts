@@ -21,7 +21,13 @@ export async function GET(
     requirePermission(ctx, "sessions:view");
 
     const session = await db.clinicalSession.findFirst({
-      where: { id: params.id, tenantId: ctx.tenantId, deletedAt: null },
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        deletedAt: null,
+        // PSYCHOLOGIST can only see their own sessions
+        ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+      },
       include: {
         patient: { select: { id: true, fullName: true, preferredName: true } },
         provider: { select: { id: true, name: true } },
@@ -68,11 +74,13 @@ export async function PATCH(
     const body = updateSchema.parse(await req.json());
 
     // Restore requires finding even soft-deleted records; normal edits must not touch deleted sessions
+    // PSYCHOLOGIST can only edit their own sessions
     const existing = await db.clinicalSession.findFirst({
       where: {
         id: params.id,
         tenantId: ctx.tenantId,
         ...(body.restore !== true && { deletedAt: null }),
+        ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
       },
     });
     if (!existing) throw new NotFoundError("Session");

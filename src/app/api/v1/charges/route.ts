@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import type { Prisma, ChargeStatus } from "@prisma/client";
 import { getAuthContext } from "@/lib/tenant";
 import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError, BadRequestError } from "@/lib/api";
 import { requirePermission, ForbiddenError } from "@/lib/rbac";
@@ -46,22 +47,19 @@ export async function GET(req: NextRequest) {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    const statusFilter =
-      status === "OVERDUE"
+    const where: Prisma.ChargeWhereInput = {
+      tenantId: ctx.tenantId,
+      ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+      ...(status === "OVERDUE"
         ? {
             OR: [
-              { status: "OVERDUE" as never },
-              { status: "PENDING" as never, dueDate: { lt: today } },
+              { status: "OVERDUE" as ChargeStatus },
+              { status: "PENDING" as ChargeStatus, dueDate: { lt: today } },
             ],
           }
         : status
-        ? { status: status as never }
-        : {};
-
-    const where = {
-      tenantId: ctx.tenantId,
-      ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
-      ...statusFilter,
+        ? { status: status as ChargeStatus }
+        : {}),
       ...(patientId && { patientId }),
       ...((from || to) && {
         dueDate: {
@@ -71,27 +69,27 @@ export async function GET(req: NextRequest) {
       }),
     };
 
-    const [charges, total] = await Promise.all([
-      db.charge.findMany({
-        where,
-        include: {
-          patient: { select: { id: true, fullName: true } },
-          provider: { select: { id: true, name: true } },
-          payments: {
-            select: { id: true, amountCents: true, method: true, paidAt: true },
-          },
+    const chargesQuery = db.charge.findMany({
+      where,
+      include: {
+        patient: { select: { id: true, fullName: true } },
+        provider: { select: { id: true, name: true } },
+        payments: {
+          select: { id: true, amountCents: true, method: true, paidAt: true },
         },
-        orderBy: { dueDate: "desc" },
-        skip: pagination.skip,
-        take: pagination.pageSize,
-      }),
-      db.charge.count({ where }),
-    ]);
+      },
+      orderBy: { dueDate: "desc" },
+      skip: pagination.skip,
+      take: pagination.pageSize,
+    });
+    const countQuery = db.charge.count({ where });
+
+    const [charges, total] = await Promise.all([chargesQuery, countQuery]);
 
     // Compute paid amount for each charge
     const withPaid = charges.map((c) => ({
       ...c,
-      paidAmountCents: c.payments.reduce((s, p) => s + p.amountCents, 0),
+      paidAmountCents: c.payments.reduce((s: number, p: { amountCents: number }) => s + p.amountCents, 0),
     }));
 
     return ok(withPaid, buildMeta(total, pagination));

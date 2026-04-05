@@ -145,9 +145,9 @@ export async function POST(req: NextRequest) {
           where: {
             id: body.appointmentId,
             tenantId: ctx.tenantId,
-            status: { notIn: ["CANCELED" as never, "NO_SHOW" as never, "COMPLETED" as never] },
+            status: { notIn: ["CANCELED", "NO_SHOW", "COMPLETED"] as const },
           },
-          data: { status: "COMPLETED" as never },
+          data: { status: "COMPLETED" },
         });
       }
 

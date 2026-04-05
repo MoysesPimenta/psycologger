@@ -56,7 +56,9 @@ const PAYMENT_METHODS = [
   { value: "OTHER", label: "Outro" },
 ];
 
-const statusColors: Record<string, string> = {
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info";
+
+const statusColors: Record<string, BadgeVariant> = {
   SCHEDULED: "info",
   CONFIRMED: "success",
   COMPLETED: "success",
@@ -303,7 +305,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{displayName}</span>
-                      <Badge variant={statusColors[appt.status] as never ?? "secondary"} className="text-xs">
+                      <Badge variant={statusColors[appt.status] ?? "secondary"} className="text-xs">
                         {appointmentStatusLabel(appt.status)}
                       </Badge>
                     </div>

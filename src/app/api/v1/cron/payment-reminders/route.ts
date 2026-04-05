@@ -34,7 +34,7 @@ interface ChargeWithRelations {
 
 async function hasReminderBeenSent(chargeId: string, type: string, tenantId: string): Promise<boolean> {
   const count = await db.paymentReminderLog.count({
-    where: { chargeId, type: type as any, tenantId },
+    where: { chargeId, type: type as "PAYMENT_CREATED" | "PAYMENT_DUE_24H" | "PAYMENT_OVERDUE", tenantId },
   });
   return count > 0;
 }
@@ -42,19 +42,19 @@ async function hasReminderBeenSent(chargeId: string, type: string, tenantId: str
 async function logReminder(data: {
   tenantId: string;
   chargeId: string;
-  type: string;
+  type: "PAYMENT_CREATED" | "PAYMENT_DUE_24H" | "PAYMENT_OVERDUE";
   recipient: string;
-  status: string;
+  status: "SENT" | "FAILED" | "BOUNCED";
   errorMsg?: string;
 }) {
   await db.paymentReminderLog.create({
     data: {
       tenantId: data.tenantId,
       chargeId: data.chargeId,
-      type: data.type as any,
+      type: data.type,
       channel: "EMAIL",
       recipient: data.recipient,
-      status: data.status as any,
+      status: data.status,
       errorMsg: data.errorMsg ?? null,
     },
   });
@@ -85,16 +85,16 @@ export async function POST(req: NextRequest) {
 
   // ─── 1. Due tomorrow (24h reminder) ─────────────────────────────────────
 
-  const chargesDueTomorrow = await db.charge.findMany({
+  const chargesDueTomorrow = (await db.charge.findMany({
     where: {
-      status: { in: ["PENDING" as never] },
+      status: { in: ["PENDING"] },
       dueDate: { gte: tomorrow, lt: dayAfterTomorrow },
     },
     include: {
       patient: { select: { id: true, fullName: true, email: true } },
       tenant: { select: { id: true, name: true } },
     },
-  } as never) as unknown as ChargeWithRelations[];
+  })) as unknown as ChargeWithRelations[];
 
   for (const charge of chargesDueTomorrow) {
     if (!charge.patient.email) continue;
@@ -141,16 +141,16 @@ export async function POST(req: NextRequest) {
 
   // ─── 2. Overdue today ──────────────────────────────────────────────────
 
-  const chargesOverdue = await db.charge.findMany({
+  const chargesOverdue = (await db.charge.findMany({
     where: {
-      status: { in: ["PENDING" as never, "OVERDUE" as never] },
+      status: { in: ["PENDING", "OVERDUE"] },
       dueDate: { lt: today },
     },
     include: {
       patient: { select: { id: true, fullName: true, email: true } },
       tenant: { select: { id: true, name: true } },
     },
-  } as never) as unknown as ChargeWithRelations[];
+  })) as unknown as ChargeWithRelations[];
 
   for (const charge of chargesOverdue) {
     if (!charge.patient.email) continue;
@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
       if (charge.status === "PENDING") {
         await db.charge.update({
           where: { id: charge.id },
-          data: { status: "OVERDUE" as never },
+          data: { status: "OVERDUE" },
         });
       }
 

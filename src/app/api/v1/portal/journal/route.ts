@@ -44,6 +44,11 @@ export async function GET(req: NextRequest) {
       return ok([]);
     }
 
+    // Require active consent to access journal data
+    if (!ctx.hasActiveConsent) {
+      return apiError("FORBIDDEN", "Aceite os termos de uso para acessar o diário.", 403);
+    }
+
     const { searchParams } = new URL(req.url);
     const { page, pageSize, skip } = parsePagination(searchParams);
 
@@ -93,6 +98,11 @@ export async function POST(req: NextRequest) {
 
     if (!ctx.tenant.portalJournalEnabled) {
       return apiError("FORBIDDEN", "Diário não está habilitado.", 403);
+    }
+
+    // Require active consent to create journal entries
+    if (!ctx.hasActiveConsent) {
+      return apiError("FORBIDDEN", "Aceite os termos de uso para utilizar o diário.", 403);
     }
 
     // Rate limit journal creation per patient
@@ -178,11 +188,11 @@ export async function POST(req: NextRequest) {
         : undefined,
     });
   } catch (err) {
-    console.error("[portal-journal] POST failed:", {
-      name: (err as Error)?.name,
-      message: (err as Error)?.message,
-      stack: (err as Error)?.stack?.slice(0, 500),
-    });
+    // Log only safe error details — never include stack traces that may reveal
+    // internal paths or PHI in production logs
+    console.error(
+      `[portal-journal] POST failed: ${(err as Error)?.name}: ${(err as Error)?.message}`
+    );
     return handleApiError(err);
   }
 }

@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     const invite = await db.invite.upsert({
       where: {
         tenantId_email: { tenantId: ctx.tenantId, email: body.email },
-      } as never,
+      },
       update: {
         role: body.role,
         expiresAt,

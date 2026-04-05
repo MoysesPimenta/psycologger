@@ -35,6 +35,23 @@ export async function uploadFile(opts: {
   mimeType: string;
   storageKey: string; // e.g. "tenant-id/session-id/uuid-filename.pdf"
 }): Promise<string> {
+  // Validate storage key to prevent path traversal
+  if (
+    opts.storageKey.includes("..") ||
+    opts.storageKey.startsWith("/") ||
+    /[<>:"|?*\x00-\x1f]/.test(opts.storageKey)
+  ) {
+    throw new Error("Invalid storage key: path traversal or invalid characters detected");
+  }
+
+  // Enforce maximum upload size
+  const MAX_UPLOAD_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+  if (opts.buffer.length > MAX_UPLOAD_SIZE_BYTES) {
+    throw new Error(
+      `File exceeds maximum size of ${MAX_UPLOAD_SIZE_BYTES} bytes (got ${opts.buffer.length})`
+    );
+  }
+
   const base = storageBase();
   const res = await fetch(`${base}/object/${BUCKET}/${opts.storageKey}`, {
     method: "POST",
@@ -47,8 +64,9 @@ export async function uploadFile(opts: {
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Storage upload failed: ${res.status} ${text}`);
+    // Do not log response body — it may contain internal details or keys
+    console.error(`[storage] Upload failed: HTTP ${res.status}`);
+    throw new Error(`Storage upload failed: ${res.status}`);
   }
 
   return opts.storageKey;
@@ -56,6 +74,9 @@ export async function uploadFile(opts: {
 
 /** Generate a signed URL for downloading a private file (valid 1 hour). */
 export async function signedDownloadUrl(storageKey: string): Promise<string> {
+  if (storageKey.includes("..") || storageKey.startsWith("/")) {
+    throw new Error("Invalid storage key: path traversal detected");
+  }
   const base = storageBase();
   const res = await fetch(`${base}/object/sign/${BUCKET}/${storageKey}`, {
     method: "POST",
@@ -70,6 +91,9 @@ export async function signedDownloadUrl(storageKey: string): Promise<string> {
 
 /** Delete a file from Supabase Storage. */
 export async function deleteFile(storageKey: string): Promise<void> {
+  if (storageKey.includes("..") || storageKey.startsWith("/")) {
+    throw new Error("Invalid storage key: path traversal detected");
+  }
   const base = storageBase();
   const res = await fetch(`${base}/object/${BUCKET}/${storageKey}`, {
     method: "DELETE",

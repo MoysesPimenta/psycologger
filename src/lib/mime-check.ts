@@ -103,13 +103,16 @@ export function validateMimeType(buffer: Buffer, declaredMime: string): boolean 
     return true;
   }
 
-  // WebP: we check for RIFF header; WebP has "WEBP" at offset 8 but we only check RIFF
-  // Additional check for WEBP at offset 8
-  if (detected === "image/webp" && declaredMime === "image/webp") {
+  // WebP: RIFF header is shared with AVI, WAV, etc. Verify the "WEBP" tag at offset 8.
+  if (detected === "image/webp") {
     if (buffer.length >= 12) {
       const webpTag = buffer.slice(8, 12).toString("ascii");
-      return webpTag === "WEBP";
+      if (webpTag !== "WEBP") return false; // RIFF file but not WebP (e.g., AVI, WAV)
+    } else {
+      return false; // Buffer too short to confirm WebP
     }
+    // After confirming it's actually WebP, accept if declared as image/webp
+    return declaredMime === "image/webp";
   }
 
   return false;

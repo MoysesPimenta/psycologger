@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
         },
       }),
       db.patientPreference.findUnique({
-        where: { patientId: ctx.patientId } as never,
+        where: { patientId: ctx.patientId },
       }),
     ]);
 
@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest) {
 
     // Upsert preference
     const preference = await db.patientPreference.upsert({
-      where: { patientId: ctx.patientId } as never,
+      where: { patientId: ctx.patientId },
       update: body,
       create: {
         patientId: ctx.patientId,

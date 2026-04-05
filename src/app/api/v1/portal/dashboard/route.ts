@@ -69,7 +69,9 @@ export async function GET(req: NextRequest) {
                 moodScore: true,
                 createdAt: true,
                 visibility: true,
-                noteText: true,
+                // noteText intentionally excluded from dashboard response.
+                // Full text is only returned via the individual journal detail endpoint.
+                // This prevents accidental exposure of therapist-only notes.
               },
               orderBy: { createdAt: "desc" as const },
               take: 5,
@@ -96,16 +98,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Truncate journal noteText for dashboard preview
-    const safeJournalEntries = (recentJournalEntries ?? []).map(
-      (e: Record<string, unknown>) => ({
-        ...e,
-        noteText: e.noteText
-          ? (e.noteText as string).substring(0, 100) +
-            ((e.noteText as string).length > 100 ? "..." : "")
-          : null,
-      }),
-    );
+    // Journal entries are returned without noteText for dashboard.
+    // Full text is only available via GET /api/v1/portal/journal/[id].
+    const safeJournalEntries = recentJournalEntries ?? [];
 
     const pendingTotal = pendingCharges.reduce(
       (sum: number, c: { amountCents: number; discountCents: number }) =>

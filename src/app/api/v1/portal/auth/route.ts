@@ -116,7 +116,11 @@ async function handleMagicLinkRequest(
   ipAddress: string | undefined,
   userAgent: string | undefined,
 ) {
-  const rlKey = `portal-magic:${ipAddress ?? "unknown"}:${input.email}`;
+  // Rate limit by IP + email. Use email as sole key if IP is unavailable,
+  // preventing all IP-unknown requests from sharing one bucket.
+  const rlKey = ipAddress
+    ? `portal-magic:${ipAddress}:${input.email}`
+    : `portal-magic:noip:${input.email}`;
   const rl = await rateLimit(rlKey, PORTAL_MAGIC_LINK_RATE_LIMIT, PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS);
   if (!rl.allowed) {
     return apiError("TOO_MANY_REQUESTS", "Muitas solicitações. Aguarde antes de tentar novamente.", 429);
@@ -194,7 +198,11 @@ async function handleMagicLinkVerify(
   ipAddress: string | undefined,
   userAgent: string | undefined,
 ) {
-  const rlKey = `portal-magic-verify:${ipAddress ?? "unknown"}`;
+  // Rate limit by IP + token prefix to prevent brute-force per-token
+  const tokenPrefix = input.token.substring(0, 8);
+  const rlKey = ipAddress
+    ? `portal-magic-verify:${ipAddress}:${tokenPrefix}`
+    : `portal-magic-verify:noip:${tokenPrefix}`;
   const rl = await rateLimit(rlKey, PORTAL_MAGIC_LINK_RATE_LIMIT, PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS);
   if (!rl.allowed) {
     return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde antes de tentar novamente.", 429);
@@ -272,7 +280,10 @@ async function handleActivate(
   ipAddress: string | undefined,
   userAgent: string | undefined,
 ) {
-  const rlKey = `portal-activate:${ipAddress ?? "unknown"}`;
+  const tokenPrefix = input.token.substring(0, 8);
+  const rlKey = ipAddress
+    ? `portal-activate:${ipAddress}:${tokenPrefix}`
+    : `portal-activate:noip:${tokenPrefix}`;
   const rl = await rateLimit(rlKey, PORTAL_ACTIVATION_RATE_LIMIT, PORTAL_ACTIVATION_RATE_LIMIT_WINDOW_MS);
   if (!rl.allowed) {
     return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde antes de tentar novamente.", 429);

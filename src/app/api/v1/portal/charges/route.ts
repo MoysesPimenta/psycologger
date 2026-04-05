@@ -4,6 +4,7 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import { ok, handleApiError, parsePagination, buildMeta } from "@/lib/api";
 import { getPatientContext } from "@/lib/patient-auth";
 
@@ -19,18 +20,15 @@ export async function GET(req: NextRequest) {
     const { page, pageSize, skip } = parsePagination(searchParams);
     const tab = searchParams.get("tab") ?? "all"; // "pending" | "paid" | "all"
 
-    const statusFilter =
-      tab === "pending"
-        ? { in: ["PENDING", "OVERDUE"] }
-        : tab === "paid"
-          ? { equals: "PAID" }
-          : undefined;
-
-    const where = {
+    const where: Prisma.ChargeWhereInput = {
       tenantId: ctx.tenantId,
       patientId: ctx.patientId,
-      ...(statusFilter ? { status: statusFilter } : {}),
-    } as never;
+      ...(tab === "pending"
+        ? { status: { in: ["PENDING", "OVERDUE"] } }
+        : tab === "paid"
+          ? { status: "PAID" }
+          : {}),
+    };
 
     const [total, charges] = await Promise.all([
       db.charge.count({ where }),

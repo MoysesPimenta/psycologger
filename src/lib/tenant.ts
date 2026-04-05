@@ -31,7 +31,14 @@ export async function getAuthContext(
   if (!session?.user?.id) throw new UnauthorizedError();
 
   const userId = session.user.id;
-  const isSuperAdmin = session.user.isSuperAdmin ?? false;
+
+  // isSuperAdmin is no longer exposed in the client session for security.
+  // Read it from the database to ensure freshness and prevent client tampering.
+  const userRecord = await db.user.findUnique({
+    where: { id: userId },
+    select: { isSuperAdmin: true },
+  });
+  const isSuperAdmin = userRecord?.isSuperAdmin ?? false;
 
   if (isSuperAdmin && !tenantId) {
     // SuperAdmin platform-level access

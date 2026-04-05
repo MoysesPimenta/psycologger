@@ -14,6 +14,12 @@ function getResend(): Resend {
     const key = process.env.RESEND_API_KEY;
     if (!key) throw new Error("RESEND_API_KEY is not set");
     if (key.startsWith("re_test_")) {
+      if (process.env.NODE_ENV === "production") {
+        throw new Error(
+          "RESEND_API_KEY cannot be a test key (re_test_*) in production. " +
+          "Use a live key and verify your domain at https://resend.com/domains."
+        );
+      }
       console.warn(
         "[email] WARNING: Using a Resend TEST API key (re_test_*). " +
         "Emails will ONLY be delivered to the account owner's verified email. " +
@@ -414,6 +420,11 @@ async function sendEmail({
   subject: string;
   html: string;
 }) {
+  // Validate email format to prevent injection
+  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(to)) {
+    throw new Error(`Invalid email address format`);
+  }
+
   if (process.env.NODE_ENV === "development" && !process.env.RESEND_API_KEY) {
     console.log(`[email:DEV] To: ${to}\nSubject: ${subject}\n---`);
     return { id: "dev-email-id" };
@@ -438,12 +449,12 @@ async function sendEmail({
   });
 
   if (error) {
-    // Log full error details for debugging
+    // Log safe error details — never log full error object which may contain
+    // sensitive headers, tokens, or PII from Resend API responses
     const errObj = error as unknown as Record<string, unknown>;
     console.error(
-      `[email] Resend FAILED to="${to}" from="${fromEmail}" ` +
-      `statusCode=${errObj.statusCode ?? "?"} name=${errObj.name ?? "?"} ` +
-      `message="${error.message}" full=${JSON.stringify(error)}`
+      `[email] Resend FAILED statusCode=${errObj.statusCode ?? "?"} ` +
+      `name=${errObj.name ?? "?"} message="${error.message}"`
     );
 
     // Surface actionable advice for common errors

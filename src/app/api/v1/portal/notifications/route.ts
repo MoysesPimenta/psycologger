@@ -4,14 +4,20 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { ok, handleApiError, parsePagination, buildMeta } from "@/lib/api";
+import { ok, handleApiError, apiError, parsePagination, buildMeta } from "@/lib/api";
 import { getPatientContext } from "@/lib/patient-auth";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getPatientContext(req);
+
+    // Rate limit: 60 requests per minute per patient
+    const rl = await rateLimit(`portal-notifications:${ctx.patientId}`, 60, 60 * 1000);
+    if (!rl.allowed) {
+      return apiError("TOO_MANY_REQUESTS", "Muitas solicitações. Aguarde.", 429);
+    }
+
     const { searchParams } = new URL(req.url);
     const { page, pageSize, skip } = parsePagination(searchParams);
 

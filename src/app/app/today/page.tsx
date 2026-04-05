@@ -51,7 +51,7 @@ export default async function TodayPage() {
           id: true, fullName: true, preferredName: true, phone: true,
           defaultFeeOverrideCents: true,
           defaultAppointmentType: { select: { defaultPriceCents: true } },
-        } as never,
+        },
       },
       provider: { select: { id: true, name: true } },
       appointmentType: { select: { id: true, name: true, color: true, defaultPriceCents: true } },
@@ -104,7 +104,7 @@ export default async function TodayPage() {
 
       {/* Appointments list (interactive) */}
       <TodayClient
-        appointments={appointments as never}
+        appointments={appointments as any}
         userId={ctx.userId}
         role={ctx.role}
       />

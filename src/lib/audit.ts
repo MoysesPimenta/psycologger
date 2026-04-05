@@ -121,17 +121,28 @@ export async function auditLog(params: AuditParams): Promise<void> {
  * These keys should never appear in audit logs.
  */
 const PHI_KEYS = new Set([
-  "noteText", "note", "notes", "content", "body",
-  "fullName", "name", "email", "phone", "cpf", "dob",
+  "notetext", "note", "notes", "content", "body",
+  "fullname", "name", "email", "phone", "cpf", "dob",
   "address", "diagnosis", "medication", "prescription",
+  "dateofbirth", "medicalhistory", "encryptedmedicalhistory",
+  "sessioncontent", "journalcontent", "password", "passwordhash",
+  "tokenhash", "magictoken", "resettoken",
 ]);
 
 function redact(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    if (PHI_KEYS.has(key)) {
+    // Case-insensitive PHI key matching
+    if (PHI_KEYS.has(key.toLowerCase())) {
       result[key] = "[REDACTED]";
-    } else if (value && typeof value === "object" && !Array.isArray(value)) {
+    } else if (Array.isArray(value)) {
+      // Redact arrays of objects recursively
+      result[key] = value.map((item) =>
+        item && typeof item === "object" && !Array.isArray(item)
+          ? redact(item as Record<string, unknown>)
+          : item
+      );
+    } else if (value && typeof value === "object") {
       result[key] = redact(value as Record<string, unknown>);
     } else {
       result[key] = value;

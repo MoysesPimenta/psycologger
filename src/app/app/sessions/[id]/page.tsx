@@ -41,7 +41,7 @@ export default async function SessionPage({
       <SessionEditor
         session={null}
         patient={patient}
-        appointment={appointment as never}
+        appointment={appointment as any}
         canEdit={can(ctx, "sessions:create")}
         userId={ctx.userId}
       />
@@ -69,9 +69,9 @@ export default async function SessionPage({
 
   return (
     <SessionEditor
-      session={session as never}
+      session={session as any}
       patient={session.patient}
-      appointment={session.appointment as never}
+      appointment={session.appointment as any}
       canEdit={can(ctx, "sessions:edit")}
       userId={ctx.userId}
     />

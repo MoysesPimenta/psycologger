@@ -49,7 +49,7 @@ describe("Email service", () => {
 
       expect(mockSend).toHaveBeenCalled();
       const call = mockSend.mock.calls[0][0];
-      expect(call.to).toBe("user@example.com");
+      expect(call.to).toEqual(["user@example.com"]);
       expect(call.subject).toContain("link de acesso");
       expect(call.html).toContain("João");
       expect(call.html).toContain("Entrar na minha conta");
@@ -103,7 +103,7 @@ describe("Email service", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.to).toBe("newuser@example.com");
+      expect(call.to).toEqual(["newuser@example.com"]);
       expect(call.html).toContain("Dr. Silva");
       expect(call.html).toContain("Psicólogo(a)");
       expect(call.html).toContain("Aceitar convite");
@@ -126,7 +126,7 @@ describe("Email service", () => {
       const roles = {
         TENANT_ADMIN: "Administrador",
         PSYCHOLOGIST: "Psicólogo(a)",
-        ASSISTANT: "Assistente/Faturamento",
+        ASSISTANT: "Assistente",
         READONLY: "Leitor",
       };
 
@@ -174,7 +174,7 @@ describe("Email service", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.to).toBe("patient@example.com");
+      expect(call.to).toEqual(["patient@example.com"]);
       expect(call.html).toContain("Maria Silva");
       expect(call.html).toContain("15 de março de 2026");
       expect(call.html).toContain("14:30");
@@ -243,7 +243,7 @@ describe("Email service", () => {
       });
 
       const call = mockSend.mock.calls[0][0];
-      expect(call.to).toBe("patient@example.com");
+      expect(call.to).toEqual(["patient@example.com"]);
       expect(call.subject).toContain("Lembrete");
       expect(call.html).toContain("Ana Costa");
       expect(call.html).toContain("16 de março de 2026");
@@ -296,8 +296,7 @@ describe("Email service", () => {
       }
 
       expect(console.error).toHaveBeenCalledWith(
-        "[email] Resend error:",
-        expect.objectContaining({ message: "Network timeout" })
+        expect.stringContaining("Resend FAILED")
       );
     });
 

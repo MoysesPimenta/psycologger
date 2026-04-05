@@ -36,7 +36,15 @@ export function generateCsrfToken(): string {
  */
 export function setCsrfCookie(req: NextRequest, response: NextResponse): void {
   const existing = req.cookies.get(CSRF_COOKIE_NAME)?.value;
-  if (existing) return; // Already has a token — don't rotate on every request
+
+  // Rotate CSRF token on auth state changes to prevent fixation attacks.
+  // Detected by checking if the auth session cookie was just set/cleared.
+  const pathname = req.nextUrl.pathname;
+  const isAuthCallback = pathname.startsWith("/api/auth/callback");
+  const isPortalAuthAction = pathname === "/api/v1/portal/auth";
+
+  // If not an auth transition and token already exists, keep the current one
+  if (existing && !isAuthCallback && !isPortalAuthAction) return;
 
   const token = generateCsrfToken();
   response.cookies.set(CSRF_COOKIE_NAME, token, {
@@ -85,6 +93,14 @@ export function validateCsrf(req: NextRequest): boolean {
   // Both must be present and match
   if (!cookieToken || !headerToken) return false;
   if (cookieToken.length < 32) return false;
+  if (cookieToken.length !== headerToken.length) return false;
 
-  return cookieToken === headerToken;
+  // Constant-time comparison to prevent timing attacks.
+  // Uses XOR-based comparison since crypto.timingSafeEqual is not
+  // available in the Edge Runtime (middleware runs in Edge).
+  let mismatch = 0;
+  for (let i = 0; i < cookieToken.length; i++) {
+    mismatch |= cookieToken.charCodeAt(i) ^ headerToken.charCodeAt(i);
+  }
+  return mismatch === 0;
 }

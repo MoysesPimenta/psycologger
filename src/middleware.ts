@@ -33,7 +33,8 @@ export default withAuth(
     const token = (req as NextRequest & { nextauth?: { token?: Record<string, unknown> } }).nextauth?.token;
     const pathname = req.nextUrl.pathname;
 
-    // SuperAdmin routes: require isSuperAdmin flag
+    // SuperAdmin routes: require isSuperAdmin flag from JWT token (server-side only).
+    // This flag is in the JWT but NOT exposed in the client session object.
     if (pathname.startsWith("/sa/") && pathname !== "/sa/login") {
       if (!token?.isSuperAdmin) {
         return NextResponse.redirect(new URL("/sa/login", req.url));

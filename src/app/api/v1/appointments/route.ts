@@ -133,8 +133,8 @@ export async function GET(req: NextRequest) {
       ...(status === "ALL"
         ? {}
         : status
-        ? { status: status as never }
-        : { status: { not: "CANCELED" as never } }),
+        ? { status: status as "SCHEDULED" | "CONFIRMED" | "COMPLETED" | "CANCELED" | "NO_SHOW" }
+        : { status: { not: "CANCELED" as const } }),
     };
 
     const [appointments, total] = await Promise.all([

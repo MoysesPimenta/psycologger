@@ -95,7 +95,7 @@ describe("Storage service", () => {
       ).rejects.toThrow("Storage upload failed");
     });
 
-    test("includes status and error details in thrown error", async () => {
+    test("includes status code in thrown error (without leaking response body)", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
@@ -109,7 +109,41 @@ describe("Storage service", () => {
           mimeType: "application/pdf",
           storageKey: "tenant/session/file.pdf",
         })
-      ).rejects.toThrow(/500.*Internal server error/);
+      ).rejects.toThrow(/Storage upload failed: 500/);
+    });
+
+    test("rejects path traversal in storage key", async () => {
+      await expect(
+        uploadFile({
+          buffer: Buffer.from("content"),
+          fileName: "test.pdf",
+          mimeType: "application/pdf",
+          storageKey: "../../../etc/passwd",
+        })
+      ).rejects.toThrow(/path traversal/);
+    });
+
+    test("rejects storage keys starting with /", async () => {
+      await expect(
+        uploadFile({
+          buffer: Buffer.from("content"),
+          fileName: "test.pdf",
+          mimeType: "application/pdf",
+          storageKey: "/absolute/path/file.pdf",
+        })
+      ).rejects.toThrow(/path traversal/);
+    });
+
+    test("rejects files exceeding max upload size", async () => {
+      const oversizedBuffer = Buffer.alloc(26 * 1024 * 1024); // 26 MB
+      await expect(
+        uploadFile({
+          buffer: oversizedBuffer,
+          fileName: "large.pdf",
+          mimeType: "application/pdf",
+          storageKey: "tenant/session/large.pdf",
+        })
+      ).rejects.toThrow(/exceeds maximum size/);
     });
 
     test("sets x-upsert header to true", async () => {

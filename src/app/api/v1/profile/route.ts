@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     const user = await db.user.findUnique({
       where: { id: ctx.userId },
-      select: { id: true, name: true, email: true, phone: true, imageUrl: true, createdAt: true } as never,
+      select: { id: true, name: true, email: true, phone: true, imageUrl: true, createdAt: true },
     });
     if (!user) throw new NotFoundError("User");
 
@@ -51,8 +51,8 @@ export async function PATCH(req: NextRequest) {
       data: {
         ...(body.name !== undefined && { name: body.name }),
         ...(body.phone !== undefined && { phone: body.phone }),
-      } as never,
-      select: { id: true, name: true, email: true, phone: true } as never,
+      },
+      select: { id: true, name: true, email: true, phone: true },
     });
 
     await auditLog({

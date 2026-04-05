@@ -86,7 +86,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
 
   return (
     <PatientDetailClient
-      patient={patient as never}
+      patient={patient as any}
       canViewClinical={canViewClinical}
       role={ctx.role}
       userId={ctx.userId}
