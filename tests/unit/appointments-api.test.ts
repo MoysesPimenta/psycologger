@@ -11,6 +11,10 @@
 jest.mock("@/lib/db", () => ({
   db: {
     appointment: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn(), create: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
+    patient: { findFirst: jest.fn(), findUnique: jest.fn() },
+    membership: { findFirst: jest.fn() },
+    appointmentType: { findFirst: jest.fn() },
+    tenant: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
     recurrence: { create: jest.fn() },
     $transaction: jest.fn(),
   },
@@ -44,6 +48,16 @@ describe("Appointments API", () => {
     mockRequirePermission.mockImplementation(() => {});
     mockAuditLog.mockResolvedValue({} as any);
     mockExtractRequestMeta.mockReturnValue({ ipAddress: "127.0.0.1", userAgent: "test" });
+    // Reset all db mocks to clear any state between tests
+    (mockDb.appointment.findFirst as jest.Mock).mockReset();
+    (mockDb.appointment.findMany as jest.Mock).mockReset();
+    (mockDb.appointment.count as jest.Mock).mockReset();
+    (mockDb.$transaction as jest.Mock).mockReset();
+    (mockDb.patient.findFirst as jest.Mock).mockReset();
+    (mockDb.patient.findUnique as jest.Mock).mockReset();
+    (mockDb.membership.findFirst as jest.Mock).mockReset();
+    (mockDb.tenant.findUniqueOrThrow as jest.Mock).mockReset();
+    (mockDb.tenant.findUnique as jest.Mock).mockReset();
   });
 
   // ─── GET /api/v1/appointments ────────────────────────────────────────────
@@ -245,10 +259,19 @@ describe("Appointments API", () => {
         tenant: {},
       } as any);
 
-      mockDb.appointment.findFirst.mockResolvedValueOnce(null); // No conflict
+      // Mock validation queries
+      (mockDb.patient.findFirst as jest.Mock).mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440001" });
+      (mockDb.membership.findFirst as jest.Mock).mockResolvedValueOnce({ id: "membership-123" });
+      (mockDb.tenant.findUniqueOrThrow as jest.Mock).mockResolvedValueOnce({ timezone: "America/Sao_Paulo" });
+
+      // Mock conflict check (none found)
+      mockDb.appointment.findFirst.mockResolvedValueOnce(null);
+
+      // Mock transaction
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         return await cb({
           appointment: {
+            findFirst: jest.fn().mockResolvedValueOnce(null),
             create: jest.fn().mockResolvedValueOnce({
               id: "apt-new",
               patientId: "550e8400-e29b-41d4-a716-446655440001",
@@ -258,7 +281,6 @@ describe("Appointments API", () => {
               patient: { id: "550e8400-e29b-41d4-a716-446655440001", fullName: "John Doe" },
               appointmentType: { id: "t1", name: "Session" },
             }),
-            findFirst: jest.fn().mockResolvedValueOnce(null),
             updateMany: jest.fn(),
           },
           recurrence: {
@@ -296,10 +318,25 @@ describe("Appointments API", () => {
         tenant: {},
       } as any);
 
-      // Conflict found
-      mockDb.appointment.findFirst.mockResolvedValueOnce({
-        id: "existing-apt",
-      } as any);
+      // Mock validation queries
+      (mockDb.patient.findFirst as jest.Mock).mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440001" });
+      (mockDb.membership.findFirst as jest.Mock).mockResolvedValueOnce({ id: "membership-123" });
+      (mockDb.tenant.findUniqueOrThrow as jest.Mock).mockResolvedValueOnce({ timezone: "America/Sao_Paulo" });
+
+      // Mock transaction that finds conflict on the first check
+      mockDb.$transaction.mockImplementationOnce(async (cb) => {
+        const mockTx = {
+          appointment: {
+            findFirst: jest.fn().mockResolvedValue({ id: "existing-apt" }), // Conflict found
+            create: jest.fn(),
+            updateMany: jest.fn(),
+          },
+          recurrence: {
+            create: jest.fn(),
+          },
+        };
+        return await cb(mockTx);
+      });
 
       const payload = {
         patientId: "550e8400-e29b-41d4-a716-446655440001",
@@ -391,15 +428,17 @@ describe("Appointments API", () => {
         id: "apt-123",
         tenantId: "tenant-456",
         startsAt: new Date("2026-03-20T10:00:00Z"),
-        patient: { id: "p1", fullName: "Patient A" },
+        patient: { id: "p1", fullName: "Patient A", preferredName: null, email: "patient@example.com", phone: "123-456-7890" },
         provider: { id: "u1", name: "Dr. Silva", email: "silva@example.com" },
-        appointmentType: { id: "t1", name: "Session" },
+        appointmentType: { id: "t1", name: "Session", color: "#blue", defaultDurationMin: 60 },
         clinicalSession: null,
         charges: [],
         reminderLogs: [],
       };
 
-      mockDb.appointment.findFirst.mockResolvedValueOnce(mockAppointment as any);
+      // Reset the mock and set up fresh
+      (mockDb.appointment.findFirst as jest.Mock).mockClear();
+      (mockDb.appointment.findFirst as jest.Mock).mockResolvedValueOnce(mockAppointment as any);
 
       const req = new NextRequest("http://localhost:3000/api/v1/appointments/apt-123");
       const res = await getAppointment(req, { params: { id: "apt-123" } });
@@ -419,7 +458,9 @@ describe("Appointments API", () => {
         tenant: {},
       } as any);
 
-      mockDb.appointment.findFirst.mockResolvedValueOnce(null);
+      // Reset the mock and set up fresh
+      (mockDb.appointment.findFirst as jest.Mock).mockClear();
+      (mockDb.appointment.findFirst as jest.Mock).mockResolvedValueOnce(null);
 
       const req = new NextRequest("http://localhost:3000/api/v1/appointments/apt-from-other-tenant");
       const res = await getAppointment(req, { params: { id: "apt-from-other-tenant" } });
@@ -457,18 +498,26 @@ describe("Appointments API", () => {
         recurrenceId: null,
       };
 
-      mockDb.appointment.findFirst.mockResolvedValueOnce(existing as any);
+      (mockDb.appointment.findFirst as jest.Mock).mockClear();
+      (mockDb.appointment.findFirst as jest.Mock).mockResolvedValueOnce(existing as any);
 
-      mockDb.$transaction.mockImplementationOnce(async (cb) => {
-        return await cb({
+      const updated = {
+        id: "apt-123",
+        status: "COMPLETED",
+        tenantId: "tenant-456",
+        startsAt: new Date("2026-03-20T10:00:00Z"),
+        endsAt: new Date("2026-03-20T11:00:00Z"),
+      };
+
+      (mockDb.$transaction as jest.Mock).mockClear();
+      (mockDb.$transaction as jest.Mock).mockImplementationOnce(async (cb) => {
+        const mockTx = {
           appointment: {
-            update: jest.fn().mockResolvedValueOnce({
-              id: "apt-123",
-              status: "COMPLETED",
-            }),
-            updateMany: jest.fn(),
+            update: jest.fn().mockResolvedValue(updated),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
           },
-        } as any);
+        };
+        return await cb(mockTx);
       });
 
       const payload = {
@@ -503,9 +552,22 @@ describe("Appointments API", () => {
         endsAt: new Date("2026-03-20T11:00:00Z"),
       };
 
-      mockDb.appointment.findFirst
-        .mockResolvedValueOnce(existing as any) // First call: get existing
-        .mockResolvedValueOnce({ id: "apt-conflict" } as any); // Second call: find conflict
+      // Reset the mock for fresh setup
+      (mockDb.appointment.findFirst as jest.Mock).mockClear();
+      (mockDb.appointment.findFirst as jest.Mock).mockResolvedValueOnce(existing as any); // First call: get existing
+
+      // Mock transaction that finds a conflict
+      (mockDb.$transaction as jest.Mock).mockClear();
+      (mockDb.$transaction as jest.Mock).mockImplementationOnce(async (cb) => {
+        const mockTx = {
+          appointment: {
+            findFirst: jest.fn().mockResolvedValue({ id: "apt-conflict" }), // Conflict detected
+            update: jest.fn(),
+            updateMany: jest.fn(),
+          },
+        };
+        return await cb(mockTx);
+      });
 
       const payload = {
         startsAt: "2026-03-21T10:00:00Z",
@@ -542,16 +604,22 @@ describe("Appointments API", () => {
 
       mockDb.appointment.findFirst.mockResolvedValueOnce(existing as any);
 
+      const updated = {
+        id: "apt-123",
+        status: "CANCELED",
+        tenantId: "tenant-456",
+        startsAt: new Date("2026-03-20T10:00:00Z"),
+        endsAt: new Date("2026-03-20T11:00:00Z"),
+      };
+
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
-        return await cb({
+        const mockTx = {
           appointment: {
-            update: jest.fn().mockResolvedValueOnce({
-              id: "apt-123",
-              status: "CANCELED",
-            }),
-            updateMany: jest.fn(),
+            update: jest.fn().mockResolvedValue(updated),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
           },
-        } as any);
+        };
+        return await cb(mockTx);
       });
 
       const payload = {
@@ -594,16 +662,22 @@ describe("Appointments API", () => {
 
       mockDb.appointment.findFirst.mockResolvedValueOnce(existing as any);
 
+      const updated = {
+        id: "apt-123",
+        status: "CANCELED",
+        tenantId: "tenant-456",
+        startsAt: new Date("2026-03-20T10:00:00Z"),
+        endsAt: new Date("2026-03-20T11:00:00Z"),
+      };
+
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
-        return await cb({
+        const mockTx = {
           appointment: {
-            update: jest.fn().mockResolvedValueOnce({
-              id: "apt-123",
-              status: "CANCELED",
-            }),
-            updateMany: jest.fn(),
+            update: jest.fn().mockResolvedValue(updated),
+            updateMany: jest.fn().mockResolvedValue({ count: 3 }),
           },
-        } as any);
+        };
+        return await cb(mockTx);
       });
 
       const payload = {

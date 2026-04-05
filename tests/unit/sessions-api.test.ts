@@ -13,7 +13,8 @@ jest.mock("@/lib/db", () => ({
   db: {
     clinicalSession: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn(), create: jest.fn(), update: jest.fn() },
     sessionRevision: { create: jest.fn() },
-    appointment: { update: jest.fn() },
+    patient: { findFirst: jest.fn() },
+    appointment: { update: jest.fn(), findFirst: jest.fn(), updateMany: jest.fn() },
     $transaction: jest.fn(),
   },
 }));
@@ -238,6 +239,8 @@ describe("Sessions API", () => {
         tenant: {},
       } as any);
 
+      mockDb.patient.findFirst.mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440001" } as any);
+
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         return await cb({
           clinicalSession: {
@@ -250,6 +253,7 @@ describe("Sessions API", () => {
               tags: ["initial"],
               sessionDate: new Date("2026-03-20"),
             }),
+            findFirst: jest.fn().mockResolvedValueOnce(null),
           },
           sessionRevision: {
             create: jest.fn().mockResolvedValueOnce({
@@ -259,7 +263,7 @@ describe("Sessions API", () => {
             }),
           },
           appointment: {
-            update: jest.fn(),
+            updateMany: jest.fn(),
           },
         } as any);
       });
@@ -293,6 +297,9 @@ describe("Sessions API", () => {
         tenant: {},
       } as any);
 
+      mockDb.patient.findFirst.mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440001" } as any);
+      (mockDb as any).appointment.findFirst.mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440010" } as any);
+
       const mockTx = {
         clinicalSession: {
           create: jest.fn().mockResolvedValueOnce({
@@ -300,12 +307,13 @@ describe("Sessions API", () => {
             patientId: "550e8400-e29b-41d4-a716-446655440001",
             providerUserId: "user-123",
           }),
+          findFirst: jest.fn().mockResolvedValueOnce(null),
         },
         sessionRevision: {
           create: jest.fn(),
         },
         appointment: {
-          update: jest.fn(),
+          updateMany: jest.fn(),
         },
       };
 
@@ -328,9 +336,11 @@ describe("Sessions API", () => {
 
       await createSession(req);
 
-      expect(mockTx.appointment.update).toHaveBeenCalledWith(
+      expect(mockTx.appointment.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: "550e8400-e29b-41d4-a716-446655440010" },
+          where: expect.objectContaining({
+            id: "550e8400-e29b-41d4-a716-446655440010",
+          }),
           data: { status: "COMPLETED" },
         })
       );
@@ -345,17 +355,20 @@ describe("Sessions API", () => {
         tenant: {},
       } as any);
 
+      mockDb.patient.findFirst.mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440001" } as any);
+
       const mockTx = {
         clinicalSession: {
           create: jest.fn().mockResolvedValueOnce({
             id: "session-new",
           }),
+          findFirst: jest.fn().mockResolvedValueOnce(null),
         },
         sessionRevision: {
           create: jest.fn(),
         },
         appointment: {
-          update: jest.fn(),
+          updateMany: jest.fn(),
         },
       };
 
@@ -420,6 +433,8 @@ describe("Sessions API", () => {
         tenant: {},
       } as any);
 
+      mockDb.patient.findFirst.mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440001" } as any);
+
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         return await cb({
           clinicalSession: {
@@ -427,12 +442,13 @@ describe("Sessions API", () => {
               id: "session-new",
               patientId: "550e8400-e29b-41d4-a716-446655440001",
             }),
+            findFirst: jest.fn().mockResolvedValueOnce(null),
           },
           sessionRevision: {
             create: jest.fn(),
           },
           appointment: {
-            update: jest.fn(),
+            updateMany: jest.fn(),
           },
         } as any);
       });
@@ -857,7 +873,7 @@ describe("Sessions API", () => {
 
       expect(mockDb.clinicalSession.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: "session-123" },
+          where: expect.objectContaining({ id: "session-123" }),
           data: {
             deletedAt: expect.any(Date),
             deletedBy: "user-123",

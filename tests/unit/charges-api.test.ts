@@ -15,14 +15,24 @@ jest.mock("@/lib/db", () => ({
   db: {
     charge: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn(), create: jest.fn(), update: jest.fn(), aggregate: jest.fn() },
     payment: { findMany: jest.fn(), aggregate: jest.fn() },
-    appointment: { findMany: jest.fn(), count: jest.fn() },
-    patient: { count: jest.fn(), findMany: jest.fn() },
+    appointment: { findMany: jest.fn(), count: jest.fn(), findFirst: jest.fn() },
+    patient: { count: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn() },
+    tenant: { findUnique: jest.fn() },
+    reminderTemplate: { findFirst: jest.fn() },
+    paymentReminderLog: { create: jest.fn() },
+    clinicalSession: { findFirst: jest.fn() },
     $transaction: jest.fn(),
   },
 }));
 jest.mock("@/lib/tenant");
 jest.mock("@/lib/rbac");
 jest.mock("@/lib/audit");
+jest.mock("@/lib/rate-limit", () => ({
+  rateLimit: jest.fn().mockResolvedValue({ allowed: true }),
+}));
+jest.mock("@/lib/email", () => ({
+  sendPaymentCreatedNotification: jest.fn(),
+}));
 jest.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: jest.fn() }));
 jest.mock("next-auth", () => ({ getServerSession: jest.fn(), default: jest.fn() }));
 jest.mock("next-auth/providers/email", () => ({ default: jest.fn() }));
@@ -278,6 +288,8 @@ describe("Charges API", () => {
         tenant: {},
       } as any);
 
+      mockDb.patient.findFirst.mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440000" } as any);
+
       const newCharge = {
         id: "charge-new",
         tenantId: "tenant-456",
@@ -333,6 +345,7 @@ describe("Charges API", () => {
         tenant: {},
       } as any);
 
+      mockDb.patient.findFirst.mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440000" } as any);
       mockDb.charge.create.mockResolvedValueOnce({ id: "charge-new" } as any);
 
       const payload = {
@@ -364,6 +377,7 @@ describe("Charges API", () => {
         tenant: {},
       } as any);
 
+      mockDb.patient.findFirst.mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440000" } as any);
       mockDb.charge.create.mockResolvedValueOnce({ id: "charge-new" } as any);
 
       const payload = {
@@ -468,6 +482,7 @@ describe("Charges API", () => {
         tenant: {},
       } as any);
 
+      mockDb.patient.findFirst.mockResolvedValueOnce({ id: "550e8400-e29b-41d4-a716-446655440000" } as any);
       mockDb.charge.create.mockResolvedValueOnce({
         id: "charge-new",
         patientId: "550e8400-e29b-41d4-a716-446655440000",

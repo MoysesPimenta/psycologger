@@ -12,7 +12,13 @@
 jest.mock("@/lib/db", () => ({
   db: {
     patient: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn(), create: jest.fn(), update: jest.fn() },
+    membership: { findFirst: jest.fn() },
   },
+}));
+jest.mock("@/lib/cpf-crypto", () => ({
+  encryptCpf: jest.fn((value) => value),
+  decryptPatientCpf: jest.fn((value) => value),
+  decryptPatientCpfs: jest.fn((value) => value),
 }));
 jest.mock("@/lib/tenant");
 jest.mock("@/lib/rbac");
@@ -325,6 +331,7 @@ describe("Patients API", () => {
       } as any);
 
       mockDb.patient.create.mockResolvedValueOnce({ id: "p-new" } as any);
+      mockDb.membership.findFirst.mockResolvedValueOnce({ id: "mem-1" } as any);
 
       const payload = {
         fullName: "Patient Name",

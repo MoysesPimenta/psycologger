@@ -3,8 +3,9 @@
  * Tests: pagination helpers, error classes, rate limiting logic
  */
 
-import { parsePagination, buildMeta, NotFoundError, ConflictError, rateLimit } from "@/lib/api";
+import { parsePagination, buildMeta, NotFoundError, ConflictError } from "@/lib/api";
 import { ForbiddenError, UnauthorizedError } from "@/lib/rbac";
+import { rateLimit } from "@/lib/rate-limit";
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
 
@@ -108,7 +109,7 @@ describe("Error classes", () => {
 
   test("NotFoundError default resource name", () => {
     const err = new NotFoundError();
-    expect(err.message).toContain("Resource");
+    expect(err.message).toContain("Recurso");
   });
 
   test("ConflictError has status 409", () => {
@@ -128,7 +129,7 @@ describe("Error classes", () => {
     const err = new UnauthorizedError();
     expect(err.status).toBe(401);
     expect(err.name).toBe("UnauthorizedError");
-    expect(err.message).toBe("Authentication required");
+    expect(err.message).toBe("Autenticação necessária");
   });
 
   test("all errors are instanceof Error", () => {
@@ -145,47 +146,43 @@ describe("rateLimit (in-memory)", () => {
   // Use unique keys per test to avoid cross-test contamination
   const key = () => `test-${Math.random().toString(36).slice(2)}`;
 
-  test("first request is allowed", () => {
-    const result = rateLimit(key(), 5, 60_000);
+  test("first request is allowed", async () => {
+    const result = await rateLimit(key(), 5, 60_000);
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBe(4);
   });
 
-  test("requests within limit are all allowed", () => {
+  test("requests within limit are all allowed", async () => {
     const k = key();
     for (let i = 0; i < 5; i++) {
-      const r = rateLimit(k, 5, 60_000);
+      const r = await rateLimit(k, 5, 60_000);
       expect(r.allowed).toBe(true);
     }
   });
 
-  test("request exceeding limit is denied", () => {
+  test("request exceeding limit is denied", async () => {
     const k = key();
-    for (let i = 0; i < 5; i++) rateLimit(k, 5, 60_000);
-    const r = rateLimit(k, 5, 60_000);
+    for (let i = 0; i < 5; i++) await rateLimit(k, 5, 60_000);
+    const r = await rateLimit(k, 5, 60_000);
     expect(r.allowed).toBe(false);
     expect(r.remaining).toBe(0);
   });
 
-  test("remaining decrements correctly", () => {
+  test("remaining decrements correctly", async () => {
     const k = key();
-    const r1 = rateLimit(k, 10, 60_000);
+    const r1 = await rateLimit(k, 10, 60_000);
     expect(r1.remaining).toBe(9);
-    const r2 = rateLimit(k, 10, 60_000);
+    const r2 = await rateLimit(k, 10, 60_000);
     expect(r2.remaining).toBe(8);
   });
 
-  test("window expiry resets the counter", () => {
+  test("window expiry resets the counter", async () => {
     const k = key();
     // Use a very short window (already expired)
-    for (let i = 0; i < 3; i++) rateLimit(k, 3, 1); // 1ms window
+    for (let i = 0; i < 3; i++) await rateLimit(k, 3, 1); // 1ms window
     // Wait for expiry
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        const r = rateLimit(k, 3, 1);
-        expect(r.allowed).toBe(true);
-        resolve();
-      }, 10);
-    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const r = await rateLimit(k, 3, 1);
+    expect(r.allowed).toBe(true);
   });
 });

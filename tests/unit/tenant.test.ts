@@ -10,6 +10,7 @@
 // Mock all dependencies BEFORE imports
 jest.mock("@/lib/db", () => ({
   db: {
+    user: { findUnique: jest.fn() },
     membership: { findFirst: jest.fn(), findMany: jest.fn() },
     tenant: { findUnique: jest.fn() },
   },
@@ -26,8 +27,12 @@ import * as nextAuth from "next-auth";
 import { db } from "@/lib/db";
 
 describe("Tenant resolution", () => {
+  const mockDb = db as jest.Mocked<typeof db>;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: non-superadmin user (tests can override)
+    (mockDb as any).user.findUnique.mockResolvedValue({ isSuperAdmin: false });
   });
 
   // ─── getAuthContext ───────────────────────────────────────────────────────
@@ -97,6 +102,9 @@ describe("Tenant resolution", () => {
       mockGetServerSession.mockResolvedValueOnce({
         user: { id: "admin-user", isSuperAdmin: true },
       });
+
+      // isSuperAdmin is now read from DB, not session
+      (mockDb as any).user.findUnique.mockResolvedValueOnce({ isSuperAdmin: true });
 
       const ctx = await getAuthContext("");
 

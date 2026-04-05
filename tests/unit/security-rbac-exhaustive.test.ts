@@ -405,7 +405,8 @@ describe("RBAC — exhaustive permission matrix", () => {
 
     test("throws with correct message", () => {
       const ctx = makeCtx({ role: "READONLY" });
-      expect(() => requirePermission(ctx, "patients:create")).toThrow("READONLY");
+      // Error message is intentionally generic (no role leak to client)
+      expect(() => requirePermission(ctx, "patients:create")).toThrow("Você não tem permissão");
     });
 
     test("does not throw for allowed permission", () => {

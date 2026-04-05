@@ -13,6 +13,7 @@ import { requirePermission, getPatientScope } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { randomBytes } from "crypto";
 import { PORTAL_MAGIC_LINK_EXPIRY_MS, generateActivationToken } from "@/lib/patient-auth";
+import { encryptCpf, decryptPatientCpf } from "@/lib/cpf-crypto";
 
 async function resolvePatient(id: string, ctx: Awaited<ReturnType<typeof getAuthContext>>) {
   const scope = getPatientScope(ctx);
@@ -39,7 +40,9 @@ export async function GET(
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
     const patient = await resolvePatient(params.id, ctx);
-    return ok(patient);
+    // Decrypt CPF before returning to client
+    const decrypted = await decryptPatientCpf(patient);
+    return ok(decrypted);
   } catch (err) {
     return handleApiError(err);
   }
@@ -81,7 +84,7 @@ export async function PATCH(
         ...(body.email !== undefined && { email: body.email }),
         ...(body.phone !== undefined && { phone: body.phone }),
         ...(body.dob !== undefined && { dob: body.dob ? new Date(body.dob) : null }),
-        ...(body.cpf !== undefined && { cpf: body.cpf }),
+        ...(body.cpf !== undefined && { cpf: await encryptCpf(body.cpf) }),
         ...(body.notes !== undefined && { notes: body.notes }),
         ...(body.tags !== undefined && { tags: body.tags }),
         ...(body.assignedUserId !== undefined && { assignedUserId: body.assignedUserId }),

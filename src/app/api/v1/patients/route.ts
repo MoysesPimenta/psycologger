@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { requirePermission, getPatientScope, ForbiddenError } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { encryptCpf, decryptPatientCpf, decryptPatientCpfs } from "@/lib/cpf-crypto";
 
 const createSchema = z.object({
   fullName: z.string().min(2).max(100),
@@ -71,7 +72,10 @@ export async function GET(req: NextRequest) {
       db.patient.count({ where: whereClause }),
     ]);
 
-    return ok(patients, buildMeta(total, pagination));
+    // Decrypt CPF fields before returning to client
+    const decryptedPatients = await decryptPatientCpfs(patients);
+
+    return ok(decryptedPatients, buildMeta(total, pagination));
   } catch (err) {
     return handleApiError(err);
   }
@@ -111,7 +115,7 @@ export async function POST(req: NextRequest) {
         preferredName: body.preferredName ?? null,
         email: body.email || null,
         phone: body.phone ?? null,
-        cpf: body.cpf ?? null,
+        cpf: await encryptCpf(body.cpf) ?? null,
         dob: body.dob ? new Date(body.dob) : null,
         notes: body.notes ?? null,
         tags: body.tags,

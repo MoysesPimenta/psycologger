@@ -3,6 +3,8 @@ const config = {
   // Uses sucrase (already installed via Next.js) to transform TypeScript.
   // No @swc/jest or @babel/preset-typescript needed.
   testEnvironment: "node",
+  // Set required env vars before module-level code executes
+  setupFiles: ["<rootDir>/tests/jest.env-setup.ts"],
   transform: {
     "^.+\\.(ts|tsx|js|jsx)$": "<rootDir>/jest.esbuild-transform.js",
   },

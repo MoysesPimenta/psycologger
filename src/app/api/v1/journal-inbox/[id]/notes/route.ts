@@ -59,7 +59,8 @@ export async function GET(
         let text = note.noteText as string;
         try {
           text = await decrypt(text);
-        } catch {
+        } catch (e) {
+          console.error("[journal-notes] Decryption failed for note", note.id, e instanceof Error ? e.message : "");
           text = "[Não foi possível descriptografar]";
         }
         return { ...note, noteText: text };

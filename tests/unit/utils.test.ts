@@ -178,7 +178,7 @@ describe("roleLabel", () => {
     expect(roleLabel("PSYCHOLOGIST")).toBe("Psicólogo(a)");
     expect(roleLabel("ASSISTANT")).toBe("Assistente");
     expect(roleLabel("READONLY")).toBe("Leitor");
-    expect(roleLabel("SUPERADMIN")).toBe("Super Admin");
+    expect(roleLabel("SUPERADMIN")).toBe("Super Administrador");
   });
 });
 

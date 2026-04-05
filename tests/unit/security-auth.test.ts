@@ -3,7 +3,7 @@
  * Tests middleware protection, auth context validation, and rate limiting
  */
 
-import { rateLimit } from "@/lib/api";
+import { rateLimit } from "@/lib/rate-limit";
 import { UnauthorizedError, ForbiddenError } from "@/lib/rbac";
 import type { AuthContext } from "@/lib/rbac";
 
@@ -261,69 +261,66 @@ describe("Authorization — role-based access control", () => {
 });
 
 describe("Rate limiting", () => {
-  test("allows requests within limit", () => {
+  test("allows requests within limit", async () => {
     const key = "user:1:login";
     const limit = 5;
     const windowMs = 60000; // 1 minute
 
-    const result1 = rateLimit(key, limit, windowMs);
+    const result1 = await rateLimit(key, limit, windowMs);
     expect(result1.allowed).toBe(true);
     expect(result1.remaining).toBe(limit - 1);
   });
 
-  test("rejects requests exceeding limit", () => {
+  test("rejects requests exceeding limit", async () => {
     const key = "user:2:login";
     const limit = 3;
     const windowMs = 60000;
 
     // Make 3 allowed requests
-    rateLimit(key, limit, windowMs);
-    rateLimit(key, limit, windowMs);
-    rateLimit(key, limit, windowMs);
+    await rateLimit(key, limit, windowMs);
+    await rateLimit(key, limit, windowMs);
+    await rateLimit(key, limit, windowMs);
 
     // 4th request should be rejected
-    const result = rateLimit(key, limit, windowMs);
+    const result = await rateLimit(key, limit, windowMs);
     expect(result.allowed).toBe(false);
     expect(result.remaining).toBe(0);
   });
 
-  test("tracks remaining calls correctly", () => {
+  test("tracks remaining calls correctly", async () => {
     const key = "user:3:api";
     const limit = 10;
     const windowMs = 60000;
 
     for (let i = 0; i < 10; i++) {
-      const result = rateLimit(key, limit, windowMs);
+      const result = await rateLimit(key, limit, windowMs);
       expect(result.allowed).toBe(true);
       expect(result.remaining).toBe(limit - (i + 1));
     }
   });
 
-  test("resets after window expires", () => {
+  test("resets after window expires", async () => {
     const key = "user:4:reset-test";
     const limit = 2;
     const windowMs = 100; // 100ms
 
-    const result1 = rateLimit(key, limit, windowMs);
+    const result1 = await rateLimit(key, limit, windowMs);
     expect(result1.allowed).toBe(true);
 
-    // Simulate window expiration
-    jest.useFakeTimers();
-    jest.advanceTimersByTime(150);
+    // Wait for window to expire
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
-    const result2 = rateLimit(key, limit, windowMs);
+    const result2 = await rateLimit(key, limit, windowMs);
     expect(result2.allowed).toBe(true);
     expect(result2.remaining).toBe(limit - 1);
-
-    jest.useRealTimers();
   });
 
-  test("different keys have separate limits", () => {
+  test("different keys have separate limits", async () => {
     const limit = 2;
     const windowMs = 60000;
 
-    const result1 = rateLimit("key:1", limit, windowMs);
-    const result2 = rateLimit("key:2", limit, windowMs);
+    const result1 = await rateLimit("key:1", limit, windowMs);
+    const result2 = await rateLimit("key:2", limit, windowMs);
 
     expect(result1.allowed).toBe(true);
     expect(result2.allowed).toBe(true);

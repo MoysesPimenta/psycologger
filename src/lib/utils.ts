@@ -23,6 +23,16 @@ export function formatRelative(date: Date | string): string {
   return formatDistanceToNow(new Date(date), { addSuffix: true, locale: ptBR });
 }
 
+/** Convert a decimal amount (e.g. 79.90) to integer cents (7990). */
+export function toCents(amount: number): number {
+  return Math.round(amount * 100);
+}
+
+/** Convert integer cents (7990) to a decimal amount (79.9). */
+export function fromCents(cents: number): number {
+  return cents / 100;
+}
+
 export function formatCurrency(cents: number, currency = "BRL"): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",

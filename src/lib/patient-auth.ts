@@ -7,7 +7,11 @@
 
 import { db } from "./db";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
-import { cookies } from "next/headers";
+// NOTE: Do NOT import { cookies } from "next/headers" at the top level.
+// Doing so taints the entire module tree for Route Handlers — Next.js 14
+// flags the request as "dynamic" and conflicts with returning explicit
+// NextResponse.json() + response.cookies.set(), causing 200→500 rewrites.
+// We use a dynamic import inside getPatientContext() instead.
 import { ForbiddenError, UnauthorizedError } from "./rbac";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -146,8 +150,10 @@ export async function getPatientContext(req?: Request): Promise<PatientContext> 
     const match = cookieHeader.match(new RegExp(`${PORTAL_COOKIE_NAME}=([^;]+)`));
     token = match?.[1];
   } else {
-    // Server component: use next/headers
-    const cookieStore = cookies();
+    // Server component: use next/headers (dynamic import to avoid tainting
+    // Route Handlers that import this module — see note at top of file)
+    const { cookies: getCookies } = await import("next/headers");
+    const cookieStore = getCookies();
     token = cookieStore.get(PORTAL_COOKIE_NAME)?.value;
   }
 
