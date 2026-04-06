@@ -9,8 +9,11 @@
 
 export async function register() {
   // Only run on the server (not Edge Runtime)
-  if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { validateEnv } = await import("@/lib/env-check");
-    validateEnv();
-  }
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // Skip during `next build` — env vars from Vercel marketplace integrations
+  // (e.g. Upstash) are only injected at runtime, not during the build phase.
+  // Validating then would fail builds even though prod runtime is healthy.
+  if (process.env.NEXT_PHASE === "phase-production-build") return;
+  const { validateEnv } = await import("@/lib/env-check");
+  validateEnv();
 }
