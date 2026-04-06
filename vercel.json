@@ -16,6 +16,10 @@
     {
       "path": "/api/v1/cron/soft-delete-gc",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/v1/cron/staging-keepalive",
+      "schedule": "0 6 * * 1"
     }
   ]
 }

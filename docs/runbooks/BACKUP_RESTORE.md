@@ -2,6 +2,8 @@
 
 **Owner:** Moyses · **Last drilled:** _(fill in)_ · **Cadence:** quarterly
 
+> ⚠️ Requires Supabase **Pro plan** ($25/mo) for PITR + database branches. On Free plan this runbook is aspirational; daily backups still exist but no point-in-time restore.
+
 ## Objective
 Prove that the Supabase Postgres backup can be restored to a working state
 in under 60 minutes, before we actually need it.
@@ -21,7 +23,7 @@ in under 60 minutes, before we actually need it.
 
 ### 1. Create a branch from prod at a known-good timestamp
 ```bash
-supabase branches create drill-$(date +%Y%m%d)   --project-ref <PROD_REF>   --restore-at "2026-04-05T00:00:00Z"
+supabase branches create drill-$(date +%Y%m%d)   --project-ref tgkgcapoykcazkimiwzw   --restore-at "2026-04-05T00:00:00Z"
 ```
 _Or via Supabase dashboard → Branches → New branch → Restore from PITR._
 
@@ -47,7 +49,7 @@ Log in as a known tenant and verify:
 
 ### 5. Tear down
 ```bash
-supabase branches delete drill-YYYYMMDD --project-ref <PROD_REF>
+supabase branches delete drill-YYYYMMDD --project-ref tgkgcapoykcazkimiwzw
 ```
 
 ## Success criteria
