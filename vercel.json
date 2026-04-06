@@ -11,6 +11,5 @@
       "path": "/api/v1/cron/appointment-reminders",
       "schedule": "0 11 * * *"
     }
-  ],
-  "_comment_oneoff_crons": "Backfill endpoints (NOT scheduled — run manually after deploy): POST /api/v1/cron/encrypt-cpfs and POST /api/v1/cron/encrypt-clinical-notes with header `Authorization: Bearer $CRON_SECRET`."
+  ]
 }
