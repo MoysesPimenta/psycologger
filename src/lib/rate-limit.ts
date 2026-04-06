@@ -119,6 +119,16 @@ export async function rateLimit(
       // Upstash Ratelimit is dynamically imported; cast is necessary to call its methods
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (limiter as any).limit(key);
+      if (!result.success) {
+        // Structured log for Vercel log drain / Sentry to aggregate 429s.
+        console.warn(JSON.stringify({
+          evt: "rate_limit_denied",
+          key,
+          limit,
+          windowMs,
+          reset: result.reset,
+        }));
+      }
       return { allowed: result.success, remaining: result.remaining };
     } catch (err) {
       console.error("[rate-limit] Upstash error:", err);

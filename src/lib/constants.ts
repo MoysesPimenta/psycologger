@@ -67,7 +67,7 @@ export const PORTAL_LOGIN_RATE_LIMIT = 5;
 export const PORTAL_LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 
 /** Portal magic-link rate limit: max per email within the window. */
-export const PORTAL_MAGIC_LINK_RATE_LIMIT = 100;
+export const PORTAL_MAGIC_LINK_RATE_LIMIT = 10;
 
 /** Portal magic-link rate-limit window (1 hour). */
 export const PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;

@@ -12,7 +12,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ok, created, noContent, handleApiError, apiError } from "@/lib/api";
+import { ok, created, noContent, handleApiError, apiError, tooManyRequests } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import {
   getPatientContext,
@@ -130,7 +130,7 @@ async function handleMagicLinkRequest(
     : `portal-magic:noip:${input.email}`;
   const rl = await rateLimit(rlKey, PORTAL_MAGIC_LINK_RATE_LIMIT, PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS);
   if (!rl.allowed) {
-    return apiError("TOO_MANY_REQUESTS", "Muitas solicitações. Aguarde antes de tentar novamente.", 429);
+    return tooManyRequests("Muitas solicitações. Aguarde antes de tentar novamente.", PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS / 1000);
   }
 
   // Constant-time floor: every magic-link-request takes at least this long
@@ -228,7 +228,7 @@ async function handleMagicLinkVerify(
     : `portal-magic-verify:noip:${tokenPrefix}`;
   const rl = await rateLimit(rlKey, PORTAL_MAGIC_LINK_RATE_LIMIT, PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS);
   if (!rl.allowed) {
-    return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde antes de tentar novamente.", 429);
+    return tooManyRequests("Muitas tentativas. Aguarde antes de tentar novamente.", PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS / 1000);
   }
 
   // Atomic token consumption via transaction.
@@ -311,7 +311,7 @@ async function handleActivate(
     : `portal-activate:noip:${tokenPrefix}`;
   const rl = await rateLimit(rlKey, PORTAL_ACTIVATION_RATE_LIMIT, PORTAL_ACTIVATION_RATE_LIMIT_WINDOW_MS);
   if (!rl.allowed) {
-    return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde antes de tentar novamente.", 429);
+    return tooManyRequests("Muitas tentativas. Aguarde antes de tentar novamente.", PORTAL_ACTIVATION_RATE_LIMIT_WINDOW_MS / 1000);
   }
 
   // Atomic token consumption — DB stores SHA-256 hash, not plaintext.

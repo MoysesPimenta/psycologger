@@ -42,12 +42,24 @@ export function apiError(
   code: string,
   message: string,
   status: number,
-  details?: unknown
+  details?: unknown,
+  headers?: Record<string, string>,
 ): NextResponse {
-  return NextResponse.json(
+  const res = NextResponse.json(
     { error: { code, message, details } } as ApiError,
     { status }
   );
+  if (headers) {
+    for (const [k, v] of Object.entries(headers)) res.headers.set(k, v);
+  }
+  return res;
+}
+
+/** 429 Too Many Requests with Retry-After header (seconds). */
+export function tooManyRequests(message: string, retryAfterSeconds: number): NextResponse {
+  return apiError("TOO_MANY_REQUESTS", message, 429, undefined, {
+    "Retry-After": String(Math.max(1, Math.ceil(retryAfterSeconds))),
+  });
 }
 
 // ─── Error handler ────────────────────────────────────────────────────────────
