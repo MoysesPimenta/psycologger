@@ -67,21 +67,9 @@ export default withAuth(
 
     const response = NextResponse.next({ request: { headers } });
 
-    // Portal auth POST requests (magic-link-verify, activate, logout) set their
-    // own cookies on the response (portal session cookie). In Next.js 14 on Vercel,
-    // setting cookies in BOTH the middleware (NextResponse.next()) AND the route handler
-    // (NextResponse.json()) causes a conflict where the function returns 200 internally
-    // but Vercel rewrites it to 500. Skip all middleware cookie-setting for these
-    // requests — CSRF is already exempted for portal auth anyway.
-    const isPortalAuthPost =
-      pathname === "/api/v1/portal/auth" &&
-      req.method !== "GET";
-
-    if (!isPortalAuthPost) {
-      // Set CSRF cookie BEFORE validating — fresh visitors (e.g., magic link users)
-      // need the cookie available for their first POST request
-      setCsrfCookie(req, response);
-    }
+    // Set CSRF cookie BEFORE validating — fresh visitors (e.g., magic link users)
+    // need the cookie available for their first POST request
+    setCsrfCookie(req, response);
 
     // CSRF validation for state-changing requests
     if (!validateCsrf(req)) {
