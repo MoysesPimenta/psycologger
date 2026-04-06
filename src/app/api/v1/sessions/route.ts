@@ -11,6 +11,7 @@ import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError,
 import { requirePermission, getPatientScope } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { rateLimit } from "@/lib/rate-limit";
+import { encryptNote } from "@/lib/clinical-notes";
 
 const createSchema = z.object({
   appointmentId: z.string().uuid().optional(),
@@ -77,8 +78,9 @@ export async function POST(req: NextRequest) {
     requirePermission(ctx, "sessions:create");
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
-    // Rate limit session creation: 100 per hour per user
-    const rl = await rateLimit(`sessions:${ctx.userId}`, 100, 3600 * 1000);
+    // Rate limit session creation: 100 per hour per (tenant, user) so a
+    // multi-tenant or SuperAdmin user does not share one bucket across tenants.
+    const rl = await rateLimit(`sessions:${ctx.tenantId}:${ctx.userId}`, 100, 3600 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: { code: "RATE_LIMITED", message: "Limite de sessões atingido. Tente novamente mais tarde." } },
@@ -104,6 +106,9 @@ export async function POST(req: NextRequest) {
       if (!appt) throw new NotFoundError("Appointment");
     }
 
+    // Encrypt note text before persisting (AES-256-GCM via shared key).
+    const encryptedNote = await encryptNote(body.noteText);
+
     const session = await db.$transaction(async (tx) => {
       // Guard: prevent duplicate sessions for the same appointment
       if (body.appointmentId) {
@@ -123,18 +128,18 @@ export async function POST(req: NextRequest) {
           patientId: body.patientId,
           providerUserId: ctx.userId,
           templateKey: body.templateKey,
-          noteText: body.noteText,
+          noteText: encryptedNote,
           tags: body.tags,
           sessionDate: new Date(body.sessionDate),
         },
       });
 
-      // Store initial revision
+      // Store initial revision (also encrypted)
       await tx.sessionRevision.create({
         data: {
           tenantId: ctx.tenantId,
           sessionId: sess.id,
-          noteText: body.noteText,
+          noteText: encryptedNote,
           editedById: ctx.userId,
         },
       });

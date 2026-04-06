@@ -11,6 +11,7 @@ import { ok, noContent, handleApiError, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { SOFT_DELETE_RETENTION_MS } from "@/lib/constants";
+import { encryptNote, decryptNote } from "@/lib/clinical-notes";
 
 export async function GET(
   req: NextRequest,
@@ -49,7 +50,9 @@ export async function GET(
     });
 
     if (!session) throw new NotFoundError("Session");
-    return ok(session);
+    // Decrypt clinical note for the response (legacy plaintext is passed through)
+    const decrypted = { ...session, noteText: await decryptNote(session.noteText) };
+    return ok(decrypted);
   } catch (err) {
     return handleApiError(err);
   }
@@ -107,23 +110,31 @@ export async function PATCH(
       return ok(restored);
     }
 
+    // Encrypt incoming note text (if any) and detect changes against the
+    // *decrypted* existing value, since the stored form may now be ciphertext.
+    const encryptedIncoming =
+      body.noteText !== undefined ? await encryptNote(body.noteText) : undefined;
+    const existingPlaintext = await decryptNote(existing.noteText);
+    const noteChanged =
+      body.noteText !== undefined && body.noteText !== existingPlaintext;
+
     const updated = await db.$transaction(async (tx) => {
       const sess = await tx.clinicalSession.update({
         where: { id: params.id, tenantId: ctx.tenantId },
         data: {
-          ...(body.noteText !== undefined && { noteText: body.noteText }),
+          ...(encryptedIncoming !== undefined && { noteText: encryptedIncoming }),
           ...(body.templateKey && { templateKey: body.templateKey }),
           ...(body.tags !== undefined && { tags: body.tags }),
         },
       });
 
-      // Store revision if note changed
-      if (body.noteText !== undefined && body.noteText !== existing.noteText) {
+      // Store revision (encrypted) if note changed
+      if (noteChanged && encryptedIncoming !== undefined) {
         await tx.sessionRevision.create({
           data: {
             tenantId: ctx.tenantId,
             sessionId: params.id,
-            noteText: body.noteText,
+            noteText: encryptedIncoming,
             editedById: ctx.userId,
           },
         });

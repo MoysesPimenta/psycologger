@@ -58,12 +58,45 @@ export default withAuth(
       }
     }
 
-    // Inject tenant header from cookie if present (for SSR)
+    // Inject tenant header from cookie if present (for SSR).
+    // SECURITY: always strip any client-supplied x-tenant-id header first;
+    // the only trustworthy source is the cookie set after authentication.
     const tenantId = req.cookies.get("psycologger-tenant")?.value;
     const headers = new Headers(req.headers);
+    headers.delete("x-tenant-id");
     if (tenantId) {
       headers.set("x-tenant-id", tenantId);
     }
+
+    // Helper to apply security headers to any response (including early rejects)
+    const applySecurityHeaders = (res: NextResponse) => {
+      // CSP header — Next.js 14 injects inline scripts for RSC hydration data
+      // without nonce attributes. DO NOT add 'strict-dynamic' here: per CSP3,
+      // strict-dynamic causes 'unsafe-inline' to be ignored, which blocks
+      // every Next.js inline hydration script and renders pages blank.
+      const csp = [
+        "default-src 'self'",
+        `script-src 'self' 'unsafe-inline'`,
+        `style-src 'self' 'unsafe-inline'`,
+        "img-src 'self' data: blob: https:",
+        "font-src 'self'",
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+      ].join("; ");
+      res.headers.set("Content-Security-Policy", csp);
+      res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+      res.headers.set("X-Content-Type-Options", "nosniff");
+      res.headers.set("X-Frame-Options", "DENY");
+      res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+      res.headers.set(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=()",
+      );
+      return res;
+    };
 
     const response = NextResponse.next({ request: { headers } });
 
@@ -73,41 +106,15 @@ export default withAuth(
 
     // CSRF validation for state-changing requests
     if (!validateCsrf(req)) {
-      return NextResponse.json(
-        { error: { code: "CSRF_FAILED", message: "Invalid or missing CSRF token" } },
-        { status: 403 },
+      return applySecurityHeaders(
+        NextResponse.json(
+          { error: { code: "CSRF_FAILED", message: "Invalid or missing CSRF token" } },
+          { status: 403 },
+        ),
       );
     }
 
-    // CSP header — Next.js 14 injects inline scripts for RSC hydration data
-    // that do NOT carry nonce attributes (no built-in nonce support without
-    // experimental config). In CSP3 browsers, a nonce causes 'unsafe-inline'
-    // to be ignored, which BLOCKS those hydration scripts and produces blank
-    // pages on every fresh page load.
-    //
-    // Until Next.js supports automatic nonce injection, we use 'unsafe-inline'
-    // without a nonce. Combined with 'strict-dynamic', nonce-less inline
-    // scripts are allowed but can only load same-origin children.
-    const csp = [
-      "default-src 'self'",
-      `script-src 'self' 'unsafe-inline'`,
-      `style-src 'self' 'unsafe-inline'`,
-      "img-src 'self' data: blob: https:",
-      "font-src 'self'",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-      "frame-ancestors 'none'",
-      "form-action 'self'",
-      "base-uri 'self'",
-    ].join("; ");
-
-    response.headers.set("Content-Security-Policy", csp);
-    response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    response.headers.set("X-Frame-Options", "DENY");
-    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-
-    return response;
+    return applySecurityHeaders(response);
   },
   {
     callbacks: {

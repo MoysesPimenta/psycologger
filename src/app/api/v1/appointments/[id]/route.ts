@@ -10,6 +10,7 @@ import { getAuthContext } from "@/lib/tenant";
 import { ok, handleApiError, NotFoundError, ConflictError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { decryptNote } from "@/lib/clinical-notes";
 
 export async function GET(
   req: NextRequest,
@@ -36,6 +37,12 @@ export async function GET(
     });
 
     if (!appointment) throw new NotFoundError("Appointment");
+    // Decrypt the linked clinical session note for the response.
+    if (appointment.clinicalSession?.noteText != null) {
+      appointment.clinicalSession.noteText = await decryptNote(
+        appointment.clinicalSession.noteText,
+      );
+    }
     return ok(appointment);
   } catch (err) {
     return handleApiError(err);

@@ -41,10 +41,11 @@ export function setCsrfCookie(req: NextRequest, response: NextResponse): void {
   // Detected by checking if the auth session cookie was just set/cleared.
   const pathname = req.nextUrl.pathname;
   const isAuthCallback = pathname.startsWith("/api/auth/callback");
+  const isAuthSignout = pathname.startsWith("/api/auth/signout");
   const isPortalAuthAction = pathname === "/api/v1/portal/auth";
 
   // If not an auth transition and token already exists, keep the current one
-  if (existing && !isAuthCallback && !isPortalAuthAction) return;
+  if (existing && !isAuthCallback && !isAuthSignout && !isPortalAuthAction) return;
 
   const token = generateCsrfToken();
   response.cookies.set(CSRF_COOKIE_NAME, token, {

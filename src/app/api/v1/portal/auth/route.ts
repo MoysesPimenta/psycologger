@@ -31,7 +31,14 @@ import {
 } from "@/lib/constants";
 import { sendPortalMagicLinkEmail } from "@/lib/email";
 import { PORTAL_MAGIC_LINK_EXPIRY_MS } from "@/lib/patient-auth";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
+
+// Hash a magic-link / activation token before storing it. The plaintext goes
+// to the patient via email; the DB only ever sees the SHA-256 digest. This
+// limits the blast radius of a read-only DB compromise.
+function hashLinkToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -126,6 +133,18 @@ async function handleMagicLinkRequest(
     return apiError("TOO_MANY_REQUESTS", "Muitas solicitações. Aguarde antes de tentar novamente.", 429);
   }
 
+  // Constant-time floor: every magic-link-request takes at least this long
+  // regardless of whether the email exists. Combined with the always-success
+  // response shape, this prevents timing-based email enumeration.
+  const MIN_MS = 350;
+  const startedAt = Date.now();
+  const padTiming = async () => {
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < MIN_MS) {
+      await new Promise((r) => setTimeout(r, MIN_MS - elapsed));
+    }
+  };
+
   // Always return success to prevent email enumeration
   const successResponse = ok({
     success: true,
@@ -150,19 +169,22 @@ async function handleMagicLinkRequest(
   );
 
   if (eligibleAuths.length === 0) {
+    await padTiming();
     return successResponse;
   }
 
   const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
-  // Generate a magic token per clinic and send one email each
+  // Generate a magic token per clinic and send one email each.
+  // Plaintext goes in the URL; only the SHA-256 hash is stored in the DB.
   for (const auth of eligibleAuths) {
     const magicToken = randomBytes(32).toString("base64url");
+    const magicTokenHash = hashLinkToken(magicToken);
     const magicTokenExpiresAt = new Date(Date.now() + PORTAL_MAGIC_LINK_EXPIRY_MS);
 
     await db.patientAuth.update({
       where: { id: auth.id },
-      data: { magicToken, magicTokenExpiresAt },
+      data: { magicToken: magicTokenHash, magicTokenExpiresAt },
     });
 
     const magicUrl = `${APP_URL}/portal/magic-login/${magicToken}`;
@@ -188,6 +210,7 @@ async function handleMagicLinkRequest(
     });
   }
 
+  await padTiming();
   return successResponse;
 }
 
@@ -208,10 +231,12 @@ async function handleMagicLinkVerify(
     return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde antes de tentar novamente.", 429);
   }
 
-  // Atomic token consumption via transaction
+  // Atomic token consumption via transaction.
+  // We look up by SHA-256 hash; the plaintext token never hits storage.
+  const tokenHash = hashLinkToken(input.token);
   const result = await db.$transaction(async (tx) => {
     const patientAuth = await tx.patientAuth.findUnique({
-      where: { magicToken: input.token },
+      where: { magicToken: tokenHash },
       include: {
         tenant: { select: { id: true, name: true, portalEnabled: true } },
       },
@@ -289,10 +314,11 @@ async function handleActivate(
     return apiError("TOO_MANY_REQUESTS", "Muitas tentativas. Aguarde antes de tentar novamente.", 429);
   }
 
-  // Atomic token consumption
+  // Atomic token consumption — DB stores SHA-256 hash, not plaintext.
+  const activationTokenHash = hashLinkToken(input.token);
   const result = await db.$transaction(async (tx) => {
     const patientAuth = await tx.patientAuth.findUnique({
-      where: { activationToken: input.token },
+      where: { activationToken: activationTokenHash },
       include: {
         patient: { select: { id: true } },
         tenant: { select: { id: true, portalEnabled: true } },
@@ -379,6 +405,16 @@ async function handleLogout(
   ipAddress: string | undefined,
   userAgent: string | undefined,
 ) {
+  // Logout is the only portal/auth action that has an existing session and
+  // therefore must be CSRF-protected. The middleware bypasses CSRF for the
+  // whole portal/auth prefix because magic-link/activate fire from cold
+  // visits with no cookie yet — so we re-enforce it in-handler for logout.
+  const cookieMatch = req.headers.get("cookie")?.match(/psycologger-csrf=([^;]+)/);
+  const cookieToken = cookieMatch?.[1];
+  const headerToken = req.headers.get("x-csrf-token");
+  if (!cookieToken || !headerToken || cookieToken.length < 32 || cookieToken !== headerToken) {
+    return apiError("CSRF_FAILED", "Token CSRF inválido ou ausente.", 403);
+  }
   try {
     const ctx = await getPatientContext(req);
     await revokeAllPortalSessions(ctx.patientAuthId);

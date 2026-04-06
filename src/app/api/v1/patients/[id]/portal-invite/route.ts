@@ -11,6 +11,7 @@ import { getAuthContext } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { generateActivationToken } from "@/lib/patient-auth";
+import { createHash } from "crypto";
 import { sendPortalInviteEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/rate-limit";
 import { PORTAL_INVITE_RATE_LIMIT, PORTAL_INVITE_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
@@ -125,20 +126,22 @@ export async function POST(
     }
 
     const activationToken = generateActivationToken();
+    // Store only the SHA-256 hash; the plaintext is delivered via email.
+    const activationTokenHash = createHash("sha256").update(activationToken).digest("hex");
 
     // Upsert: if an invite was already sent but not activated, replace it
     const patientAuth = await db.patientAuth.upsert({
       where: { patientId: params.id },
       update: {
         email: body.email,
-        activationToken,
+        activationToken: activationTokenHash,
         status: "ACTIVE",
       },
       create: {
         tenantId: ctx.tenantId,
         patientId: params.id,
         email: body.email,
-        activationToken,
+        activationToken: activationTokenHash,
       },
     });
 

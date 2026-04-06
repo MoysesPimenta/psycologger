@@ -80,10 +80,13 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signIn({ user }) {
+      // Record the email domain (not the local part) so the audit trail can
+      // distinguish provider/tenant signups without storing PII.
+      const domain = user.email?.split("@")[1] ?? "unknown";
       await auditLog({
         userId: user.id,
         action: "LOGIN",
-        summary: { email: "[REDACTED]" },
+        summary: { method: "magic-link", emailDomain: domain },
       });
     },
     async signOut({ token }) {
@@ -96,14 +99,9 @@ export const authOptions: NextAuthOptions = {
       }
     },
   },
-  secret: (() => {
-    const s = process.env.NEXTAUTH_SECRET;
-    if (!s || s.length < 32) {
-      throw new Error(
-        "NEXTAUTH_SECRET must be at least 32 characters. Generate with: openssl rand -base64 32"
-      );
-    }
-    return s;
-  })(),
+  // Validation of NEXTAUTH_SECRET happens centrally in src/lib/env-check.ts
+  // (called from instrumentation.ts at boot). Reading the env var here lazily
+  // keeps next build / import-time tooling from crashing when the var is unset.
+  secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 };

@@ -99,6 +99,25 @@ export async function getAuthContext(
 }
 
 /**
+ * Assert that the auth context is bound to a real tenant (not the platform-level
+ * SUPERADMIN context where `tenantId` is the empty string). Use this in any
+ * route handler that issues queries scoped by `tenantId` so we fail loudly
+ * instead of silently matching zero rows on an empty-string filter.
+ *
+ * Throws ForbiddenError if no tenant context is present.
+ */
+export function requireTenant(ctx: { tenantId: string; isSuperAdmin?: boolean }): string {
+  if (!ctx.tenantId || ctx.tenantId.trim() === "") {
+    throw new ForbiddenError(
+      ctx.isSuperAdmin
+        ? "Esta operação requer um contexto de tenant. Selecione uma clínica."
+        : "Tenant não definido para o usuário.",
+    );
+  }
+  return ctx.tenantId;
+}
+
+/**
  * Get the user's memberships (for tenant switcher).
  */
 export async function getUserMemberships(userId: string) {

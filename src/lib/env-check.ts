@@ -53,12 +53,22 @@ const ENV_RULES: EnvRule[] = [
     name: "NEXTAUTH_SECRET",
     required: true,
     validate: (v) => {
-      if (v.length < 16) return "NEXTAUTH_SECRET should be at least 16 characters";
+      if (v.length < 32) return "NEXTAUTH_SECRET must be at least 32 characters (generate with: openssl rand -base64 32)";
       return undefined;
     },
   },
   {
     name: "NEXTAUTH_URL",
+    required: process.env.NODE_ENV === "production",
+  },
+  // In production, Upstash Redis MUST back the rate limiter — the in-memory
+  // fallback is per-instance on Vercel and renders documented limits useless.
+  {
+    name: "UPSTASH_REDIS_REST_URL",
+    required: process.env.NODE_ENV === "production",
+  },
+  {
+    name: "UPSTASH_REDIS_REST_TOKEN",
     required: process.env.NODE_ENV === "production",
   },
 ];

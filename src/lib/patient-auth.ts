@@ -206,15 +206,20 @@ export async function getPatientContext(req?: Request): Promise<PatientContext> 
     throw new UnauthorizedError("Portal session expired due to inactivity");
   }
 
-  // Touch lastActivityAt with proper error handling
-  try {
-    await db.patientPortalSession.update({
-      where: { id: session.id },
-      data: { lastActivityAt: new Date() },
-    });
-  } catch (err) {
-    console.error("[patient-auth] Failed to update lastActivityAt:", err);
-    // Continue — activity tracking failure should not block the request
+  // Touch lastActivityAt — debounced to once per ACTIVITY_TOUCH_INTERVAL_MS
+  // so we don't write to the DB on every authenticated portal request.
+  const ACTIVITY_TOUCH_INTERVAL_MS = 60_000; // 1 minute
+  const sinceLastTouch = Date.now() - lastActivity.getTime();
+  if (sinceLastTouch > ACTIVITY_TOUCH_INTERVAL_MS) {
+    try {
+      await db.patientPortalSession.update({
+        where: { id: session.id },
+        data: { lastActivityAt: new Date() },
+      });
+    } catch (err) {
+      console.error("[patient-auth] Failed to update lastActivityAt:", err);
+      // Continue — activity tracking failure should not block the request
+    }
   }
 
   const { patientAuth } = session;
@@ -311,10 +316,11 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const storedBuf = Buffer.from(hashStr, "base64url");
 
   // Use crypto.timingSafeEqual to prevent timing attacks.
-  // Both buffers must be the same length; if not, compare against a
-  // dummy buffer of the correct length to avoid leaking length info.
+  // If lengths differ, compare against a same-length zero buffer so the
+  // total work performed is constant regardless of stored length.
   if (computedBuf.length !== storedBuf.length) {
-    timingSafeEqual(computedBuf, computedBuf); // constant-time no-op
+    const dummy = Buffer.alloc(computedBuf.length);
+    timingSafeEqual(computedBuf, dummy);
     return false;
   }
   return timingSafeEqual(computedBuf, storedBuf);

@@ -121,9 +121,17 @@ export async function rateLimit(
       const result = await (limiter as any).limit(key);
       return { allowed: result.success, remaining: result.remaining };
     } catch (err) {
-      // If Upstash fails, fall back to in-memory rather than blocking the request
-      console.error("[rate-limit] Upstash error, falling back to in-memory:", err);
+      console.error("[rate-limit] Upstash error:", err);
+      // In production, fail closed instead of silently degrading to a
+      // per-instance in-memory counter that defeats the limiter on Vercel.
+      if (process.env.NODE_ENV === "production") {
+        return { allowed: false, remaining: 0 };
+      }
     }
+  } else if (process.env.NODE_ENV === "production") {
+    // env-check should already have prevented boot, but defense-in-depth.
+    console.error("[rate-limit] Upstash not configured in production — denying request");
+    return { allowed: false, remaining: 0 };
   }
   return memoryRateLimit(key, limit, windowMs);
 }

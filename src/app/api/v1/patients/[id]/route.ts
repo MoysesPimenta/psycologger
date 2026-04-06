@@ -11,7 +11,7 @@ import { getAuthContext } from "@/lib/tenant";
 import { ok, noContent, handleApiError, NotFoundError } from "@/lib/api";
 import { requirePermission, getPatientScope } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 import { PORTAL_MAGIC_LINK_EXPIRY_MS, generateActivationToken } from "@/lib/patient-auth";
 import { encryptCpf, decryptPatientCpf } from "@/lib/cpf-crypto";
 
@@ -188,13 +188,14 @@ export async function PATCH(
           } else {
             // ── No PatientAuth yet: create one + send activation invite ──
             const activationToken = generateActivationToken();
+            const activationTokenHash = createHash("sha256").update(activationToken).digest("hex");
 
             const newAuth = await db.patientAuth.create({
               data: {
                 tenantId: ctx.tenantId,
                 patientId: params.id,
                 email: newEmail,
-                activationToken,
+                activationToken: activationTokenHash,
               },
             });
 

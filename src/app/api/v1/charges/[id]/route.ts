@@ -60,8 +60,15 @@ export async function PATCH(
       }
     }
 
-    const updated = await db.charge.update({
-      where: { id: params.id, tenantId: ctx.tenantId },
+    // Use updateMany so we can repeat the providerUserId scope filter on the
+    // write. A bare `update({ where: { id, tenantId } })` would let another
+    // psychologist in the same tenant slip through after the lookup.
+    const updateRes = await db.charge.updateMany({
+      where: {
+        id: params.id,
+        tenantId: ctx.tenantId,
+        ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+      },
       data: {
         ...(body.amountCents !== undefined && { amountCents: body.amountCents }),
         ...(body.discountCents !== undefined && { discountCents: body.discountCents }),
@@ -69,6 +76,10 @@ export async function PATCH(
         ...(body.dueDate !== undefined && { dueDate: new Date(body.dueDate) }),
         ...(body.status !== undefined && { status: body.status }),
       },
+    });
+    if (updateRes.count === 0) throw new NotFoundError("Charge");
+    const updated = await db.charge.findFirst({
+      where: { id: params.id, tenantId: ctx.tenantId },
     });
 
     await auditLog({
