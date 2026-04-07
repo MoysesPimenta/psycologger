@@ -106,11 +106,11 @@ export function CalendarClient({
       {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between bg-white border rounded-xl p-3">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+          <Button variant="outline" size="icon" onClick={() => navigate(-1)} aria-label="Previous">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="font-semibold text-gray-900 min-w-[200px] text-center capitalize">{title}</span>
-          <Button variant="outline" size="icon" onClick={() => navigate(1)}>
+          <Button variant="outline" size="icon" onClick={() => navigate(1)} aria-label="Next">
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
@@ -123,9 +123,10 @@ export function CalendarClient({
           {view === "week" && (
             <button
               onClick={() => setShow24h((v) => !v)}
+              aria-label={show24h ? "Show business hours (7am–7pm)" : "Show 24 hours"}
               title={show24h ? "Mostrar horário comercial (7h–19h)" : "Mostrar 24 horas"}
               className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium border transition-colors",
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 show24h
                   ? "bg-brand-600 text-white border-brand-600"
                   : "text-gray-600 border-gray-200 hover:bg-gray-50"
@@ -140,8 +141,9 @@ export function CalendarClient({
               <button
                 key={v}
                 onClick={() => setView(v)}
+                aria-current={view === v ? "true" : undefined}
                 className={cn(
-                  "px-3 py-1.5 text-sm font-medium transition-colors",
+                  "px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   view === v ? "bg-brand-600 text-white" : "text-gray-600 hover:bg-gray-50"
                 )}
               >

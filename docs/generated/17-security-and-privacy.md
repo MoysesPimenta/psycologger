@@ -204,6 +204,30 @@ frame-ancestors 'none';
 
 ---
 
+## Database Defense in Depth (RLS)
+
+**Status**: Enabled on all `public` tables in both production (`tgkgcapoykcazkimiwzw`) and staging (`kwqazxlnvbcwyabbomvc`) Supabase projects as of 2026-04-07 (migration `enable_rls_on_all_public_tables`).
+
+**Model**: All 31 application tables have `ROW LEVEL SECURITY = ENABLED` with **zero policies**. The default-deny stance applies to the `anon` and `authenticated` PostgREST roles, which means the auto-generated REST API at `https://<project>.supabase.co/rest/v1/...` returns empty result sets for any direct query against application tables — even with a valid anon key.
+
+**How the app still works**: Prisma connects via direct database connection using the `postgres` superuser role, which has `rolbypassrls = true`. RLS does not apply to bypass-RLS roles, so all server-side queries continue to work normally. The app does **not** use `@supabase/supabase-js` anywhere — confirmed by repo grep on 2026-04-07.
+
+**Why this exists**: Without RLS, any process that obtained the public anon key (which ships in `NEXT_PUBLIC_*` variables in apps that use the supabase-js client) could perform full CRUD against every table in `public`. Even though Psycologger itself does not expose the anon key today, defense in depth requires that the database refuse PostgREST traffic regardless of how the key is obtained or leaked.
+
+**Operational notes**:
+- Future tables added via Prisma migrations are NOT automatically RLS-enabled. Every new migration that creates a public-schema table MUST include `ALTER TABLE public."NewTable" ENABLE ROW LEVEL SECURITY;`. This should be added to the migration template.
+- If the app ever introduces `@supabase/supabase-js` (for realtime, storage, or auth), RLS policies will need to be authored per table. Until then, the zero-policies default-deny is the correct posture.
+- The Supabase advisor will continue to report `rls_enabled_no_policy` (INFO level) on these tables. This is expected and intentional — do not "resolve" it by adding permissive policies.
+
+**Verification**:
+```sql
+-- Run in Supabase SQL editor
+SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname='public';
+-- All rows should show rowsecurity = true
+```
+
+---
+
 ## Cryptography
 
 ### Encryption (AES-256-GCM)

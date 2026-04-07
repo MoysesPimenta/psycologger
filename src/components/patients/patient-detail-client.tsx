@@ -172,7 +172,7 @@ export function PatientDetailClient({
             disabled={togglingActive}
             title={patient.isActive ? "Clique para inativar" : "Clique para reativar"}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               patient.isActive
                 ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
                 : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100",
@@ -235,8 +235,9 @@ export function PatientDetailClient({
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
+                aria-current={tab === t.id ? "true" : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap min-h-[44px]",
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-t-md",
                   tab === t.id
                     ? "border-brand-600 text-brand-700"
                     : "border-transparent text-gray-500 hover:text-gray-700"

@@ -58,7 +58,7 @@ export function AppSidebar() {
       {/* Mobile top bar */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-white/90 backdrop-blur border-b flex items-center gap-3 px-4 safe-pt">
         <button
-          className="-ml-1 p-2 rounded-lg active:bg-gray-100 tap-target"
+          className="-ml-1 p-2 rounded-lg active:bg-gray-100 tap-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Menu"
         >
@@ -107,8 +107,9 @@ export function AppSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   isActive
                     ? "bg-brand-50 text-brand-700"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -131,8 +132,9 @@ export function AppSidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   isActive
                     ? "bg-brand-50 text-brand-700"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -178,8 +180,9 @@ export function AppSidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-3 px-2 text-xs font-medium transition-colors flex-1 min-h-[60px]",
+                  "flex flex-col items-center justify-center gap-1 py-3 px-2 text-xs font-medium transition-colors flex-1 min-h-[60px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md",
                   isActive
                     ? "text-brand-600"
                     : "text-gray-500 hover:text-gray-700"

@@ -37,7 +37,7 @@ const ListItem = React.forwardRef<HTMLButtonElement, ListItemProps>(
         ref={ref}
         disabled={disabled}
         className={cn(
-          "flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors",
+          "flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           hasDivider && "border-b border-border/50",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           variantClasses[variant],

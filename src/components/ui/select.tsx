@@ -38,6 +38,7 @@ const SelectScrollUpButton = React.forwardRef<
   <SelectPrimitive.ScrollUpButton
     ref={ref}
     className={cn("flex cursor-pointer items-center justify-center py-1", className)}
+    aria-label="Scroll up"
     {...props}
   >
     <ChevronDown className="h-4 w-4" />
@@ -52,6 +53,7 @@ const SelectScrollDownButton = React.forwardRef<
   <SelectPrimitive.ScrollDownButton
     ref={ref}
     className={cn("flex cursor-pointer items-center justify-center py-1", className)}
+    aria-label="Scroll down"
     {...props}
   >
     <ChevronDown className="h-4 w-4" />
@@ -98,7 +100,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex min-h-10 md:min-h-9 w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-base md:text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex min-h-10 md:min-h-9 w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-base md:text-sm outline-none focus:bg-accent focus:text-accent-foreground focus:ring-2 focus:ring-ring data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}
