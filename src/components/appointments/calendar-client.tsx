@@ -227,40 +227,42 @@ export function CalendarClient({
           </div>
 
           {/* Mobile stacked list view — shown only on phones */}
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-3 pb-4">
             {weekDays.map((day) => {
               const dayAppts = appointments.filter((a) => isSameDay(new Date(a.startsAt), day));
               return (
-                <div key={day.toISOString()} className="bg-white border rounded-lg p-3">
+                <div key={day.toISOString()} className="bg-white border rounded-lg overflow-hidden">
+                  {/* Sticky day header */}
                   <h3 className={cn(
-                    "text-sm font-semibold mb-2",
-                    isSameDay(day, new Date()) ? "text-brand-600" : "text-gray-900"
+                    "text-sm font-semibold px-4 py-3 border-b",
+                    isSameDay(day, new Date()) ? "bg-brand-50 text-brand-700" : "bg-gray-50 text-gray-900"
                   )}>
                     {format(day, "EEEE, d 'de' MMMM", { locale: ptBR })}
                   </h3>
                   {dayAppts.length === 0 ? (
-                    <p className="text-xs text-gray-400">Sem compromissos</p>
+                    <p className="text-xs text-gray-400 px-4 py-6 text-center">Sem compromissos</p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="divide-y">
                       {dayAppts.map((appt) => (
                         <Link
                           key={appt.id}
                           href={`/app/appointments/${appt.id}`}
-                          className="block p-2 rounded border border-gray-200 hover:border-brand-300 hover:bg-brand-50 transition"
+                          className="block p-4 hover:bg-gray-50 active:bg-gray-100 transition min-h-[60px] flex items-center"
                         >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {appt.patient.preferredName ?? appt.patient.fullName}
-                              </p>
-                              <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                                <Clock className="h-3 w-3" />
-                                {formatTime(appt.startsAt)}
-                              </p>
-                            </div>
-                            <Badge className="text-xs" style={{ backgroundColor: appt.appointmentType.color }}>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {appt.patient.preferredName ?? appt.patient.fullName}
+                            </p>
+                            <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
+                              <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                              {formatTime(appt.startsAt)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 ml-3 flex-shrink-0">
+                            <Badge className="text-xs whitespace-nowrap" style={{ backgroundColor: appt.appointmentType.color }}>
                               {appointmentStatusLabel(appt.status)}
                             </Badge>
+                            <ChevronRight className="h-5 w-5 text-gray-300" />
                           </div>
                         </Link>
                       ))}
@@ -269,6 +271,14 @@ export function CalendarClient({
                 </div>
               );
             })}
+            {/* Floating action button on mobile */}
+            <div className="fixed bottom-20 right-4 md:hidden">
+              <Button asChild size="lg" className="rounded-full shadow-lg">
+                <Link href="/app/appointments/new">
+                  <Plus className="h-5 w-5" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </>
       )}

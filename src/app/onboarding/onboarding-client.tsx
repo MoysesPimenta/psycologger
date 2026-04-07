@@ -79,39 +79,41 @@ export function OnboardingClient({ userName, userEmail }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Logo */}
-        <div className="text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center">
-              <Stethoscope className="h-5 w-5 text-white" />
-            </div>
-            <span className="font-bold text-xl text-gray-900">Psycologger</span>
-          </Link>
-        </div>
+    <div className="min-h-screen flex flex-col bg-gray-50 md:flex md:items-center md:justify-center px-4 py-6">
+      {/* Header with logo */}
+      <div className="text-center mb-8 md:mb-6">
+        <Link href="/" className="inline-flex items-center gap-2">
+          <div className="w-12 h-12 bg-brand-600 rounded-2xl flex items-center justify-center">
+            <Stethoscope className="h-6 w-6 text-white" />
+          </div>
+          <span className="font-bold text-2xl text-gray-900">Psycologger</span>
+        </Link>
+      </div>
 
+      {/* Main content */}
+      <div className="w-full max-w-sm md:max-w-sm">
         <Card>
-          <CardHeader>
-            <CardTitle>
+          <CardHeader className="pt-8 pb-6">
+            <CardTitle className="text-3xl font-bold mb-2">
               {userName ? `Bem-vindo, ${userName.split(" ")[0]}!` : "Bem-vindo!"}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base">
               Quase pronto. Dê um nome para sua clínica ou consultório para começar.
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <CardContent className="pb-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Show the prefilled email as read-only context */}
               {userEmail && (
-                <div className="rounded-md bg-gray-50 border border-gray-200 px-3 py-2 text-sm text-gray-600">
-                  Entrando como <span className="font-medium">{userEmail}</span>
+                <div className="rounded-lg bg-brand-50 border border-brand-200 px-4 py-3 text-sm text-brand-700">
+                  <span className="text-xs text-brand-600 font-medium">Entrando como</span>
+                  <p className="font-semibold text-brand-900">{userEmail}</p>
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="clinicName">Nome da clínica / consultório</Label>
+              <div className="space-y-3">
+                <Label htmlFor="clinicName" className="text-base font-medium">Nome da clínica / consultório</Label>
                 <Input
                   id="clinicName"
                   placeholder="Clínica Ana Silva"
@@ -121,21 +123,22 @@ export function OnboardingClient({ userName, userEmail }: Props) {
                   autoFocus
                   minLength={2}
                   maxLength={100}
+                  className="min-h-12 text-base rounded-xl"
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 mt-2">
                   Você pode alterar isso nas configurações depois.
                 </p>
               </div>
 
               {error && (
-                <p className="text-sm text-destructive" role="alert">
+                <p className="text-sm text-destructive bg-red-50 border border-red-200 rounded-lg px-3 py-2" role="alert">
                   {error}
                 </p>
               )}
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-12 text-base rounded-xl font-semibold"
                 disabled={loading || !clinicName.trim()}
               >
                 {loading ? "Configurando..." : "Entrar no Psycologger"}

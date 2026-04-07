@@ -290,20 +290,21 @@ function TypeForm({
 }) {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2 space-y-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="sm:col-span-2 space-y-2">
           <Label>Nome *</Label>
           <Input
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             placeholder="Ex: Consulta individual, Avaliação..."
             autoFocus
+            className="h-11"
           />
         </div>
         <div className="space-y-2">
           <Label>Modalidade</Label>
           <select
-            className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full h-11 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             value={form.sessionType}
             onChange={(e) => setForm((f) => ({ ...f, sessionType: e.target.value }))}
           >
@@ -322,6 +323,7 @@ function TypeForm({
             step={5}
             value={form.defaultDurationMin}
             onChange={(e) => setForm((f) => ({ ...f, defaultDurationMin: parseInt(e.target.value) || 50 }))}
+            className="h-11"
           />
         </div>
         <div className="space-y-2">
@@ -335,16 +337,17 @@ function TypeForm({
             onChange={(e) =>
               setForm((f) => ({ ...f, defaultPriceCents: Math.round(parseFloat(e.target.value || "0") * 100) }))
             }
+            className="h-11"
           />
         </div>
-        <div className="space-y-2">
+        <div className="sm:col-span-2 space-y-2">
           <Label>Cor</Label>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             {DEFAULT_COLORS.map((c) => (
               <button
                 key={c}
                 type="button"
-                className={`w-7 h-7 rounded-full border-2 transition-all ${
+                className={`w-8 h-8 rounded-full border-2 transition-all flex-shrink-0 ${
                   form.color === c ? "border-gray-900 scale-110" : "border-transparent"
                 }`}
                 style={{ backgroundColor: c }}
@@ -353,7 +356,7 @@ function TypeForm({
             ))}
             <input
               type="color"
-              className="w-7 h-7 rounded-full cursor-pointer border border-gray-300"
+              className="w-8 h-8 rounded-full cursor-pointer border border-gray-300 flex-shrink-0"
               value={form.color}
               onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
               title="Cor personalizada"
@@ -364,13 +367,13 @@ function TypeForm({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <div className="flex gap-2">
-        <Button onClick={onSave} disabled={saving} size="sm">
+      <div className="flex flex-col-reverse sm:flex-row gap-2">
+        <Button variant="outline" onClick={onCancel} size="sm" className="h-11 sm:h-auto w-full sm:w-auto">
+          <X className="h-3.5 w-3.5 mr-1" /> Cancelar
+        </Button>
+        <Button onClick={onSave} disabled={saving} size="sm" className="h-11 sm:h-auto w-full sm:w-auto">
           <Check className="h-3.5 w-3.5 mr-1" />
           {saving ? "Salvando..." : "Salvar"}
-        </Button>
-        <Button variant="outline" onClick={onCancel} size="sm">
-          <X className="h-3.5 w-3.5 mr-1" /> Cancelar
         </Button>
       </div>
     </div>

@@ -67,16 +67,18 @@ export function PortalSessionsClient() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-gray-900">Sessões</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Sessões</h1>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 bg-gray-100/50 rounded-xl p-1">
         {(["upcoming", "past"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-              tab === t ? "bg-brand-600 text-white" : "bg-white text-gray-600 border hover:bg-gray-50",
+              "flex-1 px-4 py-2 text-xs font-semibold rounded-lg transition-all active:scale-95",
+              tab === t
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-gray-600 hover:text-gray-900",
             )}
           >
             {t === "upcoming" ? "Próximas" : "Anteriores"}
@@ -85,19 +87,21 @@ export function PortalSessionsClient() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg" role="alert">
+        <div className="bg-red-50 text-red-700 text-sm p-4 rounded-xl border border-red-200" role="alert">
           {error}
         </div>
       )}
 
       {loading ? (
         <div className="space-y-3 animate-pulse">
-          {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-200 rounded-xl" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-200 rounded-2xl" />)}
         </div>
       ) : appointments.length === 0 ? (
-        <div className="bg-white rounded-xl border p-8 text-center text-sm text-gray-400">
+        <div className="bg-white rounded-2xl border border-gray-200/50 p-8 text-center">
           <Calendar className="h-10 w-10 mx-auto mb-3 text-gray-300" />
-          {tab === "upcoming" ? "Nenhuma sessão agendada" : "Nenhuma sessão anterior"}
+          <p className="text-sm text-gray-500">
+            {tab === "upcoming" ? "Nenhuma sessão agendada" : "Nenhuma sessão anterior"}
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -105,34 +109,35 @@ export function PortalSessionsClient() {
             <Link
               key={appt.id}
               href={`/portal/sessions/${appt.id}`}
-              className="block bg-white rounded-xl border p-4 hover:shadow-sm transition-shadow"
+              className="block bg-white rounded-2xl border border-gray-200/50 p-4 hover:shadow-md active:bg-gray-50 transition-all min-h-20"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">
-                    {format(new Date(appt.startsAt), "EEE, dd MMM · HH:mm", { locale: ptBR })}
-                    <span className="text-gray-400"> – </span>
-                    {format(new Date(appt.endsAt), "HH:mm")}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm">
+                    {format(new Date(appt.startsAt), "EEE, dd MMM", { locale: ptBR })}
                   </p>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    {appt.provider.name ?? "Terapeuta"} · {appt.appointmentType.name}
+                  <p className="text-xs text-gray-500 mt-1">
+                    {format(new Date(appt.startsAt), "HH:mm")} – {format(new Date(appt.endsAt), "HH:mm")}
                   </p>
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_COLORS[appt.status] ?? "bg-gray-100 text-gray-600")}>
+                  <p className="text-xs text-gray-600 mt-1.5 font-medium">
+                    {appt.provider.name ?? "Terapeuta"}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <span className={cn("text-xs px-2.5 py-1 rounded-full font-semibold", STATUS_COLORS[appt.status] ?? "bg-gray-100 text-gray-600")}>
                       {STATUS_LABELS[appt.status] ?? appt.status}
                     </span>
                     {appt.appointmentType.sessionType === "ONLINE" ? (
-                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
                         <Video className="h-3 w-3" /> Online
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
                         <MapPin className="h-3 w-3" /> Presencial
                       </span>
                     )}
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-gray-300 mt-1 flex-shrink-0" />
+                <ChevronRight className="h-5 w-5 text-gray-300 mt-0.5 flex-shrink-0" />
               </div>
             </Link>
           ))}

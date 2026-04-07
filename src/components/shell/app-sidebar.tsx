@@ -161,7 +161,7 @@ export function AppSidebar() {
       </aside>
 
       {/* Mobile bottom navigation bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t md:hidden safe-area-inset-bottom">
         <div className="flex justify-around">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
@@ -171,19 +171,22 @@ export function AppSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-3 px-3 text-xs font-medium transition-colors flex-1",
+                  "flex flex-col items-center justify-center gap-1 py-3 px-2 text-xs font-medium transition-colors flex-1 min-h-[60px]",
                   isActive
                     ? "text-brand-600"
                     : "text-gray-500 hover:text-gray-700"
                 )}
               >
-                <Icon className={cn("h-5 w-5", isActive && "stroke-[2]")} />
-                <span className="text-[10px]">{item.label}</span>
+                <Icon className={cn("h-6 w-6", isActive && "stroke-[2]")} />
+                <span className="text-[11px] leading-tight text-center">{item.label}</span>
               </Link>
             );
           })}
         </div>
       </nav>
+
+      {/* Safe area spacer for mobile bottom nav */}
+      <div className="h-[60px] md:hidden" />
     </>
   );
 }

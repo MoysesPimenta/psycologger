@@ -60,28 +60,30 @@ export function PatientsClient() {
   }, [fetch_]);
 
   return (
-    <div className="space-y-4">
-      {/* Search bar + inactive toggle */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar por nome, email ou telefone..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          />
+    <div className="space-y-4 pb-4">
+      {/* Sticky search bar */}
+      <div className="sticky top-0 z-20 bg-gradient-to-b from-white to-white/95 pb-2 -mb-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Buscar nome, email ou telefone..."
+              className="pl-9 h-11"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            />
+          </div>
+          <Button
+            variant={showInactive ? "default" : "outline"}
+            size="sm"
+            onClick={() => { setShowInactive((v) => !v); setPage(1); }}
+            title={showInactive ? "Ocultar inativos" : "Mostrar inativos"}
+            className="flex-shrink-0 gap-1.5 h-11"
+          >
+            {showInactive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            <span className="hidden sm:inline">{showInactive ? "Ocultar inativos" : "Ver inativos"}</span>
+          </Button>
         </div>
-        <Button
-          variant={showInactive ? "default" : "outline"}
-          size="sm"
-          onClick={() => { setShowInactive((v) => !v); setPage(1); }}
-          title={showInactive ? "Ocultar inativos" : "Mostrar inativos"}
-          className="flex-shrink-0 gap-1.5"
-        >
-          {showInactive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          {showInactive ? "Ocultar inativos" : "Ver inativos"}
-        </Button>
       </div>
 
       {fetchError && (
@@ -112,46 +114,45 @@ export function PatientsClient() {
             <Link
               key={patient.id}
               href={`/app/patients/${patient.id}`}
-              className="flex items-center gap-4 bg-white rounded-xl border p-4 hover:shadow-sm transition-shadow group"
+              className="flex items-center gap-3 sm:gap-4 bg-white rounded-xl border p-3 sm:p-4 hover:shadow-sm active:bg-gray-50 transition-all group min-h-[70px]"
             >
               {/* Avatar */}
-              <div className="w-10 h-10 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+              <div className="w-12 h-12 sm:w-10 sm:h-10 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                 {initials(patient.fullName)}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-gray-900">
                     {patient.preferredName ?? patient.fullName}
                   </span>
-                  {patient.preferredName && (
-                    <span className="text-xs text-gray-400">({patient.fullName})</span>
-                  )}
                   {!patient.isActive && (
                     <Badge variant="secondary" className="text-xs">Arquivado</Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-4 mt-0.5 text-xs text-gray-500">
-                  {patient.email && (
-                    <span className="flex items-center gap-1">
-                      <Mail className="h-3 w-3" /> {patient.email}
-                    </span>
-                  )}
+                {patient.preferredName && (
+                  <p className="text-xs text-gray-400 mt-0.5">{patient.fullName}</p>
+                )}
+                <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-gray-500 flex-wrap">
                   {patient.phone && (
                     <span className="flex items-center gap-1">
-                      <Phone className="h-3 w-3" /> {patient.phone}
+                      <Phone className="h-3 w-3 flex-shrink-0" />
+                      <span className="hidden sm:inline">{patient.phone}</span>
                     </span>
                   )}
-                  <span>{patient._count.appointments} consulta{patient._count.appointments !== 1 ? "s" : ""}</span>
+                  <span className="hidden sm:inline">{patient._count.appointments} consulta{patient._count.appointments !== 1 ? "s" : ""}</span>
                 </div>
                 {patient.tags.length > 0 && (
-                  <div className="flex gap-1 mt-1">
-                    {patient.tags.slice(0, 3).map((tag) => (
+                  <div className="flex gap-1 mt-2">
+                    {patient.tags.slice(0, 2).map((tag) => (
                       <span key={tag} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                         <Tag className="h-2.5 w-2.5" /> {tag}
                       </span>
                     ))}
+                    {patient.tags.length > 2 && (
+                      <span className="text-xs text-gray-500">+{patient.tags.length - 2}</span>
+                    )}
                   </div>
                 )}
               </div>

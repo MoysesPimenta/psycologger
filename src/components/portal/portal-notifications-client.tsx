@@ -79,22 +79,22 @@ export function PortalNotificationsClient() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Notificações</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Notificações</h1>
         {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={markAllRead}>
-            Marcar todas como lidas
+          <Button variant="outline" size="sm" onClick={markAllRead} className="text-xs font-semibold">
+            Marcar todas
           </Button>
         )}
       </div>
 
       {loading ? (
         <div className="space-y-3 animate-pulse">
-          {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-gray-200 rounded-xl" />)}
+          {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-gray-200 rounded-2xl" />)}
         </div>
       ) : notifications.length === 0 ? (
-        <div className="bg-white rounded-xl border p-8 text-center text-sm text-gray-400">
+        <div className="bg-white rounded-2xl border border-gray-200/50 p-8 text-center">
           <Bell className="h-10 w-10 mx-auto mb-3 text-gray-300" />
-          Nenhuma notificação
+          <p className="text-sm text-gray-500">Nenhuma notificação</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -106,27 +106,27 @@ export function PortalNotificationsClient() {
                 key={notif.id}
                 onClick={() => isUnread && markRead(notif.id)}
                 className={cn(
-                  "block w-full text-left bg-white rounded-xl border p-4 transition-colors",
-                  isUnread ? "border-brand-200 bg-brand-50/30" : "hover:bg-gray-50",
+                  "block w-full text-left bg-white rounded-2xl border p-4 transition-all hover:shadow-md active:bg-gray-50",
+                  isUnread ? "border-blue-200 bg-blue-50/40" : "border-gray-200/50",
                 )}
               >
                 <div className="flex items-start gap-3">
                   <div className={cn(
-                    "mt-0.5 p-1.5 rounded-lg",
-                    isUnread ? "bg-brand-100 text-brand-600" : "bg-gray-100 text-gray-400",
+                    "mt-0.5 p-2 rounded-lg flex-shrink-0",
+                    isUnread ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400",
                   )}>
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm", isUnread ? "font-semibold text-gray-900" : "text-gray-600")}>
+                    <p className={cn("text-sm", isUnread ? "font-semibold text-gray-900" : "text-gray-700")}>
                       {notif.title}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">{notif.body}</p>
-                    <p className="text-[11px] text-gray-300 mt-1">
+                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.body}</p>
+                    <p className="text-[11px] text-gray-400 mt-1.5">
                       {format(new Date(notif.createdAt), "dd/MM HH:mm", { locale: ptBR })}
                     </p>
                   </div>
-                  {isUnread && <div className="h-2 w-2 rounded-full bg-brand-500 mt-2 flex-shrink-0" />}
+                  {isUnread && <div className="h-2.5 w-2.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />}
                 </div>
               </button>
             );

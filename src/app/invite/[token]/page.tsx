@@ -62,59 +62,65 @@ export default function InvitePage({ params }: { params: { token: string } }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full" />
+        <div className="animate-spin w-10 h-10 border-4 border-brand-600 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center">
-              <Stethoscope className="h-5 w-5 text-white" />
-            </div>
-            <span className="font-bold text-xl text-gray-900">Psycologger</span>
-          </Link>
-        </div>
+    <div className="min-h-screen flex flex-col bg-gray-50 md:flex md:items-center md:justify-center px-4 py-6">
+      {/* Header with logo */}
+      <div className="text-center mb-8 md:mb-6">
+        <Link href="/" className="inline-flex items-center gap-2">
+          <div className="w-12 h-12 bg-brand-600 rounded-2xl flex items-center justify-center">
+            <Stethoscope className="h-6 w-6 text-white" />
+          </div>
+          <span className="font-bold text-2xl text-gray-900">Psycologger</span>
+        </Link>
+      </div>
 
+      {/* Main content */}
+      <div className="w-full max-w-sm md:max-w-sm">
         {error ? (
           <Card>
-            <CardContent className="pt-6 text-center">
-              <XCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-              <p className="text-gray-700 font-medium">{error}</p>
-              <Button asChild className="mt-4" variant="outline">
+            <CardContent className="pt-8 pb-8 text-center">
+              <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <XCircle className="h-7 w-7 text-red-600" />
+              </div>
+              <p className="text-gray-900 font-semibold text-lg">{error}</p>
+              <Button asChild className="mt-6 w-full h-12 text-base rounded-xl font-semibold" variant="outline">
                 <Link href="/signup">Criar nova conta</Link>
               </Button>
             </CardContent>
           </Card>
         ) : accepted ? (
           <Card>
-            <CardContent className="pt-6 text-center">
-              <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
-              <p className="font-semibold text-gray-900">Conta ativada!</p>
-              <p className="text-gray-500 mt-2">
+            <CardContent className="pt-8 pb-8 text-center">
+              <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="h-7 w-7 text-green-600" />
+              </div>
+              <p className="font-semibold text-gray-900 text-lg">Conta ativada!</p>
+              <p className="text-gray-600 mt-3 text-sm">
                 Enviamos um link de acesso para <strong>{invite?.email}</strong>. Verifique seu email.
               </p>
             </CardContent>
           </Card>
         ) : invite ? (
           <Card>
-            <CardHeader>
-              <CardTitle>Aceitar convite</CardTitle>
-              <CardDescription>
+            <CardHeader className="pt-8 pb-6">
+              <CardTitle className="text-3xl font-bold mb-2">Aceitar convite</CardTitle>
+              <CardDescription className="text-base">
                 Você foi convidado para ingressar em <strong>{invite.tenant.name}</strong>.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAccept} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <p className="text-sm text-gray-700 bg-gray-50 border rounded-md px-3 py-2">{invite.email}</p>
+            <CardContent className="pb-8">
+              <form onSubmit={handleAccept} className="space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">Email</Label>
+                  <div className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 font-medium">{invite.email}</div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name">Seu nome completo</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="name" className="text-base font-medium">Seu nome completo</Label>
                   <Input
                     id="name"
                     placeholder="Dra. Ana Silva"
@@ -122,9 +128,10 @@ export default function InvitePage({ params }: { params: { token: string } }) {
                     onChange={(e) => setName(e.target.value)}
                     required
                     autoFocus
+                    className="min-h-12 text-base rounded-xl"
                   />
                 </div>
-                <Button type="submit" className="w-full" loading={accepting} disabled={!name.trim()}>
+                <Button type="submit" className="w-full h-12 text-base rounded-xl font-semibold" loading={accepting} disabled={!name.trim()}>
                   {accepting ? "Ativando conta..." : "Aceitar convite"}
                 </Button>
               </form>

@@ -225,9 +225,9 @@ export function PatientDetailClient({
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="border-b">
-        <nav className="flex gap-1 overflow-x-auto scrollbar-thin">
+      {/* Tabs — horizontal scroll on mobile, icons only on small screens */}
+      <div className="border-b overflow-x-auto scrollbar-thin">
+        <nav className="flex gap-1 min-w-min">
           {tabs.map((t) => {
             if ((t.id === "sessions" || t.id === "journal") && !canViewClinical) return null;
             const Icon = t.icon;
@@ -236,14 +236,15 @@ export function PatientDetailClient({
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap min-h-[44px]",
                   tab === t.id
                     ? "border-brand-600 text-brand-700"
                     : "border-transparent text-gray-500 hover:text-gray-700"
                 )}
+                title={t.label}
               >
-                <Icon className="h-4 w-4" />
-                {t.label}
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">{t.label}</span>
               </button>
             );
           })}

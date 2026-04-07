@@ -146,10 +146,10 @@ export function ChargesClient() {
         ))}
       </div>
 
-      {/* Summary bar */}
+      {/* Summary bar — stacked on mobile */}
       {!loading && charges.length > 0 && (
-        <div className="flex items-center gap-4 bg-white rounded-xl border px-4 py-3 flex-wrap">
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 sm:gap-4 bg-white rounded-xl border px-3 sm:px-4 py-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
             <span className="text-xs text-gray-500 font-medium">{summaryLabel()}</span>
             <span className="text-sm font-bold text-gray-900">
               {filter === "PAID"
@@ -160,18 +160,18 @@ export function ChargesClient() {
             </span>
           </div>
           {filter === "" && summary.totalPaid > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
               <span className="text-xs text-gray-500 font-medium">Recebido</span>
               <span className="text-sm font-bold text-green-700">{formatCurrency(summary.totalPaid)}</span>
             </div>
           )}
           {filter === "" && summary.totalRemaining > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
               <span className="text-xs text-gray-500 font-medium">A receber</span>
               <span className="text-sm font-bold text-yellow-700">{formatCurrency(summary.totalRemaining)}</span>
             </div>
           )}
-          <span className="text-xs text-gray-400 ml-auto">{summary.count} cobrança{summary.count !== 1 ? "s" : ""}</span>
+          <span className="text-xs text-gray-400 sm:ml-auto col-span-2 sm:col-span-auto">{summary.count} cobrança{summary.count !== 1 ? "s" : ""}</span>
         </div>
       )}
 
@@ -184,7 +184,7 @@ export function ChargesClient() {
           Nenhuma cobrança encontrada.
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 pb-4">
           {charges.map((charge) => {
             const netAmount = charge.amountCents - charge.discountCents;
             const isPaid = charge.status === "PAID";
@@ -199,44 +199,42 @@ export function ChargesClient() {
             const displayStatus = isOverdue && charge.status === "PENDING" ? "OVERDUE" : charge.status;
             const showPartialForm = partialFormId === charge.id;
             return (
-              <div key={charge.id} className="bg-white rounded-xl border p-4">
-                <div className="flex items-center justify-between gap-4">
+              <div key={charge.id} className="bg-white rounded-xl border p-3 sm:p-4 min-h-[80px]">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{charge.patient.fullName}</span>
                       <Badge variant={statusVariant[displayStatus] ?? "secondary"} className="text-xs">
                         {chargeStatusLabel(displayStatus)}
                       </Badge>
                     </div>
-                    <div className="text-sm text-gray-500 mt-0.5">
+                    <div className="text-xs sm:text-sm text-gray-500 mt-1">
                       Vencimento: {formatDate(charge.dueDate)}
-                      {charge.description && ` · ${charge.description}`}
+                      {charge.description && <span className="hidden sm:inline"> · {charge.description}</span>}
                     </div>
                     {charge.payments.length > 0 && (
                       <div className="text-xs text-green-600 mt-0.5">
-                        Recebido: {formatCurrency(charge.paidAmountCents)} via{" "}
-                        {charge.payments.map((p) => paymentMethodLabel(p.method)).join(", ")}
+                        Recebido: {formatCurrency(charge.paidAmountCents)}
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-shrink-0">
                     {/* Amount display */}
                     {isPartiallyPaid || wasPaidPartially ? (
                       <div className="text-right">
-                        <span className="font-bold text-green-700">{formatCurrency(charge.paidAmountCents)}</span>
+                        <span className="font-bold text-green-700 text-sm">{formatCurrency(charge.paidAmountCents)}</span>
                         <span className="text-xs text-gray-400 block">
                           de {formatCurrency(netAmount)}
-                          {remaining > 0 && ` · resta ${formatCurrency(remaining)}`}
                         </span>
                       </div>
                     ) : (
-                      <span className="font-bold text-gray-900">{formatCurrency(netAmount)}</span>
+                      <span className="font-bold text-gray-900 text-sm">{formatCurrency(netAmount)}</span>
                     )}
-                    {/* Actions for pending charges (no payments yet) */}
+                    {/* Actions for pending charges (no payments yet) — collapsed on mobile */}
                     {isPending && !showPartialForm && (
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                         <select
-                          className="text-xs border rounded-md px-2 py-1 h-8 bg-white focus:outline-none focus:ring-1 focus:ring-green-400"
+                          className="text-xs border rounded-md px-2 py-2 h-9 sm:h-8 bg-white focus:outline-none focus:ring-1 focus:ring-green-400"
                           value={payMethodMap[charge.id] ?? "PIX"}
                           onChange={(e) => setPayMethodMap((m) => ({ ...m, [charge.id]: e.target.value }))}
                           disabled={payingId === charge.id}
@@ -252,32 +250,21 @@ export function ChargesClient() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-green-700 border-green-300"
+                          className="text-green-700 border-green-300 text-xs sm:text-sm w-full sm:w-auto"
                           loading={payingId === charge.id}
                           onClick={() => markPaid(charge.id, netAmount - charge.paidAmountCents)}
                         >
                           <CreditCard className="h-3 w-3" />
-                          Marcar pago
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-blue-700 border-blue-300"
-                          onClick={() => {
-                            setPartialFormId(charge.id);
-                            setPartialAmount("");
-                          }}
-                        >
-                          <SplitSquareHorizontal className="h-3 w-3" />
-                          Pagamento parcial
+                          <span className="hidden sm:inline">Marcar pago</span>
+                          <span className="sm:hidden">Pago</span>
                         </Button>
                       </div>
                     )}
                     {/* Actions for partially paid charges */}
                     {isPartiallyPaid && !showPartialForm && (
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                         <select
-                          className="text-xs border rounded-md px-2 py-1 h-8 bg-white focus:outline-none focus:ring-1 focus:ring-orange-400"
+                          className="text-xs border rounded-md px-2 py-2 h-9 sm:h-8 bg-white focus:outline-none focus:ring-1 focus:ring-orange-400"
                           value={payMethodMap[charge.id] ?? "PIX"}
                           onChange={(e) => setPayMethodMap((m) => ({ ...m, [charge.id]: e.target.value }))}
                           disabled={payingId === charge.id}
@@ -293,24 +280,13 @@ export function ChargesClient() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-orange-700 border-orange-300"
+                          className="text-orange-700 border-orange-300 text-xs sm:text-sm w-full sm:w-auto"
                           loading={payingId === charge.id}
                           onClick={() => markPaid(charge.id, remaining)}
                         >
                           <CreditCard className="h-3 w-3" />
-                          Pagar resto
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-blue-700 border-blue-300"
-                          onClick={() => {
-                            setPartialFormId(charge.id);
-                            setPartialAmount("");
-                          }}
-                        >
-                          <SplitSquareHorizontal className="h-3 w-3" />
-                          Pagamento parcial
+                          <span className="hidden sm:inline">Pagar resto</span>
+                          <span className="sm:hidden">Pagar</span>
                         </Button>
                       </div>
                     )}

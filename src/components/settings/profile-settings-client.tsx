@@ -80,7 +80,7 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
             Seu nome é exibido nos relatórios, fichas de pacientes e notificações.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-4 sm:space-y-5">
 
           {/* Name */}
           <div className="space-y-1.5">
@@ -96,6 +96,7 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
               required
               minLength={2}
               maxLength={100}
+              className="h-11"
             />
           </div>
 
@@ -110,12 +111,11 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
                 value={email}
                 readOnly
                 disabled
-                className="bg-gray-50 text-gray-500 cursor-not-allowed"
+                className="bg-gray-50 text-gray-500 cursor-not-allowed h-11"
               />
             </div>
             <p className="text-xs text-gray-400">
               O email é usado para autenticação e não pode ser alterado aqui.
-              Entre em contato com o suporte se precisar trocá-lo.
             </p>
           </div>
 
@@ -133,6 +133,7 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+55 11 99999-9999"
               maxLength={30}
+              className="h-11"
             />
           </div>
 
@@ -140,7 +141,7 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
             <p className="text-sm text-destructive">{error}</p>
           )}
 
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 sm:pt-1">
             {saved ? (
               <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
                 <CheckCircle2 className="h-4 w-4" /> Perfil salvo com sucesso
@@ -148,12 +149,12 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
             ) : (
               <span />
             )}
-            <Button type="submit" disabled={saving || !dirty || !name.trim()} className="min-w-[120px]">
+            <Button type="submit" disabled={saving || !dirty || !name.trim()} className="min-h-[44px] sm:min-w-[120px]">
               {saving ? (
                 "Salvando..."
               ) : (
                 <span className="flex items-center gap-1.5">
-                  <Save className="h-3.5 w-3.5" /> Salvar alterações
+                  <Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Salvar alterações</span><span className="sm:hidden">Salvar</span>
                 </span>
               )}
             </Button>

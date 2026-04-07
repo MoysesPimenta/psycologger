@@ -106,39 +106,39 @@ export function PortalDashboardClient() {
   const appt = data.nextAppointment;
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-xl font-bold text-gray-900">{getGreeting()}</h1>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold text-gray-900 pt-2">{getGreeting()}</h1>
 
       {/* Next session card */}
       {appt && (
         <Link
           href={`/portal/sessions/${appt.id}`}
-          className="block bg-white rounded-xl border p-4 hover:shadow-sm transition-shadow"
+          className="block bg-white rounded-2xl border border-gray-200/50 p-5 hover:shadow-md active:bg-gray-50 transition-all"
         >
-          <p className="text-xs font-medium text-gray-400 uppercase mb-2">Próxima sessão</p>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="font-semibold text-gray-900">
+          <p className="text-xs font-semibold text-blue-600 uppercase mb-3 tracking-wide">Próxima sessão</p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="font-semibold text-gray-900 leading-tight">
                 {format(new Date(appt.startsAt), "EEE, dd MMM · HH:mm", { locale: ptBR })}
               </p>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {appt.provider.name ?? "Terapeuta"} · {appt.appointmentType.name}
+              <p className="text-sm text-gray-600 mt-1">
+                {appt.provider.name ?? "Terapeuta"}
               </p>
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+              <div className="flex items-center gap-2 mt-3 text-xs text-gray-500">
                 {appt.appointmentType.sessionType === "ONLINE" ? (
                   <>
-                    <Video className="h-3.5 w-3.5" />
+                    <Video className="h-4 w-4 text-blue-500" />
                     <span>Online</span>
                   </>
                 ) : (
                   <>
-                    <MapPin className="h-3.5 w-3.5" />
+                    <MapPin className="h-4 w-4 text-blue-500" />
                     <span>{appt.location ?? "Presencial"}</span>
                   </>
                 )}
               </div>
             </div>
-            <ChevronRight className="h-5 w-5 text-gray-300 mt-1 flex-shrink-0" />
+            <ChevronRight className="h-5 w-5 text-gray-300 mt-0.5 flex-shrink-0" />
           </div>
           {appt.videoLink && appt.videoLink.startsWith("https://") && (
             <a
@@ -146,7 +146,7 @@ export function PortalDashboardClient() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
+              className="mt-4 inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 active:scale-95 transition-all"
             >
               <Video className="h-4 w-4" />
               Entrar na sala
@@ -155,9 +155,9 @@ export function PortalDashboardClient() {
         </Link>
       )}
       {!appt && (
-        <div className="bg-white rounded-xl border p-4 text-center text-sm text-gray-400">
-          <Calendar className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-          Nenhuma sessão agendada
+        <div className="bg-white rounded-2xl border border-gray-200/50 p-8 text-center">
+          <Calendar className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+          <p className="text-sm text-gray-500">Nenhuma sessão agendada</p>
         </div>
       )}
 
@@ -165,18 +165,18 @@ export function PortalDashboardClient() {
       {data.portalFlags.journalEnabled && (
         <Link
           href="/portal/journal/new"
-          className="block bg-gradient-to-r from-brand-50 to-blue-50 rounded-xl border border-brand-100 p-4 hover:shadow-sm transition-shadow"
+          className="block bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl border border-blue-200/50 p-5 hover:shadow-md active:bg-blue-100 transition-all"
         >
-          <p className="text-xs font-medium text-brand-600 uppercase mb-2">Como você está?</p>
+          <p className="text-xs font-semibold text-blue-600 uppercase mb-3 tracking-wide">Como você está?</p>
           <div className="flex justify-between items-center">
-            <div className="flex gap-3 text-2xl">
+            <div className="flex gap-2.5 text-2xl">
               {["😔", "😐", "🙂", "😊", "😄"].map((emoji) => (
-                <span key={emoji} className="hover:scale-110 transition-transform cursor-pointer">
+                <span key={emoji} className="hover:scale-125 transition-transform cursor-pointer">
                   {emoji}
                 </span>
               ))}
             </div>
-            <PenLine className="h-5 w-5 text-brand-400" />
+            <PenLine className="h-5 w-5 text-blue-500" />
           </div>
         </Link>
       )}
@@ -185,23 +185,23 @@ export function PortalDashboardClient() {
       {data.portalFlags.paymentsVisible && data.payments.pendingCount > 0 && (
         <Link
           href="/portal/payments"
-          className="block bg-white rounded-xl border p-4 hover:shadow-sm transition-shadow"
+          className="block bg-white rounded-2xl border border-gray-200/50 p-5 hover:shadow-md active:bg-gray-50 transition-all"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-amber-50 rounded-lg flex items-center justify-center">
+              <div className="h-12 w-12 bg-amber-100/50 rounded-xl flex items-center justify-center flex-shrink-0">
                 <CreditCard className="h-5 w-5 text-amber-600" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900">
                   {data.payments.pendingCount} pendente{data.payments.pendingCount > 1 ? "s" : ""}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {formatCurrency(data.payments.pendingTotalCents)}
                 </p>
               </div>
             </div>
-            <ChevronRight className="h-5 w-5 text-gray-300" />
+            <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0" />
           </div>
         </Link>
       )}
@@ -210,8 +210,8 @@ export function PortalDashboardClient() {
       {data.portalFlags.journalEnabled && data.journal.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-medium text-gray-400 uppercase">Últimas anotações</p>
-            <Link href="/portal/journal" className="text-xs text-brand-600 hover:underline">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Últimas anotações</p>
+            <Link href="/portal/journal" className="text-xs font-semibold text-blue-600 hover:text-blue-700">
               Ver todas
             </Link>
           </div>
@@ -220,24 +220,24 @@ export function PortalDashboardClient() {
               <Link
                 key={entry.id}
                 href={`/portal/journal/${entry.id}`}
-                className="block bg-white rounded-lg border p-3 hover:shadow-sm transition-shadow"
+                className="block bg-white rounded-2xl border border-gray-200/50 p-4 hover:shadow-md active:bg-gray-50 transition-all min-h-14 flex items-center justify-between"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-500">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold text-gray-700">
                       {ENTRY_TYPE_LABELS[entry.entryType] ?? entry.entryType}
                     </span>
                     {entry.moodScore && (
-                      <span className="text-xs text-gray-400">· {entry.moodScore}/10</span>
+                      <span className="text-xs text-gray-500">· {entry.moodScore}/10</span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-300">
-                    {format(new Date(entry.createdAt), "dd/MM", { locale: ptBR })}
-                  </span>
+                  {entry.noteText && (
+                    <p className="text-xs text-gray-500 mt-1.5 line-clamp-2">{entry.noteText}</p>
+                  )}
                 </div>
-                {entry.noteText && (
-                  <p className="text-sm text-gray-500 mt-1 truncate">{entry.noteText}</p>
-                )}
+                <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
+                  {format(new Date(entry.createdAt), "dd/MM", { locale: ptBR })}
+                </span>
               </Link>
             ))}
           </div>

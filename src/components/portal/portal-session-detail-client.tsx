@@ -81,15 +81,15 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
   const isOnline = appt.appointmentType.sessionType === "ONLINE";
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <Link href="/portal/sessions" className="text-gray-400 hover:text-gray-600">
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 pt-2">
+        <Link href="/portal/sessions" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Voltar às sessões">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-lg font-bold text-gray-900">Detalhes da Sessão</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Detalhes da Sessão</h1>
       </div>
 
-      <div className="bg-white rounded-xl border p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-gray-200/50 p-5 space-y-4">
         {/* Date & time */}
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: appt.appointmentType.color + "20" }}>
@@ -148,7 +148,7 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
             href={appt.videoLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 active:scale-95 transition-all"
           >
             <Video className="h-4 w-4" />
             Entrar na sala
@@ -163,7 +163,7 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
               <button
                 onClick={handleCancel}
                 disabled={canceling}
-                className="w-full mt-3 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                className="w-full mt-4 px-4 py-2.5 text-sm font-semibold text-red-600 border border-red-200 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-50"
               >
                 {canceling ? "Cancelando..." : "Cancelar sessão"}
               </button>
@@ -178,9 +178,9 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
       {/* Prep CTA */}
       <Link
         href="/portal/journal/new"
-        className="block bg-brand-50 border border-brand-100 rounded-xl p-4 text-center hover:bg-brand-100/50 transition-colors"
+        className="block bg-blue-50 border border-blue-200/50 rounded-2xl p-4 text-center hover:shadow-md active:bg-blue-100 transition-all"
       >
-        <p className="text-sm font-medium text-brand-700">
+        <p className="text-sm font-semibold text-blue-700">
           Preparar uma nota para esta sessão?
         </p>
       </Link>

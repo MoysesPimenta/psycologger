@@ -60,9 +60,98 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
   }
+
+  /* iOS zoom prevention and mobile input styling */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="number"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* Momentum scrolling for iOS */
+  body,
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe area support */
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: max(0.75rem, env(safe-area-inset-left));
+      padding-right: max(0.75rem, env(safe-area-inset-right));
+      padding-top: max(0.75rem, env(safe-area-inset-top));
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+  }
 }
 
 @layer utilities {
+  /* Safe area utilities for notch/dynamic island/pill-shaped cameras */
+  .safe-pt {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+
+  .safe-pb {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-pl {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .safe-pr {
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+
+  .safe-px {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+
+  .safe-py {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .inset-safe {
+    inset-top: env(safe-area-inset-top);
+    inset-left: env(safe-area-inset-left);
+    inset-right: env(safe-area-inset-right);
+    inset-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Dynamic viewport units for address bar collapse */
+  .h-dvh {
+    height: 100dvh;
+  }
+
+  .min-h-dvh {
+    min-height: 100dvh;
+  }
+
+  .max-h-dvh {
+    max-height: 100dvh;
+  }
+
+  /* Enhanced focus visible rings for mobile */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  .focus-ring-inset {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 focus-visible:ring-inset;
+  }
+
+  /* Scrollbar styling */
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
@@ -77,5 +166,15 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--border));
     border-radius: 3px;
+  }
+
+  /* Tap target size: min 44x44px for mobile (accessibility) */
+  .tap-target {
+    @apply min-h-11 min-w-11;
+  }
+
+  /* Active/pressed state for mobile list items and buttons */
+  .active-mobile {
+    @apply active:bg-muted active:opacity-75;
   }
 }

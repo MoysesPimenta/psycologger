@@ -114,16 +114,16 @@ export function PortalJournalNewClient() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <Link href="/portal/journal" className="text-gray-400 hover:text-gray-600" aria-label="Voltar ao diário">
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 pt-2">
+        <Link href="/portal/journal" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Voltar ao diário">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-xl font-bold text-gray-900">Nova anotação</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Nova anotação</h1>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg" role="alert">
+        <div className="bg-red-50 text-red-700 text-sm p-4 rounded-xl border border-red-200" role="alert">
           {error}
         </div>
       )}
@@ -159,17 +159,17 @@ export function PortalJournalNewClient() {
 
       {/* Entry type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-2.5">Tipo</label>
         <div className="flex flex-wrap gap-2">
           {ENTRY_TYPES.map(({ value, label }) => (
             <button
               key={value}
               onClick={() => setEntryType(value)}
               className={cn(
-                "px-3 py-1.5 text-sm rounded-lg border transition-colors",
+                "px-3.5 py-2 text-xs font-semibold rounded-lg border transition-all active:scale-95",
                 entryType === value
-                  ? "bg-brand-600 text-white border-brand-600"
-                  : "text-gray-600 border-gray-200 hover:bg-gray-50",
+                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                  : "text-gray-600 border-gray-300 bg-white hover:bg-gray-50",
               )}
             >
               {label}
@@ -180,7 +180,7 @@ export function PortalJournalNewClient() {
 
       {/* Emotion tags */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Emoções (opcional)</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-2.5">Emoções (opcional)</label>
         <div className="flex flex-wrap gap-2">
           {COMMON_EMOTIONS.map((tag) => (
             <button
@@ -188,12 +188,12 @@ export function PortalJournalNewClient() {
               onClick={() => toggleEmotion(tag)}
               disabled={emotionTags.length >= 10 && !emotionTags.includes(tag)}
               className={cn(
-                "px-3 py-1 text-xs rounded-full border transition-colors",
+                "px-3 py-1.5 text-xs font-medium rounded-full border transition-all active:scale-95",
                 emotionTags.includes(tag)
-                  ? "bg-brand-100 text-brand-700 border-brand-200"
+                  ? "bg-blue-100 text-blue-700 border-blue-300"
                   : emotionTags.length >= 10
-                  ? "text-gray-300 border-gray-100 cursor-not-allowed"
-                  : "text-gray-500 border-gray-200 hover:bg-gray-50",
+                  ? "text-gray-300 border-gray-200 bg-gray-50 cursor-not-allowed"
+                  : "text-gray-600 border-gray-300 bg-white hover:bg-gray-50",
               )}
             >
               {tag}
@@ -201,7 +201,7 @@ export function PortalJournalNewClient() {
           ))}
         </div>
         {emotionTags.length >= 10 && (
-          <p className="text-xs text-amber-600 mt-2">Limite de 10 emoções atingido</p>
+          <p className="text-xs text-amber-600 mt-2 font-medium">Limite de 10 emoções atingido</p>
         )}
       </div>
 
@@ -256,27 +256,30 @@ export function PortalJournalNewClient() {
 
       {/* Visibility */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Visibilidade</label>
-        <div className="space-y-2">
+        <label className="block text-sm font-semibold text-gray-700 mb-2.5">Visibilidade</label>
+        <div className="space-y-2.5">
           {VISIBILITY_OPTIONS.map(({ value, label }) => (
-            <label key={value} className="flex items-center gap-2 cursor-pointer">
+            <label key={value} className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors" role="radio" aria-checked={visibility === value}>
               <input
                 type="radio"
                 name="visibility"
                 value={value}
                 checked={visibility === value}
                 onChange={(e) => setVisibility(e.target.value)}
-                className="accent-brand-600"
+                className="accent-blue-600 h-4 w-4"
               />
-              <span className="text-sm text-gray-700">{label}</span>
+              <span className="text-sm text-gray-700 font-medium">{label}</span>
             </label>
           ))}
         </div>
       </div>
 
-      <Button onClick={handleSave} className="w-full" disabled={loading}>
-        {loading ? "Salvando..." : "Salvar"}
-      </Button>
+      {/* Sticky save bar on mobile */}
+      <div className="fixed bottom-24 inset-x-0 z-10 px-4 pb-4 bg-gradient-to-t from-white via-white to-transparent pt-4 max-w-lg md:max-w-2xl mx-auto">
+        <Button onClick={handleSave} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl active:scale-95 transition-all" disabled={loading}>
+          {loading ? "Salvando..." : "Salvar"}
+        </Button>
+      </div>
     </div>
   );
 }

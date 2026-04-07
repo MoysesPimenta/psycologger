@@ -131,35 +131,37 @@ export function PortalProfileClient() {
   if (!data) return <p className="text-gray-500">Erro ao carregar perfil.</p>;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold text-gray-900">Perfil</h1>
+    <div className="space-y-5 pb-6">
+      <h1 className="text-2xl font-bold text-gray-900">Perfil</h1>
 
       {error && (
-        <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg" role="alert">
+        <div className="bg-red-50 text-red-700 text-sm p-4 rounded-xl border border-red-200" role="alert">
           {error}
         </div>
       )}
 
       {/* Patient info (read-only) */}
-      <div className="bg-white rounded-xl border p-4 space-y-2">
-        <p className="font-semibold text-gray-900">{data.patient.fullName}</p>
-        {data.patient.preferredName && (
-          <p className="text-sm text-gray-500">Nome preferido: {data.patient.preferredName}</p>
-        )}
-        {data.patient.email && <p className="text-sm text-gray-500">{data.patient.email}</p>}
-        {data.patient.phone && <p className="text-sm text-gray-500">{data.patient.phone}</p>}
-        {data.patient.dob && (
-          <p className="text-sm text-gray-500">
-            Nascimento: {format(new Date(data.patient.dob), "dd/MM/yyyy", { locale: ptBR })}
-          </p>
-        )}
+      <div className="bg-white rounded-2xl border border-gray-200/50 p-5 space-y-3">
+        <p className="font-bold text-gray-900 text-base">{data.patient.fullName}</p>
+        <div className="space-y-2 text-sm text-gray-600">
+          {data.patient.preferredName && (
+            <p>Nome preferido: <span className="font-medium">{data.patient.preferredName}</span></p>
+          )}
+          {data.patient.email && <p>{data.patient.email}</p>}
+          {data.patient.phone && <p>{data.patient.phone}</p>}
+          {data.patient.dob && (
+            <p>
+              Nascimento: <span className="font-medium">{format(new Date(data.patient.dob), "dd/MM/yyyy", { locale: ptBR })}</span>
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Notification preferences */}
-      <div className="bg-white rounded-xl border p-4 space-y-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Bell className="h-4 w-4 text-gray-400" />
-          <p className="font-medium text-gray-900 text-sm">Notificações</p>
+      <div className="bg-white rounded-2xl border border-gray-200/50 p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <Bell className="h-5 w-5 text-blue-500" />
+          <p className="font-bold text-gray-900 text-sm">Notificações</p>
         </div>
         {[
           { key: "notifySessionReminder" as const, label: "Lembrete de sessão" },
@@ -179,17 +181,17 @@ export function PortalProfileClient() {
       </div>
 
       {/* Journal default */}
-      <div className="bg-white rounded-xl border p-4 space-y-3">
-        <div className="flex items-center gap-2 mb-2">
-          <BookOpen className="h-4 w-4 text-gray-400" />
-          <p className="font-medium text-gray-900 text-sm">Diário</p>
+      <div className="bg-white rounded-2xl border border-gray-200/50 p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-blue-500" />
+          <p className="font-bold text-gray-900 text-sm">Diário</p>
         </div>
         <label className="block text-sm text-gray-700">
-          Visibilidade padrão
+          <span className="font-medium">Visibilidade padrão</span>
           <select
             value={prefs.defaultJournalVisibility}
             onChange={(e) => setPrefs((p) => ({ ...p, defaultJournalVisibility: e.target.value }))}
-            className="mt-1 w-full px-3 py-2 text-sm border rounded-lg"
+            className="mt-2 w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="PRIVATE">Privado</option>
             <option value="SHARED">Compartilhado</option>
@@ -199,48 +201,50 @@ export function PortalProfileClient() {
       </div>
 
       {/* Emergency contact */}
-      <div className="bg-white rounded-xl border p-4 space-y-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Phone className="h-4 w-4 text-gray-400" />
-          <p className="font-medium text-gray-900 text-sm">Contato de emergência</p>
+      <div className="bg-white rounded-2xl border border-gray-200/50 p-5 space-y-3.5">
+        <div className="flex items-center gap-2">
+          <Phone className="h-5 w-5 text-blue-500" />
+          <p className="font-bold text-gray-900 text-sm">Contato de emergência</p>
         </div>
         <input
           placeholder="Nome"
           value={prefs.emergencyContactName}
           onChange={(e) => setPrefs((p) => ({ ...p, emergencyContactName: e.target.value }))}
-          className="w-full px-3 py-2 text-sm border rounded-lg"
+          className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <input
           placeholder="Telefone"
           value={prefs.emergencyContactPhone}
           onChange={(e) => setPrefs((p) => ({ ...p, emergencyContactPhone: e.target.value }))}
-          className="w-full px-3 py-2 text-sm border rounded-lg"
+          className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <input
           placeholder="Relação (ex: mãe, cônjuge)"
           value={prefs.emergencyContactRelation}
           onChange={(e) => setPrefs((p) => ({ ...p, emergencyContactRelation: e.target.value }))}
-          className="w-full px-3 py-2 text-sm border rounded-lg"
+          className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
 
-      <Button onClick={handleSave} className="w-full" disabled={saving}>
+      <Button onClick={handleSave} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl active:scale-95 transition-all" disabled={saving}>
         {saving ? "Salvando..." : "Salvar preferências"}
       </Button>
 
       {/* Links */}
-      <div className="space-y-2">
+      <div className="space-y-2 pt-2">
         <Link
           href="/portal/privacy"
-          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 py-2"
+          className="flex items-center gap-3 text-sm text-gray-600 hover:text-gray-900 font-medium py-3 px-2 rounded-lg hover:bg-gray-50 transition-colors"
         >
-          <Shield className="h-4 w-4" /> Privacidade e consentimentos
+          <Shield className="h-5 w-5 text-blue-500 flex-shrink-0" />
+          <span>Privacidade e consentimentos</span>
         </Link>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 py-2"
+          className="flex items-center gap-3 text-sm text-red-600 hover:text-red-700 font-medium py-3 px-2 rounded-lg hover:bg-red-50 transition-colors w-full"
         >
-          <LogOut className="h-4 w-4" /> Sair
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          <span>Sair</span>
         </button>
       </div>
     </div>

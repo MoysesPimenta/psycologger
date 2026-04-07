@@ -158,9 +158,10 @@ export function ClinicSettingsClient() {
               required
               minLength={2}
               maxLength={100}
+              className="h-11"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone</Label>
               <Input
@@ -170,6 +171,7 @@ export function ClinicSettingsClient() {
                 value={form.phone}
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                 maxLength={20}
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
@@ -180,6 +182,7 @@ export function ClinicSettingsClient() {
                 placeholder="https://..."
                 value={form.website}
                 onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+                className="h-11"
               />
             </div>
           </div>
@@ -200,16 +203,18 @@ export function ClinicSettingsClient() {
               value={form.addressLine}
               onChange={(e) => setForm((f) => ({ ...f, addressLine: e.target.value }))}
               maxLength={200}
+              className="h-11"
             />
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2 space-y-2">
               <Label htmlFor="addressCity">Cidade</Label>
               <Input
                 id="addressCity"
                 value={form.addressCity}
                 onChange={(e) => setForm((f) => ({ ...f, addressCity: e.target.value }))}
                 maxLength={100}
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
@@ -220,6 +225,7 @@ export function ClinicSettingsClient() {
                 value={form.addressState}
                 onChange={(e) => setForm((f) => ({ ...f, addressState: e.target.value.toUpperCase().slice(0, 2) }))}
                 maxLength={2}
+                className="h-11"
               />
             </div>
           </div>
@@ -231,6 +237,7 @@ export function ClinicSettingsClient() {
               value={form.addressZip}
               onChange={(e) => setForm((f) => ({ ...f, addressZip: e.target.value }))}
               maxLength={10}
+              className="h-11"
             />
           </div>
         </CardContent>
@@ -278,7 +285,7 @@ export function ClinicSettingsClient() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="workingHoursStart">Início do expediente</Label>
               <Input
@@ -286,6 +293,7 @@ export function ClinicSettingsClient() {
                 type="time"
                 value={form.workingHoursStart}
                 onChange={(e) => setForm((f) => ({ ...f, workingHoursStart: e.target.value }))}
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
@@ -295,6 +303,7 @@ export function ClinicSettingsClient() {
                 type="time"
                 value={form.workingHoursEnd}
                 onChange={(e) => setForm((f) => ({ ...f, workingHoursEnd: e.target.value }))}
+                className="h-11"
               />
             </div>
           </div>

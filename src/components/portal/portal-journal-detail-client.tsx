@@ -94,24 +94,24 @@ export function PortalJournalDetailClient({ id }: { id: string }) {
   const canEdit = !entry.reviewedAt;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 pt-2">
         <div className="flex items-center gap-3">
-          <Link href="/portal/journal" className="text-gray-400 hover:text-gray-600">
+          <Link href="/portal/journal" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Voltar ao diário">
             <ChevronLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-lg font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900">
             {ENTRY_TYPE_LABELS[entry.entryType] ?? entry.entryType}
           </h1>
         </div>
         {canEdit && (
-          <button onClick={handleDelete} className="text-red-400 hover:text-red-600 p-2" title="Excluir">
-            <Trash2 className="h-4 w-4" />
+          <button onClick={handleDelete} className="p-2.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
+            <Trash2 className="h-5 w-5" />
           </button>
         )}
       </div>
 
-      <p className="text-sm text-gray-400">
+      <p className="text-xs text-gray-500 font-medium">
         {format(new Date(entry.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
       </p>
 
@@ -124,9 +124,9 @@ export function PortalJournalDetailClient({ id }: { id: string }) {
             const val = entry[key];
             if (val === null) return null;
             return (
-              <div key={key} className="bg-white rounded-lg border p-3 text-center">
-                <p className="text-xs text-gray-400">{label}</p>
-                <p className="text-2xl font-bold text-gray-800">{val}<span className="text-sm text-gray-300">/10</span></p>
+              <div key={key} className="bg-white rounded-2xl border border-gray-200/50 p-4 text-center">
+                <p className="text-xs text-gray-500 font-medium">{label}</p>
+                <p className="text-3xl font-bold text-gray-800 mt-2">{val}<span className="text-sm text-gray-400">/10</span></p>
               </div>
             );
           })}
@@ -137,7 +137,7 @@ export function PortalJournalDetailClient({ id }: { id: string }) {
       {entry.emotionTags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {entry.emotionTags.map((tag) => (
-            <span key={tag} className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+            <span key={tag} className="px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
               {tag}
             </span>
           ))}
@@ -146,7 +146,7 @@ export function PortalJournalDetailClient({ id }: { id: string }) {
 
       {/* Note text */}
       {entry.noteText && (
-        <div className="bg-white rounded-xl border p-4">
+        <div className="bg-white rounded-2xl border border-gray-200/50 p-5">
           <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{entry.noteText}</p>
         </div>
       )}

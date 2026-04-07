@@ -178,11 +178,11 @@ export function ReportsClient() {
   return (
     <div className="space-y-6">
       {/* Period selector */}
-      <div className="flex items-center gap-3 bg-white border rounded-xl p-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-white border rounded-xl p-3 sm:p-4">
         <select
           value={month}
           onChange={(e) => setMonth(Number(e.target.value))}
-          className="border rounded-md px-3 py-2 text-sm"
+          className="border rounded-md px-3 py-2 text-sm h-10"
         >
           {MONTHS.map((m, i) => (
             <option key={i} value={i + 1}>{m}</option>
@@ -191,31 +191,32 @@ export function ReportsClient() {
         <select
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
-          className="border rounded-md px-3 py-2 text-sm"
+          className="border rounded-md px-3 py-2 text-sm h-10"
         >
           {YEARS.map((y) => (
             <option key={y} value={y}>{y}</option>
           ))}
         </select>
-        <p className="text-sm text-gray-500 ml-auto">
+        <p className="text-xs sm:text-sm text-gray-500 sm:ml-auto">
           Dados de {MONTHS[month - 1]} {year}
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b gap-1 overflow-x-auto">
+      {/* Tabs — icons only on mobile */}
+      <div className="flex border-b gap-1 overflow-x-auto scrollbar-thin">
         {tabLabels.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-2 sm:px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap min-h-[44px] ${
               tab === id
                 ? "border-brand-600 text-brand-700"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
+            title={label}
           >
-            <Icon className="h-4 w-4" />
-            {label}
+            <Icon className="h-4 w-4 flex-shrink-0" />
+            <span className="hidden sm:inline">{label}</span>
           </button>
         ))}
       </div>
@@ -233,11 +234,11 @@ export function ReportsClient() {
             <>
               {/* Caixa vs Competência */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-brand-600" />
                   Financeiro — {MONTHS[month - 1]} {year}
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                   <StatCard
                     label="Cobrado (competência)"
                     value={formatCurrency(dashData.summary.totalCharged)}
