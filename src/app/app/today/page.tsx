@@ -10,8 +10,12 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = { title: "Hoje" };
+export async function generateMetadata() {
+  const t = await getTranslations("pageTitle");
+  return { title: t("today") };
+}
 
 export default async function TodayPage() {
   const session = await getServerSession(authOptions);
@@ -21,6 +25,8 @@ export default async function TodayPage() {
 
   // User is logged in but has no active membership (e.g. new signup)
   if (!ctx) redirect("/onboarding");
+
+  const t = await getTranslations("pageTitle");
 
   // Get tenant timezone
   const tenant = await db.tenant.findUnique({
@@ -75,7 +81,7 @@ export default async function TodayPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Hoje — {formatDate(from, "EEEE, dd 'de' MMMM")}
+            {t("today")} — {formatDate(from, "EEEE, dd 'de' MMMM")}
           </h1>
           <p className="text-gray-500 text-sm mt-1">{tenant?.name}</p>
         </div>

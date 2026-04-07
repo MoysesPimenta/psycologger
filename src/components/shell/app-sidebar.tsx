@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Calendar,
   Users,
@@ -21,37 +22,55 @@ import { signOut, useSession } from "next-auth/react";
 import { cn, initials } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { LocaleSwitcher } from "./locale-switcher";
 
-const navItems = [
-  { href: "/app/today", label: "Hoje", icon: Clock },
-  { href: "/app/calendar", label: "Agenda", icon: Calendar },
-  { href: "/app/patients", label: "Pacientes", icon: Users },
-  { href: "/app/financial", label: "Financeiro", icon: DollarSign },
-  { href: "/app/reports", label: "Relatórios", icon: BarChart3 },
-  { href: "/app/journal-inbox", label: "Diário Pacientes", icon: BookOpen },
+const navItemsConfig = [
+  { href: "/app/today", label: "nav.today", icon: Clock },
+  { href: "/app/calendar", label: "nav.calendar", icon: Calendar },
+  { href: "/app/patients", label: "nav.patients", icon: Users },
+  { href: "/app/financial", label: "nav.financial", icon: DollarSign },
+  { href: "/app/reports", label: "nav.reports", icon: BarChart3 },
+  { href: "/app/journal-inbox", label: "nav.journal", icon: BookOpen },
 ];
 
-const bottomNavItems = [
+const bottomNavItemsConfig = [
   { href: "/app/audit", label: "Auditoria", icon: Shield },
-  { href: "/app/settings", label: "Configurações", icon: Settings },
+  { href: "/app/settings", label: "nav.settings", icon: Settings },
 ];
 
 // Mobile bottom nav items (top destinations only)
-const mobileNavItems = [
-  { href: "/app/today", label: "Hoje", icon: Clock },
-  { href: "/app/calendar", label: "Agenda", icon: Calendar },
-  { href: "/app/patients", label: "Pacientes", icon: Users },
-  { href: "/app/financial", label: "Financeiro", icon: DollarSign },
-  { href: "/app/settings", label: "Config.", icon: Settings },
+const mobileNavItemsConfig = [
+  { href: "/app/today", label: "nav.today", icon: Clock },
+  { href: "/app/calendar", label: "nav.calendar", icon: Calendar },
+  { href: "/app/patients", label: "nav.patients", icon: Users },
+  { href: "/app/financial", label: "nav.financial", icon: DollarSign },
+  { href: "/app/settings", label: "nav.settings", icon: Settings },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const t = useTranslations();
 
   const user = session?.user;
   const userName = user?.name ?? user?.email ?? "Usuário";
+
+  // Build nav items with translated labels
+  const navItems = navItemsConfig.map((item) => ({
+    ...item,
+    label: t(item.label),
+  }));
+
+  const bottomNavItems = bottomNavItemsConfig.map((item) => ({
+    ...item,
+    label: item.label === "Auditoria" ? "Auditoria" : t(item.label),
+  }));
+
+  const mobileNavItems = mobileNavItemsConfig.map((item) => ({
+    ...item,
+    label: item.label === "nav.settings" ? t(item.label) : t(item.label),
+  }));
 
   return (
     <>
@@ -148,7 +167,11 @@ export function AppSidebar() {
         </div>
 
         {/* User footer */}
-        <div className="px-3 py-3 border-t">
+        <div className="px-3 py-3 border-t space-y-3">
+          {/* Locale Switcher */}
+          <div className="px-1">
+            <LocaleSwitcher />
+          </div>
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50">
             <div className="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
               {initials(userName)}

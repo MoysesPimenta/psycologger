@@ -4,6 +4,24 @@ This document catalogues technical debt, known issues, and areas for improvement
 
 ---
 
+## Open performance debt
+
+### Patient detail page — single monolithic query (priority: medium)
+
+**Status:** OPEN (identified 2026-04-07)
+
+**Description:** `src/app/app/patients/[id]/page.tsx` loads patient + 5 relations (appointments, clinicalSessions, charges with nested payments, files, contacts, assignedUser) in one Prisma query before rendering anything. On a patient with lots of history, this blocks first paint by 800ms+.
+
+**Recommended fix (~3 hours):** Two Suspense islands, not six. Split into:
+1. `page.tsx` — fast: only patient demographics + assignedUser. Renders immediately.
+2. `<PatientTabs>` — server component, slow query, wrapped in `<Suspense fallback={<PatientTabsSkeleton />}>`.
+
+Why two and not six: every Suspense boundary is a perceived render flicker. Two hits the 80/20 — therapists see the patient identity in <200ms, then a 300-500ms skeleton resolves into the rest. Six boundaries means the page looks like it's loading forever.
+
+**Why deferred:** Touches a high-traffic page, needs visual QA on real data, and is its own discrete change worth a clean commit + preview deploy review.
+
+---
+
 ## Critical Debt
 
 ### 1. CPF Stored Plaintext ✅ RESOLVED (2026-04-07)

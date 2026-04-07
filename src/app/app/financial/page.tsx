@@ -8,8 +8,12 @@ import { formatCurrency } from "@/lib/utils";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowRight } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = { title: "Financeiro" };
+export async function generateMetadata() {
+  const t = await getTranslations("pageTitle");
+  return { title: t("financial") };
+}
 
 export default async function FinancialPage() {
   const session = await getServerSession(authOptions);
@@ -17,6 +21,8 @@ export default async function FinancialPage() {
 
   const ctx = await getAuthContext().catch(() => null);
   if (!ctx) redirect("/login");
+
+  const t = await getTranslations("pageTitle");
 
   const now = new Date();
   const from = startOfMonth(now);
@@ -63,7 +69,7 @@ export default async function FinancialPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Financeiro</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("financial")}</h1>
           <p className="text-sm text-gray-500 mt-1">Mês atual</p>
         </div>
         <Button asChild>

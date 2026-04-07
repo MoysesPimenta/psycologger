@@ -4,8 +4,12 @@ import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/tenant";
 import { db } from "@/lib/db";
 import { CalendarClient } from "@/components/appointments/calendar-client";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = { title: "Agenda" };
+export async function generateMetadata() {
+  const t = await getTranslations("pageTitle");
+  return { title: t("calendar") };
+}
 
 export default async function CalendarPage() {
   const session = await getServerSession(authOptions);
@@ -13,6 +17,8 @@ export default async function CalendarPage() {
 
   const ctx = await getAuthContext().catch(() => null);
   if (!ctx) redirect("/login");
+
+  const t = await getTranslations("pageTitle");
 
   const [appointmentTypes, providers] = await Promise.all([
     db.appointmentType.findMany({
@@ -30,7 +36,7 @@ export default async function CalendarPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Agenda</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("calendar")}</h1>
         <p className="text-sm text-gray-500 mt-1">Gerencie consultas e horários</p>
       </div>
       <CalendarClient

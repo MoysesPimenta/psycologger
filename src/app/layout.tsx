@@ -4,6 +4,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -47,15 +49,19 @@ export const viewport: Viewport = {
   themeColor: "#3b82f6",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const messages = await getMessages();
+
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <NextIntlClientProvider messages={messages}>
+          <Providers>{children}</Providers>
+        </NextIntlClientProvider>
         <SpeedInsights />
         <Analytics />
       </body>

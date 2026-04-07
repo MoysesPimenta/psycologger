@@ -35,7 +35,22 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
-          // CSP is now set per-request in middleware.ts with a unique nonce
+          // Static CSP — nonce-based CSP rejected (see docs/decisions/csp-nonce-parked.md)
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' https://*.sentry.io https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.sentry.io https://*.supabase.co https://api.resend.com https://api.stripe.com https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+              "frame-src 'self' https://js.stripe.com",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join("; "),
+          },
         ],
       },
     ];

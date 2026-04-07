@@ -1,0 +1,35 @@
+{
+  "nav": {
+    "today": "Hoje",
+    "patients": "Pacientes",
+    "calendar": "Agenda",
+    "financial": "Financeiro",
+    "reports": "Relatórios",
+    "journal": "Diário Pacientes",
+    "settings": "Configurações"
+  },
+  "pageTitle": {
+    "today": "Hoje",
+    "patients": "Pacientes",
+    "calendar": "Agenda",
+    "financial": "Financeiro",
+    "reports": "Relatórios",
+    "journal": "Diário Pacientes",
+    "settings": "Configurações"
+  },
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso"
+  },
+  "localeSwitcher": {
+    "label": "Idioma",
+    "pt-BR": "Português",
+    "en": "English",
+    "es": "Español"
+  }
+}

@@ -5,18 +5,24 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PatientsClient } from "@/components/patients/patients-client";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = { title: "Pacientes" };
+export async function generateMetadata() {
+  const t = await getTranslations("pageTitle");
+  return { title: t("patients") };
+}
 
 export default async function PatientsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
+  const t = await getTranslations("pageTitle");
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pacientes</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("patients")}</h1>
           <p className="text-sm text-gray-500 mt-1">Gerencie seus pacientes e prontuários</p>
         </div>
         <Button asChild>
