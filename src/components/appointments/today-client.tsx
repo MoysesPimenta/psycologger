@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   Play, CheckCircle2, XCircle, UserX, DollarSign,
   CreditCard, ChevronRight, Clock, MapPin, Video, Check, AlertTriangle,
@@ -47,14 +48,7 @@ interface Props {
   role: string;
 }
 
-const PAYMENT_METHODS = [
-  { value: "PIX", label: "PIX" },
-  { value: "CASH", label: "Dinheiro" },
-  { value: "CARD", label: "Cartão" },
-  { value: "TRANSFER", label: "Transferência" },
-  { value: "INSURANCE", label: "Plano de saúde" },
-  { value: "OTHER", label: "Outro" },
-];
+// Payment methods labels are translated in the component using useTranslations
 
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info";
 
@@ -83,6 +77,7 @@ function TodayChargePrompt({
   onDone: (chargeId: string) => void;
   onSkip: () => void;
 }) {
+  const t = useTranslations("charges");
   // Effective fee: patient override > patient default type > appointment type default
   const effectiveFee =
     patient.defaultFeeOverrideCents != null
@@ -115,14 +110,14 @@ function TodayChargePrompt({
           amountCents,
           discountCents,
           dueDate,
-          description: "Consulta",
+          description: t("description"),
         }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
       onDone(data.data?.id ?? "");
     } catch {
-      setError("Erro ao criar cobrança.");
+      setError(t("createError"));
     } finally {
       setSaving(false);
     }
@@ -137,7 +132,7 @@ function TodayChargePrompt({
     <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 space-y-3">
       <div className="flex items-center gap-2">
         <CreditCard className="h-4 w-4 text-green-600" />
-        <span className="text-sm font-medium text-green-800">Cobrar esta sessão?</span>
+        <span className="text-sm font-medium text-green-800">{t("chargeThisSession")}</span>
       </div>
       {error && (
         <p className="text-xs text-red-600 flex items-center gap-1">
@@ -146,7 +141,7 @@ function TodayChargePrompt({
       )}
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <label className="text-xs text-gray-500 block mb-1">Valor (R$)</label>
+          <label className="text-xs text-gray-500 block mb-1">{t("amount")}</label>
           <input
             type="text" inputMode="decimal"
             value={amount}
@@ -155,7 +150,7 @@ function TodayChargePrompt({
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500 block mb-1">Desconto (R$)</label>
+          <label className="text-xs text-gray-500 block mb-1">{t("discount")}</label>
           <input
             type="text" inputMode="decimal"
             value={discount}
@@ -164,7 +159,7 @@ function TodayChargePrompt({
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500 block mb-1">Vencimento</label>
+          <label className="text-xs text-gray-500 block mb-1">{t("dueDate")}</label>
           <input
             type="date"
             value={dueDate}
@@ -175,7 +170,7 @@ function TodayChargePrompt({
       </div>
       {net > 0 && (
         <p className="text-xs text-green-700 font-medium">
-          Valor líquido: R$ {net.toFixed(2).replace(".", ",")}
+          {t("netAmount")} R$ {net.toFixed(2).replace(".", ",")}
         </p>
       )}
       <div className="flex gap-2">
@@ -185,14 +180,14 @@ function TodayChargePrompt({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-green-600 hover:bg-green-700 transition-colors disabled:opacity-50"
         >
           <Check className="h-3.5 w-3.5" />
-          {saving ? "Criando..." : "Criar cobrança"}
+          {saving ? t("creating") : t("create")}
         </button>
         <button
           onClick={onSkip}
           disabled={saving}
           className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white border hover:bg-gray-50 transition-colors"
         >
-          Não cobrar agora
+          {t("skipNow")}
         </button>
       </div>
     </div>
@@ -204,6 +199,7 @@ function TodayChargePrompt({
 export function TodayClient({ appointments, userId, role }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("today");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [localAppts, setLocalAppts] = useState(appointments);
   // Track which appt is showing the charge prompt
@@ -238,9 +234,10 @@ export function TodayClient({ appointments, userId, role }: Props) {
           setChargePromptId(id);
         }
       }
-      toast({ title: "Status atualizado", variant: "success" });
+      toast({ title: t("statusUpdated"), variant: "success" });
+      // Note: t reference is from the TodayClient component scope, not from TodayChargePrompt
     } catch {
-      toast({ title: "Erro ao atualizar status", variant: "destructive" });
+      toast({ title: t("statusError"), variant: "destructive" });
     } finally {
       setLoadingId(null);
     }
@@ -255,17 +252,17 @@ export function TodayClient({ appointments, userId, role }: Props) {
       )
     );
     setChargePromptId(null);
-    toast({ title: "Cobrança criada!", variant: "success" });
+    toast({ title: t("chargeCreated"), variant: "success" });
   }
 
   if (localAppts.length === 0) {
     return (
       <div className="bg-white rounded-xl border p-12 text-center">
         <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
-        <h2 className="font-semibold text-gray-900 text-lg">Nenhuma consulta hoje</h2>
-        <p className="text-gray-500 mt-1 mb-6">Aproveite para organizar seus registros.</p>
+        <h2 className="font-semibold text-gray-900 text-lg">{t("noAppointments")}</h2>
+        <p className="text-gray-500 mt-1 mb-6">{t("noAppointmentsHint")}</p>
         <Button asChild variant="outline">
-          <Link href="/app/calendar">Ver agenda</Link>
+          <Link href="/app/calendar">{t("viewCalendar")}</Link>
         </Button>
       </div>
     );
@@ -323,13 +320,13 @@ export function TodayClient({ appointments, userId, role }: Props) {
                       {appt.videoLink && (
                         <a href={appt.videoLink} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1 text-brand-600 hover:underline">
-                          <Video className="h-3 w-3" /> Online
+                          <Video className="h-3 w-3" /> {t("online")}
                         </a>
                       )}
                     </div>
                     {role !== "PSYCHOLOGIST" && (
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Profissional: {appt.provider.name}
+                        {t("provider")} {appt.provider.name}
                       </p>
                     )}
                   </div>
@@ -337,7 +334,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                   <Link
                     href={`/app/appointments/${appt.id}`}
                     className="text-gray-400 hover:text-brand-600 flex-shrink-0"
-                    title="Ver / editar consulta"
+                    title={t("viewEditAppt")}
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Link>
@@ -354,7 +351,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                         disabled={isLoading}
                       >
                         <Play className="h-3 w-3" />
-                        Iniciar sessão
+                        {t("startSession")}
                       </Button>
                       <Button
                         size="sm"
@@ -363,7 +360,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                         disabled={isLoading || appt.status === "CONFIRMED"}
                       >
                         <CheckCircle2 className="h-3 w-3" />
-                        Confirmar
+                        {t("confirm")}
                       </Button>
                       <Button
                         size="sm"
@@ -373,7 +370,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                         className="border-gray-300 text-gray-700"
                       >
                         <Check className="h-3 w-3" />
-                        Realizada
+                        {t("completed")}
                       </Button>
                       <Button
                         size="sm"
@@ -382,7 +379,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                         disabled={isLoading}
                       >
                         <UserX className="h-3 w-3" />
-                        Faltou
+                        {t("noShow")}
                       </Button>
                       <Button
                         size="sm"
@@ -391,7 +388,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                         disabled={isLoading}
                       >
                         <XCircle className="h-3 w-3" />
-                        Cancelar
+                        {t("cancelAppt")}
                       </Button>
                     </>
                   )}
@@ -403,7 +400,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                       onClick={() => router.push(`/app/sessions/new?appointmentId=${appt.id}&patientId=${appt.patient.id}`)}
                     >
                       <Play className="h-3 w-3" />
-                      Registrar nota
+                      {t("recordNote")}
                     </Button>
                   )}
 
@@ -415,20 +412,20 @@ export function TodayClient({ appointments, userId, role }: Props) {
                       onClick={() => router.push(`/app/patients/${appt.patient.id}?tab=financial`)}
                     >
                       <CreditCard className="h-3 w-3" />
-                      Ver cobrança
+                      {t("viewCharge")}
                     </Button>
                   )}
 
                   {hasPaidCharge && (
                     <Badge variant="success" className="text-xs px-3 py-1">
-                      ✓ Pago
+                      {t("paid")}
                     </Badge>
                   )}
 
                   {hasSession && (
                     <Button size="sm" variant="ghost" asChild>
                       <Link href={`/app/sessions/${appt.clinicalSession!.id}`}>
-                        Ver nota
+                        {t("viewNote")}
                       </Link>
                     </Button>
                   )}

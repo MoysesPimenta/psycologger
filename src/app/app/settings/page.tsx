@@ -10,27 +10,28 @@ export async function generateMetadata() {
   return { title: t("settings") };
 }
 
-const settingSections = [
-  { href: "/app/settings/profile", icon: UserCircle, label: "Meu Perfil", desc: "Nome, telefone e dados pessoais" },
-  { href: "/app/settings/clinic", icon: Building2, label: "Clínica", desc: "Nome, endereço e informações fiscais" },
-  { href: "/app/settings/users", icon: Users, label: "Usuários & Papéis", desc: "Convide e gerencie a equipe" },
-  { href: "/app/settings/appointment-types", icon: Calendar, label: "Tipos de consulta", desc: "Configure tipos, durações e preços" },
-  { href: "/app/settings/reminders", icon: Bell, label: "Lembretes", desc: "Edite modelos de email de lembrete" },
-  { href: "/app/settings/integrations", icon: Puzzle, label: "Integrações", desc: "Google Calendar, NFSe" },
-  { href: "/app/settings/export", icon: Download, label: "Exportar dados", desc: "Baixe todos os dados da clínica" },
-];
-
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
   const t = await getTranslations("pageTitle");
+  const tSettings = await getTranslations("settings");
+
+  const settingSections = [
+    { href: "/app/settings/profile", icon: UserCircle, label: tSettings("myProfile"), desc: tSettings("myProfileDesc") },
+    { href: "/app/settings/clinic", icon: Building2, label: tSettings("clinic"), desc: tSettings("clinicDesc") },
+    { href: "/app/settings/users", icon: Users, label: tSettings("users"), desc: tSettings("usersDesc") },
+    { href: "/app/settings/appointment-types", icon: Calendar, label: tSettings("appointmentTypes"), desc: tSettings("appointmentTypesDesc") },
+    { href: "/app/settings/reminders", icon: Bell, label: tSettings("reminders"), desc: tSettings("remindersDesc") },
+    { href: "/app/settings/integrations", icon: Puzzle, label: tSettings("integrations"), desc: tSettings("integrationsDesc") },
+    { href: "/app/settings/export", icon: Download, label: tSettings("export"), desc: tSettings("exportDesc") },
+  ];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{t("settings")}</h1>
-        <p className="text-sm text-gray-500 mt-1">Gerencie sua clínica e preferências</p>
+        <p className="text-sm text-gray-500 mt-1">{tSettings("headerSubtitle")}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

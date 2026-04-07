@@ -34,7 +34,7 @@ const navItemsConfig = [
 ];
 
 const bottomNavItemsConfig = [
-  { href: "/app/audit", label: "Auditoria", icon: Shield },
+  { href: "/app/audit", label: "nav.audit", icon: Shield },
   { href: "/app/settings", label: "nav.settings", icon: Settings },
 ];
 
@@ -54,7 +54,7 @@ export function AppSidebar() {
   const t = useTranslations();
 
   const user = session?.user;
-  const userName = user?.name ?? user?.email ?? "Usuário";
+  const userName = user?.name ?? user?.email ?? t("common.user");
 
   // Build nav items with translated labels
   const navItems = navItemsConfig.map((item) => ({
@@ -64,7 +64,7 @@ export function AppSidebar() {
 
   const bottomNavItems = bottomNavItemsConfig.map((item) => ({
     ...item,
-    label: item.label === "Auditoria" ? "Auditoria" : t(item.label),
+    label: t(item.label),
   }));
 
   const mobileNavItems = mobileNavItemsConfig.map((item) => ({
@@ -185,7 +185,7 @@ export function AppSidebar() {
               size="icon"
               className="h-8 w-8 flex-shrink-0"
               onClick={() => signOut({ callbackUrl: "/login" })}
-              title="Sair"
+              title={t("common.logout")}
             >
               <LogOut className="h-4 w-4" />
             </Button>

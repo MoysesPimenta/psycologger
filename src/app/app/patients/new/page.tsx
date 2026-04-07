@@ -4,8 +4,12 @@ import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/tenant";
 import { db } from "@/lib/db";
 import { NewPatientClient } from "@/components/patients/new-patient-client";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = { title: "Novo Paciente" };
+export async function generateMetadata() {
+  const t = await getTranslations("patients");
+  return { title: t("new") };
+}
 
 export default async function NewPatientPage() {
   const session = await getServerSession(authOptions);
@@ -20,10 +24,12 @@ export default async function NewPatientPage() {
       })
     : [];
 
+  const t = await getTranslations("patients");
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Novo Paciente</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("new")}</h1>
         <p className="text-sm text-gray-500 mt-1">Preencha os dados do paciente</p>
       </div>
       <NewPatientClient appointmentTypes={appointmentTypes} />

@@ -17,18 +17,19 @@ export default async function PatientsPage() {
   if (!session) redirect("/login");
 
   const t = await getTranslations("pageTitle");
+  const tPatients = await getTranslations("patients");
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t("patients")}</h1>
-          <p className="text-sm text-gray-500 mt-1">Gerencie seus pacientes e prontuários</p>
+          <p className="text-sm text-gray-500 mt-1">{tPatients("headerSubtitle")}</p>
         </div>
         <Button asChild>
           <Link href="/app/patients/new">
             <Plus className="h-4 w-4" />
-            Novo paciente
+            {tPatients("newPatient")}
           </Link>
         </Button>
       </div>

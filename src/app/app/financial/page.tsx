@@ -23,6 +23,7 @@ export default async function FinancialPage() {
   if (!ctx) redirect("/login");
 
   const t = await getTranslations("pageTitle");
+  const tFinancial = await getTranslations("financial");
 
   const now = new Date();
   const from = startOfMonth(now);
@@ -70,11 +71,11 @@ export default async function FinancialPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t("financial")}</h1>
-          <p className="text-sm text-gray-500 mt-1">Mês atual</p>
+          <p className="text-sm text-gray-500 mt-1">{tFinancial("currentMonth")}</p>
         </div>
         <Button asChild>
           <Link href="/app/financial/charges/new">
-            <Plus className="h-4 w-4" /> Nova cobrança
+            <Plus className="h-4 w-4" /> {tFinancial("newCharge")}
           </Link>
         </Button>
       </div>
@@ -82,19 +83,19 @@ export default async function FinancialPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border p-5">
-          <p className="text-xs font-medium text-gray-500">Total cobrado</p>
+          <p className="text-xs font-medium text-gray-500">{tFinancial("totalCharged")}</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">{formatCurrency(totalCharged)}</p>
-          <p className="text-xs text-gray-400 mt-1">{serviceCharges.length} cobranças</p>
+          <p className="text-xs text-gray-400 mt-1">{serviceCharges.length} {tFinancial("chargesCount")}</p>
         </div>
         <div className="bg-white rounded-xl border p-5">
-          <p className="text-xs font-medium text-gray-500">Recebido</p>
+          <p className="text-xs font-medium text-gray-500">{tFinancial("received")}</p>
           <p className="text-3xl font-bold text-green-600 mt-2">{formatCurrency(totalReceived)}</p>
-          <p className="text-xs text-gray-400 mt-1">{serviceCharges.filter((c) => c.status === "PAID").length} pagas</p>
+          <p className="text-xs text-gray-400 mt-1">{serviceCharges.filter((c) => c.status === "PAID").length} {tFinancial("paidCount")}</p>
         </div>
         <div className="bg-white rounded-xl border p-5">
-          <p className="text-xs font-medium text-gray-500">Pendente</p>
+          <p className="text-xs font-medium text-gray-500">{tFinancial("pending")}</p>
           <p className="text-3xl font-bold text-yellow-600 mt-2">{formatCurrency(totalPending)}</p>
-          <p className="text-xs text-gray-400 mt-1">{charges.filter((c) => c.status === "PENDING" || c.status === "OVERDUE").length} em aberto</p>
+          <p className="text-xs text-gray-400 mt-1">{charges.filter((c) => c.status === "PENDING" || c.status === "OVERDUE").length} {tFinancial("openCount")}</p>
         </div>
       </div>
 
@@ -102,15 +103,15 @@ export default async function FinancialPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link href="/app/financial/charges" className="bg-white rounded-xl border p-5 hover:shadow-sm transition-shadow flex items-center justify-between group">
           <div>
-            <p className="font-semibold text-gray-900">Cobranças</p>
-            <p className="text-sm text-gray-500 mt-0.5">Gerencie cobranças e pagamentos</p>
+            <p className="font-semibold text-gray-900">{tFinancial("chargesTitle")}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{tFinancial("chargesDesc")}</p>
           </div>
           <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600" />
         </Link>
         <Link href="/app/reports" className="bg-white rounded-xl border p-5 hover:shadow-sm transition-shadow flex items-center justify-between group">
           <div>
-            <p className="font-semibold text-gray-900">Relatórios</p>
-            <p className="text-sm text-gray-500 mt-0.5">Exportar e analisar dados</p>
+            <p className="font-semibold text-gray-900">{tFinancial("reportsTitle")}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{tFinancial("reportsDesc")}</p>
           </div>
           <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600" />
         </Link>

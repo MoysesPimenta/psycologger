@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Search, User, Phone, Mail, Tag, ChevronRight, EyeOff, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ interface Patient {
 }
 
 export function PatientsClient() {
+  const t = useTranslations("patients");
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -46,10 +48,10 @@ export function PatientsClient() {
         setPatients(json.data);
         setTotal(json.meta?.total ?? 0);
       } else {
-        setFetchError("Erro ao carregar pacientes. Tente novamente.");
+        setFetchError(t("loadError"));
       }
     } catch {
-      setFetchError("Erro de conexão. Tente novamente.");
+      setFetchError(t("connectionError"));
     }
     setLoading(false);
   }, [search, page, showInactive]);
@@ -67,7 +69,7 @@ export function PatientsClient() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Buscar nome, email ou telefone..."
+              placeholder={t("searchPlaceholder")}
               className="pl-9 h-11"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -77,11 +79,11 @@ export function PatientsClient() {
             variant={showInactive ? "default" : "outline"}
             size="sm"
             onClick={() => { setShowInactive((v) => !v); setPage(1); }}
-            title={showInactive ? "Ocultar inativos" : "Mostrar inativos"}
+            title={showInactive ? t("hideInactive") : t("showInactive")}
             className="flex-shrink-0 gap-1.5 h-11"
           >
             {showInactive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            <span className="hidden sm:inline">{showInactive ? "Ocultar inativos" : "Ver inativos"}</span>
+            <span className="hidden sm:inline">{showInactive ? t("hideInactive") : t("showInactiveShort")}</span>
           </Button>
         </div>
       </div>
@@ -89,12 +91,14 @@ export function PatientsClient() {
       {fetchError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
           <span>{fetchError}</span>
-          <button onClick={() => fetch_()} className="text-red-600 underline text-xs ml-4">Tentar novamente</button>
+          <button onClick={() => fetch_()} className="text-red-600 underline text-xs ml-4">{t("retryLoad")}</button>
         </div>
       )}
 
       {/* Results count */}
-      <p className="text-sm text-gray-500">{total} paciente{total !== 1 ? "s" : ""} encontrado{total !== 1 ? "s" : ""}</p>
+      <p className="text-sm text-gray-500">
+        {total} {total === 1 ? t("foundSingular") : t("foundPlural")}
+      </p>
 
       {/* List */}
       <div className="space-y-2">
@@ -106,7 +110,7 @@ export function PatientsClient() {
           <div className="bg-white rounded-xl border p-12 text-center">
             <User className="h-10 w-10 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">
-              {search ? "Nenhum paciente encontrado para esta busca." : "Nenhum paciente cadastrado ainda."}
+              {search ? t("noSearchResults") : t("noPatients")}
             </p>
           </div>
         ) : (
@@ -128,7 +132,7 @@ export function PatientsClient() {
                     {patient.preferredName ?? patient.fullName}
                   </span>
                   {!patient.isActive && (
-                    <Badge variant="secondary" className="text-xs">Arquivado</Badge>
+                    <Badge variant="secondary" className="text-xs">{t("archived")}</Badge>
                   )}
                 </div>
                 {patient.preferredName && (
@@ -141,7 +145,9 @@ export function PatientsClient() {
                       <span className="hidden sm:inline">{patient.phone}</span>
                     </span>
                   )}
-                  <span className="hidden sm:inline">{patient._count.appointments} consulta{patient._count.appointments !== 1 ? "s" : ""}</span>
+                  <span className="hidden sm:inline">
+                    {patient._count.appointments} {patient._count.appointments === 1 ? t("appointmentsSingular") : t("appointmentsPlural")}
+                  </span>
                 </div>
                 {patient.tags.length > 0 && (
                   <div className="flex gap-1 mt-2">

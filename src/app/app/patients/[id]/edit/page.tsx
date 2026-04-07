@@ -3,11 +3,13 @@ import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
 import { getPatientScope } from "@/lib/rbac";
 import { EditPatientClient } from "@/components/patients/edit-patient-client";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
-export function generateMetadata() {
-  return { title: "Editar Paciente" };
+export async function generateMetadata() {
+  const t = await getTranslations("patients");
+  return { title: t("edit") };
 }
 
 export default async function EditPatientPage({ params }: { params: { id: string } }) {
@@ -48,10 +50,12 @@ export default async function EditPatientPage({ params }: { params: { id: string
     },
   });
 
+  const t = await getTranslations("patients");
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Editar Paciente</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("edit")}</h1>
         <p className="text-sm text-gray-500 mt-1">{patient.fullName}</p>
       </div>
       <EditPatientClient

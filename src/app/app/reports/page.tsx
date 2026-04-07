@@ -14,12 +14,13 @@ export default async function ReportsPage() {
   if (!session) redirect("/login");
 
   const t = await getTranslations("pageTitle");
+  const tReports = await getTranslations("reports");
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{t("reports")}</h1>
-        <p className="text-sm text-gray-500 mt-1">Análise financeira e exportação</p>
+        <p className="text-sm text-gray-500 mt-1">{tReports("headerSubtitle")}</p>
       </div>
       <ReportsClient />
     </div>

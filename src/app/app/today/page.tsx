@@ -27,6 +27,7 @@ export default async function TodayPage() {
   if (!ctx) redirect("/onboarding");
 
   const t = await getTranslations("pageTitle");
+  const tToday = await getTranslations("today");
 
   // Get tenant timezone
   const tenant = await db.tenant.findUnique({
@@ -88,7 +89,7 @@ export default async function TodayPage() {
         <Button asChild size="sm">
           <Link href="/app/appointments/new">
             <Plus className="h-4 w-4" />
-            Nova consulta
+            {tToday("newAppointment")}
           </Link>
         </Button>
       </div>
@@ -96,10 +97,10 @@ export default async function TodayPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Total", value: stats.total, color: "text-gray-900" },
-          { label: "Realizadas", value: stats.completed, color: "text-green-600" },
-          { label: "Aguardando", value: stats.scheduled, color: "text-blue-600" },
-          { label: "Faltas", value: stats.noShow, color: "text-red-600" },
+          { label: tToday("statsTotal"), value: stats.total, color: "text-gray-900" },
+          { label: tToday("statsCompleted"), value: stats.completed, color: "text-green-600" },
+          { label: tToday("statsScheduled"), value: stats.scheduled, color: "text-blue-600" },
+          { label: tToday("statsNoShow"), value: stats.noShow, color: "text-red-600" },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-xl border p-4">
             <p className="text-xs text-gray-500 font-medium">{s.label}</p>

@@ -3,8 +3,12 @@ import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
 import { can } from "@/lib/rbac";
 import { SessionEditor } from "@/components/sessions/session-editor";
+import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
+  const t = await getTranslations("nav");
+  // Using nav.journal as a fallback since we don't have a separate sessions namespace
+  // This will show "Diário Pacientes" for both new and edit
   return { title: params.id === "new" ? "Nova Sessão" : "Editar Sessão" };
 }
 

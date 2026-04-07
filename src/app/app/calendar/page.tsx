@@ -19,6 +19,7 @@ export default async function CalendarPage() {
   if (!ctx) redirect("/login");
 
   const t = await getTranslations("pageTitle");
+  const tCalendar = await getTranslations("calendar");
 
   const [appointmentTypes, providers] = await Promise.all([
     db.appointmentType.findMany({
@@ -37,7 +38,7 @@ export default async function CalendarPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{t("calendar")}</h1>
-        <p className="text-sm text-gray-500 mt-1">Gerencie consultas e horários</p>
+        <p className="text-sm text-gray-500 mt-1">{tCalendar("headerSubtitle")}</p>
       </div>
       <CalendarClient
         appointmentTypes={appointmentTypes}
