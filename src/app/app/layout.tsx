@@ -1,8 +1,14 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { getAuthContext } from "@/lib/tenant";
 import { AppSidebar } from "@/components/shell/app-sidebar";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
+import { BillingBanner } from "@/components/billing/billing-banner";
+import { requireActiveSubscription } from "@/lib/billing/subscription-status";
+import { db } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 export default async function AppLayout({
   children,
@@ -12,9 +18,39 @@ export default async function AppLayout({
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
+  const ctx = await getAuthContext();
+
+  // Check subscription status (unless SUPERADMIN)
+  let billingState: "FREE" | "ACTIVE" | "GRACE" | "BLOCKED" | null = null;
+  if (!ctx.isSuperAdmin) {
+    try {
+      billingState = await requireActiveSubscription(ctx.tenantId, ctx.isSuperAdmin);
+    } catch (err) {
+      // BLOCKED — redirect to reactivate
+      // Note: middleware.ts will catch this and allow /app/billing/reactivate through
+      redirect("/app/billing/reactivate");
+    }
+  }
+
+  // Fetch billing banner data
+  let graceBanner = null;
+  if (billingState === "GRACE") {
+    const tenant = await db.tenant.findUnique({
+      where: { id: ctx.tenantId },
+      select: { graceUntil: true },
+    });
+    if (tenant?.graceUntil) {
+      const daysLeft = Math.ceil(
+        (new Date(tenant.graceUntil).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+      );
+      graceBanner = { state: "GRACE" as const, graceDaysLeft: daysLeft };
+    }
+  }
+
   return (
     <>
       <ServiceWorkerRegister />
+      {graceBanner && <BillingBanner state={graceBanner.state} graceDaysLeft={graceBanner.graceDaysLeft} />}
       <div className="flex h-screen bg-gray-50">
         <AppSidebar />
         {/* Main content area — offset by sidebar width on md+ */}

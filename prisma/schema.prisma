@@ -76,6 +76,12 @@ enum CalendarShowPatient {
   FULL_NAME
 }
 
+enum PlanTier {
+  FREE
+  PRO
+  CLINIC
+}
+
 // ─── Patient Portal Enums ─────────────────────────────────────────────────────
 
 enum JournalEntryType {
@@ -257,9 +263,19 @@ model Tenant {
   workingHoursEnd               String @default("18:00")
   workingDays                   String @default("1,2,3,4,5") // Mon-Fri
 
-  // Subscription / plan
+  // Subscription / plan (legacy, kept for compatibility)
   plan      String @default("beta")
   planSince DateTime @default(now())
+
+  // Billing — Stripe SaaS subscriptions
+  planTier              PlanTier @default(FREE)
+  stripeCustomerId      String?  @unique
+  stripeSubscriptionId  String?  @unique
+  subscriptionStatus    String?  // ACTIVE, PAST_DUE, CANCELED, TRIALING, UNPAID
+  currentPeriodEnd      DateTime?
+  graceUntil            DateTime? // null = no grace period; when set, store past_due expiry + 3 days
+  billingCurrency       String   @default("BRL") // BRL or USD
+  cancelAtPeriodEnd     Boolean  @default(false)
 
   // Patient portal feature flags
   portalEnabled              Boolean @default(false)
@@ -1014,4 +1030,12 @@ model ConsentRecord {
 
   @@index([tenantId, patientId])
   @@index([tenantId, patientId, consentType])
+}
+
+model StripeWebhookEvent {
+  id          String   @id // Stripe event ID
+  type        String   // e.g., "customer.subscription.created"
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
 }

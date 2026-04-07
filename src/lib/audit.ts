@@ -85,7 +85,11 @@ export type AuditAction =
   | "PORTAL_CONSENT_REVOKE"
   | "PORTAL_PROFILE_UPDATE"
   | "PORTAL_SESSION_REVOKE"
-  | "PORTAL_EMAIL_UPDATED";
+  | "PORTAL_EMAIL_UPDATED"
+  // Billing
+  | "BILLING_CHECKOUT_INITIATED"
+  | "BILLING_PORTAL_ACCESSED"
+  | "BILLING_STATE_CHANGED";
 
 export interface AuditParams {
   tenantId?: string;
