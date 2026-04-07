@@ -96,14 +96,29 @@ export async function POST(req: NextRequest) {
     },
   })) as unknown as ChargeWithRelations[];
 
+  // Batch-fetch sent logs for these charges
+  const sentLogs24h = await db.paymentReminderLog.findMany({
+    where: {
+      chargeId: { in: chargesDueTomorrow.map((c) => c.id) },
+      type: "PAYMENT_DUE_24H",
+    },
+    select: { chargeId: true },
+  });
+  const sentSet24h = new Set(sentLogs24h.map((l) => l.chargeId));
+
+  // Batch-fetch templates for these tenants
+  const tenantIds24h = Array.from(new Set(chargesDueTomorrow.map((c) => c.tenantId)));
+  const templates24h = await db.reminderTemplate.findMany({
+    where: { tenantId: { in: tenantIds24h }, type: "PAYMENT_DUE_24H" },
+  });
+  const templatesByTenant24h = new Map(templates24h.map((t) => [t.tenantId, t]));
+
   for (const charge of chargesDueTomorrow) {
     if (!charge.patient.email) continue;
-    if (await hasReminderBeenSent(charge.id, "PAYMENT_DUE_24H", charge.tenantId)) continue;
+    if (sentSet24h.has(charge.id)) continue;
 
-    // Check if tenant has this template active
-    const template = await db.reminderTemplate.findFirst({
-      where: { tenantId: charge.tenantId, type: "PAYMENT_DUE_24H" },
-    });
+    // Check if tenant has this template active (default: yes)
+    const template = templatesByTenant24h.get(charge.tenantId);
     if (template && !template.isActive) continue;
 
     const net = charge.amountCents - charge.discountCents;
@@ -152,13 +167,28 @@ export async function POST(req: NextRequest) {
     },
   })) as unknown as ChargeWithRelations[];
 
+  // Batch-fetch sent logs for overdue charges
+  const sentLogsOverdue = await db.paymentReminderLog.findMany({
+    where: {
+      chargeId: { in: chargesOverdue.map((c) => c.id) },
+      type: "PAYMENT_OVERDUE",
+    },
+    select: { chargeId: true },
+  });
+  const sentSetOverdue = new Set(sentLogsOverdue.map((l) => l.chargeId));
+
+  // Batch-fetch templates for these tenants
+  const tenantIdsOverdue = Array.from(new Set(chargesOverdue.map((c) => c.tenantId)));
+  const templatesOverdue = await db.reminderTemplate.findMany({
+    where: { tenantId: { in: tenantIdsOverdue }, type: "PAYMENT_OVERDUE" },
+  });
+  const templatesByTenantOverdue = new Map(templatesOverdue.map((t) => [t.tenantId, t]));
+
   for (const charge of chargesOverdue) {
     if (!charge.patient.email) continue;
-    if (await hasReminderBeenSent(charge.id, "PAYMENT_OVERDUE", charge.tenantId)) continue;
+    if (sentSetOverdue.has(charge.id)) continue;
 
-    const template = await db.reminderTemplate.findFirst({
-      where: { tenantId: charge.tenantId, type: "PAYMENT_OVERDUE" },
-    });
+    const template = templatesByTenantOverdue.get(charge.tenantId);
     if (template && !template.isActive) continue;
 
     const net = charge.amountCents - charge.discountCents;

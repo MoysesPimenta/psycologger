@@ -14,6 +14,7 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { randomBytes, createHash } from "crypto";
 import { PORTAL_MAGIC_LINK_EXPIRY_MS, generateActivationToken } from "@/lib/patient-auth";
 import { encryptCpf, decryptPatientCpf, cpfBlindIndex } from "@/lib/cpf-crypto";
+import { logger } from "@/lib/logger";
 
 async function resolvePatient(id: string, ctx: Awaited<ReturnType<typeof getAuthContext>>) {
   const scope = getPatientScope(ctx);
@@ -179,7 +180,7 @@ export async function PATCH(
               });
               portalEmailSynced = true;
             } catch (emailErr) {
-              console.error("[patient-patch] Magic link email failed:", emailErr);
+              logger.error("patient-patch", "Magic link email failed", { err: emailErr });
             }
 
             await auditLog({

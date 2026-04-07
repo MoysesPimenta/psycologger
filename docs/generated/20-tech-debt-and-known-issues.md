@@ -54,11 +54,11 @@ This document catalogues technical debt, known issues, and areas for improvement
 
 ---
 
-### 3. No Structured Logging
+### 3. Structured Logging — Partial Adoption
 
-**Status**: Active in production
+**Status**: Logger implemented (`src/lib/logger.ts`), adoption ~50% as of 2026-04-07.
 
-**Description**: Application uses `console.log()` and `console.error()` throughout. No structured logging (JSON format), no log levels (debug/info/warn/error), no request tracing.
+**Description**: A structured JSON logger with `info/warn/error/debug` levels and PHI-safe error serialization exists at `src/lib/logger.ts` and is used by cron endpoints and rate-limit denial paths. However, ~15+ API route files still call raw `console.error()` directly, mostly in email-failure catch blocks. Migration is incremental and safe.
 
 **Impact**:
 - Operations: Hard to parse logs from Vercel dashboard
@@ -92,15 +92,17 @@ logger.info('payment_processed', {
 2. **Better**: Integrate Winston or Pino logger
 3. **Best**: Add log aggregation (e.g., Datadog, LogRocket)
 
-**Effort**: Medium (3-5 days)
-- Create logger abstraction
-- Replace all console calls
-- Integrate with error tracking (Sentry)
-- Update tests
+**Effort**: Small remaining work (~4-6 hours)
+- ✅ Logger abstraction (`src/lib/logger.ts`) — DONE
+- ☐ Replace remaining ~15 `console.error` calls in API routes
+- ☐ Integrate with error tracking (Sentry) — separate task
+- ☐ Update tests
 
 **Risk**: Low (logging changes are safe)
 
 **Timeline**: Q2 2026
+
+**Last verified against code**: 2026-04-07
 
 ---
 

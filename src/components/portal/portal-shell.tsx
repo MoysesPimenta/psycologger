@@ -22,7 +22,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
       <SessionTimeoutWarning />
 
       {/* Top bar */}
-      <header className="fixed top-0 inset-x-0 z-40 bg-white border-b h-14 flex items-center justify-between px-4 max-w-lg mx-auto">
+      <header className="fixed top-0 inset-x-0 z-40 bg-white border-b h-14 flex items-center justify-between px-4 max-w-lg md:max-w-2xl mx-auto pt-[max(0.5rem,env(safe-area-inset-top))]">
         <Link href="/portal/dashboard" className="text-lg font-bold text-brand-600">
           Psycologger
         </Link>
@@ -40,13 +40,13 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main content */}
-      <main className="pt-14 pb-20 px-4 max-w-lg mx-auto">
+      <main className="pt-14 pb-20 px-4 max-w-lg md:max-w-2xl mx-auto">
         <div className="py-6">{children}</div>
       </main>
 
       {/* Bottom navigation — mobile */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t pb-[env(safe-area-inset-bottom)]">
-        <div className="flex justify-around max-w-lg mx-auto">
+      <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex justify-around max-w-lg md:max-w-2xl mx-auto">
           {NAV_ITEMS.map(({ icon: Icon, label, href }) => {
             const active =
               href === "/portal/dashboard"
@@ -57,11 +57,11 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
                 key={href}
                 href={href}
                 className={cn(
-                  "flex flex-col items-center py-2 px-3 text-xs transition-colors",
+                  "flex flex-col items-center py-3 px-4 text-xs transition-colors",
                   active ? "text-brand-600" : "text-gray-400 hover:text-gray-600",
                 )}
               >
-                <Icon className={cn("h-5 w-5 mb-0.5", active && "stroke-[2.5]")} />
+                <Icon className={cn("h-6 w-6 mb-0.5", active && "stroke-[2.5]")} />
                 <span className={cn("font-medium", active && "font-semibold")}>{label}</span>
               </Link>
             );

@@ -104,7 +104,7 @@ export function CalendarClient({
   return (
     <div className="space-y-4">
       {/* Controls */}
-      <div className="flex items-center justify-between bg-white border rounded-xl p-3">
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between bg-white border rounded-xl p-3">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-4 w-4" />
@@ -118,7 +118,7 @@ export function CalendarClient({
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           {/* 24h toggle — only relevant in week view */}
           {view === "week" && (
             <button
@@ -149,7 +149,7 @@ export function CalendarClient({
               </button>
             ))}
           </div>
-          <Button size="sm" asChild>
+          <Button size="sm" asChild className="w-full sm:w-auto">
             <Link href="/app/appointments/new">
               <Plus className="h-4 w-4" /> Nova consulta
             </Link>
@@ -159,70 +159,118 @@ export function CalendarClient({
 
       {/* Week view */}
       {view === "week" && (
-        <div className="bg-white border rounded-xl overflow-hidden">
-          {/* Day headers — overflow-y-scroll keeps the same scrollbar gutter as the body */}
-          <div className="overflow-y-scroll [scrollbar-gutter:stable]" style={{ maxHeight: "unset" }}>
-            <div className="grid grid-cols-8 border-b">
-              <div className="p-3 text-xs text-gray-400 border-r" />
-              {weekDays.map((day) => (
-                <div
-                  key={day.toISOString()}
-                  className={cn(
-                    "p-3 text-center border-r last:border-r-0",
-                    isSameDay(day, new Date()) && "bg-brand-50"
-                  )}
-                >
-                  <p className="text-xs text-gray-500 uppercase">{format(day, "EEE", { locale: ptBR })}</p>
-                  <p className={cn(
-                    "text-lg font-bold mt-0.5",
-                    isSameDay(day, new Date()) ? "text-brand-600" : "text-gray-900"
-                  )}>
-                    {format(day, "d")}
-                  </p>
+        <>
+          {/* Desktop grid view — hidden on phones */}
+          <div className="hidden md:block bg-white border rounded-xl overflow-hidden">
+            {/* Day headers — overflow-y-scroll keeps the same scrollbar gutter as the body */}
+            <div className="overflow-y-scroll [scrollbar-gutter:stable]" style={{ maxHeight: "unset" }}>
+              <div className="grid grid-cols-8 border-b">
+                <div className="p-3 text-xs text-gray-400 border-r" />
+                {weekDays.map((day) => (
+                  <div
+                    key={day.toISOString()}
+                    className={cn(
+                      "p-3 text-center border-r last:border-r-0",
+                      isSameDay(day, new Date()) && "bg-brand-50"
+                    )}
+                  >
+                    <p className="text-xs text-gray-500 uppercase">{format(day, "EEE", { locale: ptBR })}</p>
+                    <p className={cn(
+                      "text-lg font-bold mt-0.5",
+                      isSameDay(day, new Date()) ? "text-brand-600" : "text-gray-900"
+                    )}>
+                      {format(day, "d")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Time slots */}
+            <div className="overflow-y-auto max-h-[600px] scrollbar-thin [scrollbar-gutter:stable]">
+              {hours.map((hour) => (
+                <div key={hour} id={`calendar-hour-${hour}`} className="grid grid-cols-8 border-b min-h-[60px]">
+                  <div className="p-2 text-xs text-gray-400 border-r text-right pr-3 pt-2">
+                    {format(new Date().setHours(hour, 0, 0), "HH:mm")}
+                  </div>
+                  {weekDays.map((day) => {
+                    const dayAppts = appointments.filter((a) => {
+                      const start = new Date(a.startsAt);
+                      return isSameDay(start, day) && start.getHours() === hour;
+                    });
+                    return (
+                      <div key={day.toISOString()} className={cn(
+                        "border-r last:border-r-0 p-1 relative min-h-[60px]",
+                        isSameDay(day, new Date()) && "bg-brand-50/30"
+                      )}>
+                        {dayAppts.map((appt) => (
+                          <Link
+                            key={appt.id}
+                            href={`/app/appointments/${appt.id}`}
+                            className="block rounded p-1 mb-1 text-xs text-white truncate hover:opacity-90"
+                            style={{ backgroundColor: appt.appointmentType.color }}
+                          >
+                            <p className="font-medium truncate">
+                              {appt.patient.preferredName ?? appt.patient.fullName}
+                            </p>
+                            <p className="opacity-80">
+                              {formatTime(appt.startsAt)}
+                            </p>
+                          </Link>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Time slots */}
-          <div className="overflow-y-auto max-h-[600px] scrollbar-thin [scrollbar-gutter:stable]">
-            {hours.map((hour) => (
-              <div key={hour} id={`calendar-hour-${hour}`} className="grid grid-cols-8 border-b min-h-[60px]">
-                <div className="p-2 text-xs text-gray-400 border-r text-right pr-3 pt-2">
-                  {format(new Date().setHours(hour, 0, 0), "HH:mm")}
-                </div>
-                {weekDays.map((day) => {
-                  const dayAppts = appointments.filter((a) => {
-                    const start = new Date(a.startsAt);
-                    return isSameDay(start, day) && start.getHours() === hour;
-                  });
-                  return (
-                    <div key={day.toISOString()} className={cn(
-                      "border-r last:border-r-0 p-1 relative min-h-[60px]",
-                      isSameDay(day, new Date()) && "bg-brand-50/30"
-                    )}>
+          {/* Mobile stacked list view — shown only on phones */}
+          <div className="md:hidden space-y-3">
+            {weekDays.map((day) => {
+              const dayAppts = appointments.filter((a) => isSameDay(new Date(a.startsAt), day));
+              return (
+                <div key={day.toISOString()} className="bg-white border rounded-lg p-3">
+                  <h3 className={cn(
+                    "text-sm font-semibold mb-2",
+                    isSameDay(day, new Date()) ? "text-brand-600" : "text-gray-900"
+                  )}>
+                    {format(day, "EEEE, d 'de' MMMM", { locale: ptBR })}
+                  </h3>
+                  {dayAppts.length === 0 ? (
+                    <p className="text-xs text-gray-400">Sem compromissos</p>
+                  ) : (
+                    <div className="space-y-2">
                       {dayAppts.map((appt) => (
                         <Link
                           key={appt.id}
                           href={`/app/appointments/${appt.id}`}
-                          className="block rounded p-1 mb-1 text-xs text-white truncate hover:opacity-90"
-                          style={{ backgroundColor: appt.appointmentType.color }}
+                          className="block p-2 rounded border border-gray-200 hover:border-brand-300 hover:bg-brand-50 transition"
                         >
-                          <p className="font-medium truncate">
-                            {appt.patient.preferredName ?? appt.patient.fullName}
-                          </p>
-                          <p className="opacity-80">
-                            {formatTime(appt.startsAt)}
-                          </p>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {appt.patient.preferredName ?? appt.patient.fullName}
+                              </p>
+                              <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                <Clock className="h-3 w-3" />
+                                {formatTime(appt.startsAt)}
+                              </p>
+                            </div>
+                            <Badge className="text-xs" style={{ backgroundColor: appt.appointmentType.color }}>
+                              {appointmentStatusLabel(appt.status)}
+                            </Badge>
+                          </div>
                         </Link>
                       ))}
                     </div>
-                  );
-                })}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        </>
       )}
 
       {/* Month view */}

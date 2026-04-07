@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, handleApiError, parsePagination, buildMeta, BadRequestError } from "@/lib/api";
 import { requirePermission, can } from "@/lib/rbac";
 import { csvSafe } from "@/lib/utils";
@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "audit:view");
+    requireTenant(ctx);
 
     const { searchParams } = new URL(req.url);
     const pagination = parsePagination(searchParams);

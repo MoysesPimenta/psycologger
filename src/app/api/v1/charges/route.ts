@@ -51,6 +51,8 @@ export async function GET(req: NextRequest) {
     const where: Prisma.ChargeWhereInput = {
       tenantId: ctx.tenantId,
       ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
+      // ASSISTANT scope: only see charges for patients assigned to them
+      ...(ctx.role === "ASSISTANT" && { patient: { assignedUserId: ctx.userId } }),
       ...(status === "OVERDUE"
         ? {
             OR: [

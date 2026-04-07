@@ -16,6 +16,7 @@ export type Permission =
   | "users:invite"
   | "users:view"
   | "users:editRole"
+  // TODO(P1-2): No route enforces this permission yet — implement /api/v1/users/[id]/suspend or remove.
   | "users:suspend"
   // Patients
   | "patients:list"

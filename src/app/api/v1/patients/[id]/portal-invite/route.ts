@@ -15,6 +15,7 @@ import { createHash } from "crypto";
 import { sendPortalInviteEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/rate-limit";
 import { PORTAL_INVITE_RATE_LIMIT, PORTAL_INVITE_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 
 const bodySchema = z.object({
   email: z.string().email().toLowerCase(),
@@ -105,7 +106,7 @@ export async function POST(
           tenantName: tenant.name,
         });
       } catch (emailErr) {
-        console.error("[portal-invite] Magic link email failed:", emailErr);
+        logger.error("portal-invite", "Magic link email failed", { err: emailErr });
         emailSent = false;
       }
 

@@ -36,6 +36,15 @@ const bottomNavItems = [
   { href: "/app/settings", label: "Configurações", icon: Settings },
 ];
 
+// Mobile bottom nav items (top destinations only)
+const mobileNavItems = [
+  { href: "/app/today", label: "Hoje", icon: Clock },
+  { href: "/app/calendar", label: "Agenda", icon: Calendar },
+  { href: "/app/patients", label: "Pacientes", icon: Users },
+  { href: "/app/financial", label: "Financeiro", icon: DollarSign },
+  { href: "/app/settings", label: "Config.", icon: Settings },
+];
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -150,6 +159,31 @@ export function AppSidebar() {
           </div>
         </div>
       </aside>
+
+      {/* Mobile bottom navigation bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t md:hidden">
+        <div className="flex justify-around">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex flex-col items-center gap-1 py-3 px-3 text-xs font-medium transition-colors flex-1",
+                  isActive
+                    ? "text-brand-600"
+                    : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                <Icon className={cn("h-5 w-5", isActive && "stroke-[2]")} />
+                <span className="text-[10px]">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </>
   );
 }

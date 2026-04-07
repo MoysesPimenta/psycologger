@@ -16,4 +16,14 @@ export async function register() {
   if (process.env.NEXT_PHASE === "phase-production-build") return;
   const { validateEnv } = await import("@/lib/env-check");
   validateEnv();
+
+  // TODO(P1-5): Wire @sentry/nextjs here.
+  // 1. npm install @sentry/nextjs
+  // 2. npx @sentry/wizard@latest -i nextjs
+  // 3. Add SENTRY_DSN to Vercel env vars.
+  // Until then, errors are only logged via src/lib/logger.ts.
+  if (process.env.SENTRY_DSN) {
+    // eslint-disable-next-line no-console
+    console.warn("[instrumentation] SENTRY_DSN set but @sentry/nextjs not installed");
+  }
 }
