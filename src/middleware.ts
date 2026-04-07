@@ -138,6 +138,10 @@ export default withAuth(
           pathname.startsWith("/terms") ||
           pathname.startsWith("/privacy") ||
           pathname.startsWith("/api/auth") ||
+          // Cron endpoints authenticate via Bearer CRON_SECRET themselves;
+          // letting middleware redirect them to /login breaks both manual
+          // curl invocations and Vercel's scheduled cron runner.
+          pathname.startsWith("/api/v1/cron/") ||
           pathname.startsWith("/_next") ||
           pathname.startsWith("/favicon")
         ) {
