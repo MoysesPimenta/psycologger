@@ -13,6 +13,9 @@ import { containsCrisisKeywords } from "@/lib/safety";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/crypto";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
 const updateSchema = z.object({

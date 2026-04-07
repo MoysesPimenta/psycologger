@@ -10,6 +10,9 @@ import { requirePermission, can } from "@/lib/rbac";
 import { csvSafe } from "@/lib/utils";
 import { AUDIT_CSV_MAX_ROWS, AUDIT_MAX_DATE_RANGE_DAYS } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);

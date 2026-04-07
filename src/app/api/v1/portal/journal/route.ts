@@ -15,6 +15,9 @@ import { encrypt } from "@/lib/crypto";
 import { rateLimit } from "@/lib/rate-limit";
 import { PORTAL_JOURNAL_RATE_LIMIT, PORTAL_JOURNAL_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
 const createSchema = z.object({

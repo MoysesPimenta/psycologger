@@ -8,6 +8,9 @@ import { ok, handleApiError } from "@/lib/api";
 import { getPatientContext } from "@/lib/patient-auth";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
 export async function GET(req: NextRequest) {

@@ -11,6 +11,9 @@ import { getPatientContext } from "@/lib/patient-auth";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getPatientContext(req);

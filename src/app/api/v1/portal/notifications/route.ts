@@ -8,6 +8,9 @@ import { ok, handleApiError, apiError, parsePagination, buildMeta } from "@/lib/
 import { getPatientContext } from "@/lib/patient-auth";
 import { rateLimit } from "@/lib/rate-limit";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getPatientContext(req);

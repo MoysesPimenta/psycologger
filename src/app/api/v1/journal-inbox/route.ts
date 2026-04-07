@@ -9,6 +9,9 @@ import { getAuthContext } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { decrypt } from "@/lib/crypto";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);

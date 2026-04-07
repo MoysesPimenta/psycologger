@@ -4,6 +4,9 @@ import { ok, handleApiError, apiError } from "@/lib/api";
 import { getAuthContext } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function GET(req: NextRequest) {
   try {
     // Get auth context and verify permissions

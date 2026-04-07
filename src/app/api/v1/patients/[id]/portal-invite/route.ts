@@ -17,6 +17,9 @@ import { rateLimit } from "@/lib/rate-limit";
 import { PORTAL_INVITE_RATE_LIMIT, PORTAL_INVITE_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const bodySchema = z.object({
   email: z.string().email().toLowerCase(),
 });
