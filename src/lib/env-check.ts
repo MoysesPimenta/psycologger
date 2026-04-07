@@ -71,6 +71,48 @@ const ENV_RULES: EnvRule[] = [
     name: "UPSTASH_REDIS_REST_TOKEN",
     required: process.env.NODE_ENV === "production",
   },
+  // Sentry — optional, but if DSN is set, format is validated
+  {
+    name: "SENTRY_DSN",
+    required: false,
+    validate: (v) => {
+      if (!v.match(/^https:\/\/.+@.+\.ingest\.sentry\.io\/\d+$/)) {
+        return "SENTRY_DSN should match format: https://...@...ingest.sentry.io/...";
+      }
+      return undefined;
+    },
+  },
+  {
+    name: "NEXT_PUBLIC_SENTRY_DSN",
+    required: false,
+    validate: (v) => {
+      if (!v.match(/^https:\/\/.+@.+\.ingest\.sentry\.io\/\d+$/)) {
+        return "NEXT_PUBLIC_SENTRY_DSN should match format: https://...@...ingest.sentry.io/...";
+      }
+      return undefined;
+    },
+  },
+  {
+    name: "SENTRY_ORG",
+    required: false,
+  },
+  {
+    name: "SENTRY_PROJECT",
+    required: false,
+  },
+  {
+    name: "SENTRY_AUTH_TOKEN",
+    required: false,
+    validate: (v) => {
+      // Warn if SENTRY_AUTH_TOKEN is set but ORG/PROJECT are missing
+      if (v && (!process.env.SENTRY_ORG || !process.env.SENTRY_PROJECT)) {
+        console.warn(
+          "[env-check] SENTRY_AUTH_TOKEN is set but SENTRY_ORG or SENTRY_PROJECT is missing. Source map upload will be skipped."
+        );
+      }
+      return undefined;
+    },
+  },
 ];
 
 /**

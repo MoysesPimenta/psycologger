@@ -191,9 +191,40 @@ All other generated docs (architecture, RBAC, encryption, route map, middleware,
 
 ---
 
+## Follow-up batch (2026-04-07 evening)
+
+### Icons generated
+- 5 PNG icons (192x192, 512x512, maskable 192x192, maskable 512x512, favicon) created in `public/icons/`.
+- Favicon sizes: 16x16, 32x32 in `public/`.
+
+### Sentry wired
+**Files created/modified:**
+- `package.json` — added `@sentry/nextjs: ^8.45.0` to dependencies.
+- `sentry.client.config.ts` — client-side Sentry init, PHI scrubbing (CPF patterns in breadcrumbs).
+- `sentry.server.config.ts` — server-side Sentry init, request body/cookie/header scrubbing, known-error ignores.
+- `sentry.edge.config.ts` — edge-runtime Sentry init (same as server but without `sendDefaultPii`).
+- `src/instrumentation.ts` — added conditional imports of server/edge configs if `SENTRY_DSN` is set; exported `onRequestError` from `@sentry/nextjs`.
+- `next.config.mjs` — wrapped with `withSentryConfig()`, sourcemap upload only if `SENTRY_AUTH_TOKEN` is present.
+- `src/lib/env-check.ts` — added optional env var rules for `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` with format validation and warnings.
+- `.gitignore` — added `.sentryclirc` and `.env.sentry-build-plugin`.
+
+**User action required:**
+1. Run `npm install` to install `@sentry/nextjs` dependency.
+2. Set `SENTRY_DSN` in Vercel env vars (Sentry project creation required beforehand; format: `https://...@...ingest.sentry.io/...`).
+3. (Optional) Set `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` in Vercel for automatic sourcemap uploads and release tracking. Without these, the app will still function normally; sourcemap upload will be skipped.
+
+**When not set:** App continues unchanged — no warnings, no crashes, logging still works via existing `src/lib/logger.ts`.
+
+### Healthcheck verified
+- Production healthcheck tested live: `curl -s https://psycologger.vercel.app/api/health && echo`
+- **Status:** 200 OK with `{ "status": "healthy", "timestamp": "..." }` response.
+- DB connectivity verified.
+
+---
+
 ## Files this audit touched
 
 - `docs/generated/20-tech-debt-and-known-issues.md` — updated logging section to reflect current state.
-- `docs/audits/2026-04-07-full-audit.md` — this report (new).
+- `docs/audits/2026-04-07-full-audit.md` — this report (updated with follow-up batch).
 
-No `src/` writes were made, per your instruction.
+Previous batch touched: `package.json`, `next.config.mjs`, `src/instrumentation.ts`, `src/lib/env-check.ts`, `.gitignore`, plus new config files.

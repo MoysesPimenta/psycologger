@@ -8,7 +8,17 @@
  */
 
 export async function register() {
-  // Only run on the server (not Edge Runtime)
+  // Initialize Sentry on both server and edge runtimes
+  if (process.env.SENTRY_DSN) {
+    if (process.env.NEXT_RUNTIME === "nodejs") {
+      await import("../sentry.server.config");
+    }
+    if (process.env.NEXT_RUNTIME === "edge") {
+      await import("../sentry.edge.config");
+    }
+  }
+
+  // Only run remaining checks on the server (not Edge Runtime)
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   // Skip during `next build` — env vars from Vercel marketplace integrations
   // (e.g. Upstash) are only injected at runtime, not during the build phase.
@@ -16,14 +26,7 @@ export async function register() {
   if (process.env.NEXT_PHASE === "phase-production-build") return;
   const { validateEnv } = await import("@/lib/env-check");
   validateEnv();
-
-  // TODO(P1-5): Wire @sentry/nextjs here.
-  // 1. npm install @sentry/nextjs
-  // 2. npx @sentry/wizard@latest -i nextjs
-  // 3. Add SENTRY_DSN to Vercel env vars.
-  // Until then, errors are only logged via src/lib/logger.ts.
-  if (process.env.SENTRY_DSN) {
-    // eslint-disable-next-line no-console
-    console.warn("[instrumentation] SENTRY_DSN set but @sentry/nextjs not installed");
-  }
 }
+
+// Export Sentry's request error handler for Next.js 15+ (safe in Next 14.x recent versions)
+export { captureRequestError as onRequestError } from "@sentry/nextjs";
