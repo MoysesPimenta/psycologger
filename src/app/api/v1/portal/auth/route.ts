@@ -32,6 +32,11 @@ import {
 import { sendPortalMagicLinkEmail } from "@/lib/email";
 import { PORTAL_MAGIC_LINK_EXPIRY_MS } from "@/lib/patient-auth";
 import { randomBytes, createHash } from "crypto";
+import {
+  PORTAL_ACCOUNT_LOCKOUT_THRESHOLD,
+  PORTAL_ACCOUNT_LOCKOUT_DURATION_MS,
+  PORTAL_ACCOUNT_LOCKOUT_WINDOW_MS,
+} from "@/lib/constants";
 
 // Hash a magic-link / activation token before storing it. The plaintext goes
 // to the patient via email; the DB only ever sees the SHA-256 digest. This
@@ -123,13 +128,20 @@ async function handleMagicLinkRequest(
   ipAddress: string | undefined,
   userAgent: string | undefined,
 ) {
-  // Rate limit by IP + email. Use email as sole key if IP is unavailable,
-  // preventing all IP-unknown requests from sharing one bucket.
-  const rlKey = ipAddress
-    ? `portal-magic:${ipAddress}:${input.email}`
-    : `portal-magic:noip:${input.email}`;
-  const rl = await rateLimit(rlKey, PORTAL_MAGIC_LINK_RATE_LIMIT, PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS);
-  if (!rl.allowed) {
+  // Rate limit by IP and by email separately (sliding window, 5 per 15 minutes each)
+  // Whichever limit is hit first triggers the block.
+
+  // Check IP limit
+  const ipRlKey = ipAddress ? `portal-magic-ip:${ipAddress}` : `portal-magic-ip:noip`;
+  const ipRl = await rateLimit(ipRlKey, PORTAL_MAGIC_LINK_RATE_LIMIT, PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS);
+
+  // Check email limit
+  const emailRlKey = `portal-magic-email:${input.email}`;
+  const emailRl = await rateLimit(emailRlKey, PORTAL_MAGIC_LINK_RATE_LIMIT, PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS);
+
+  // Block if either limit is exceeded
+  if (!ipRl.allowed || !emailRl.allowed) {
+    // Generic message — do NOT differentiate between IP and email limit (info leak)
     return tooManyRequests("Muitas solicitações. Aguarde antes de tentar novamente.", PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS / 1000);
   }
 
@@ -221,19 +233,79 @@ async function handleMagicLinkVerify(
   ipAddress: string | undefined,
   userAgent: string | undefined,
 ) {
-  // Rate limit by IP + token prefix to prevent brute-force per-token
+  // Check account lockout BEFORE checking token (to avoid enumeration)
   const tokenPrefix = input.token.substring(0, 8);
+  const tokenHash = hashLinkToken(input.token);
+
+  // First try to find the account by token hash (we need to check lockout status)
+  const potentialAuth = await db.patientAuth.findUnique({
+    where: { magicToken: tokenHash },
+    include: { tenant: { select: { id: true, portalEnabled: true } } },
+  });
+
+  // Check account lockout if we found an account
+  if (potentialAuth) {
+    if (potentialAuth.lockedUntil && new Date(potentialAuth.lockedUntil) > new Date()) {
+      // Account is locked — return generic error
+      return tooManyRequests("Muitas tentativas. Aguarde antes de tentar novamente.", 429);
+    }
+  }
+
+  // Rate limit by IP + token prefix to prevent brute-force per-token
   const rlKey = ipAddress
     ? `portal-magic-verify:${ipAddress}:${tokenPrefix}`
     : `portal-magic-verify:noip:${tokenPrefix}`;
   const rl = await rateLimit(rlKey, PORTAL_MAGIC_LINK_RATE_LIMIT, PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS);
   if (!rl.allowed) {
+    // Increment login attempt counter for account lockout
+    if (potentialAuth) {
+      const now = new Date();
+      const lastFailureTime = potentialAuth.loginLastFailedAt ? new Date(potentialAuth.loginLastFailedAt) : null;
+      const timeSinceLastFailure = lastFailureTime ? now.getTime() - lastFailureTime.getTime() : Infinity;
+
+      // Reset counter if outside the lockout window
+      let newAttemptCount = potentialAuth.loginAttempts + 1;
+      if (timeSinceLastFailure > PORTAL_ACCOUNT_LOCKOUT_WINDOW_MS) {
+        newAttemptCount = 1;
+      }
+
+      // Lock account if threshold reached
+      let lockUntil = potentialAuth.lockedUntil;
+      if (newAttemptCount >= PORTAL_ACCOUNT_LOCKOUT_THRESHOLD) {
+        lockUntil = new Date(now.getTime() + PORTAL_ACCOUNT_LOCKOUT_DURATION_MS);
+      }
+
+      await db.patientAuth.update({
+        where: { id: potentialAuth.id },
+        data: {
+          loginAttempts: newAttemptCount,
+          loginLastFailedAt: now,
+          lockedUntil: lockUntil,
+        },
+      });
+
+      // Log lockout event if it just happened
+      if (!potentialAuth.lockedUntil || new Date(potentialAuth.lockedUntil) <= new Date()) {
+        if (newAttemptCount >= PORTAL_ACCOUNT_LOCKOUT_THRESHOLD) {
+          await auditLog({
+            tenantId: potentialAuth.tenant.id,
+            action: "PORTAL_ACCOUNT_LOCKED",
+            entity: "PatientAuth",
+            entityId: potentialAuth.id,
+            summary: { attemptCount: newAttemptCount, reason: "too_many_failed_login_attempts" },
+            ipAddress,
+            userAgent,
+          });
+        }
+      }
+    }
+
+    // Generic message — do NOT differentiate reasons
     return tooManyRequests("Muitas tentativas. Aguarde antes de tentar novamente.", PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS / 1000);
   }
 
   // Atomic token consumption via transaction.
-  // We look up by SHA-256 hash; the plaintext token never hits storage.
-  const tokenHash = hashLinkToken(input.token);
+  // We look up by SHA-256 hash (already computed above); the plaintext token never hits storage.
   const result = await db.$transaction(async (tx) => {
     const patientAuth = await tx.patientAuth.findUnique({
       where: { magicToken: tokenHash },
@@ -254,15 +326,26 @@ async function handleMagicLinkVerify(
       return { error: "EXPIRED" as const };
     }
 
-    // Consume token atomically
+    // Consume token atomically and reset login failure counter
     await tx.patientAuth.update({
       where: { id: patientAuth.id },
       data: {
         magicToken: null,
         magicTokenExpiresAt: null,
         loginAttempts: 0,
+        loginLastFailedAt: null,
         lockedUntil: null,
         lastLoginAt: new Date(),
+      },
+    });
+
+    // Update Patient with last login timestamp and IP (truncate IP to /24 for privacy)
+    const truncatedIp = ipAddress ? ipAddress.split(".").slice(0, 3).join(".") + ".0" : null;
+    await tx.patient.update({
+      where: { id: patientAuth.patientId },
+      data: {
+        lastLoginAt: new Date(),
+        lastLoginIp: truncatedIp,
       },
     });
 
@@ -343,13 +426,28 @@ async function handleActivate(
     }
 
     // Activate — no password needed (magic-link only)
+    const now = new Date();
     await tx.patientAuth.update({
       where: { id: patientAuth.id },
       data: {
-        activatedAt: new Date(),
+        activatedAt: now,
         activationToken: null,
         emailVerified: true,
-        emailVerifiedAt: new Date(),
+        emailVerifiedAt: now,
+        lastLoginAt: now,
+        loginAttempts: 0,
+        loginLastFailedAt: null,
+        lockedUntil: null,
+      },
+    });
+
+    // Update Patient with last login timestamp and IP (truncate IP to /24 for privacy)
+    const truncatedIp = ipAddress ? ipAddress.split(".").slice(0, 3).join(".") + ".0" : null;
+    await tx.patient.update({
+      where: { id: patientAuth.patientId },
+      data: {
+        lastLoginAt: now,
+        lastLoginIp: truncatedIp,
       },
     });
 

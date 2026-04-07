@@ -57,10 +57,12 @@ export async function sendMagicLink({
   to,
   url,
   name,
+  tenantId,
 }: {
   to: string;
   url: string;
   name?: string;
+  tenantId?: string;
 }) {
   const subject = "Seu link de acesso ao Psycologger";
   const html = `
@@ -89,7 +91,7 @@ export async function sendMagicLink({
     </div>
   `;
 
-  return sendEmail({ to, subject, html });
+  return sendEmail({ to, subject, html, tenantId });
 }
 
 // ─── Invite ───────────────────────────────────────────────────────────────────
@@ -250,12 +252,16 @@ export async function sendPaymentDueReminder({
   clinicName,
   amountFormatted,
   dueDate,
+  tenantId,
+  chargeId,
 }: {
   to: string;
   patientName: string;
   clinicName: string;
   amountFormatted: string;
   dueDate: string;
+  tenantId?: string;
+  chargeId?: string;
 }) {
   const subject = `Lembrete: cobrança vence amanhã — ${esc(clinicName)}`;
   const html = `
@@ -271,7 +277,14 @@ export async function sendPaymentDueReminder({
     </div>
   `;
 
-  return sendEmail({ to, subject, html });
+  return sendEmail({
+    to,
+    subject,
+    html,
+    tenantId,
+    relatedEntityType: chargeId ? "Charge" : undefined,
+    relatedEntityId: chargeId,
+  });
 }
 
 export async function sendPaymentOverdueNotification({
@@ -280,12 +293,16 @@ export async function sendPaymentOverdueNotification({
   clinicName,
   amountFormatted,
   dueDate,
+  tenantId,
+  chargeId,
 }: {
   to: string;
   patientName: string;
   clinicName: string;
   amountFormatted: string;
   dueDate: string;
+  tenantId?: string;
+  chargeId?: string;
 }) {
   const subject = `Cobrança em atraso — ${esc(clinicName)}`;
   const html = `
@@ -301,7 +318,14 @@ export async function sendPaymentOverdueNotification({
     </div>
   `;
 
-  return sendEmail({ to, subject, html });
+  return sendEmail({
+    to,
+    subject,
+    html,
+    tenantId,
+    relatedEntityType: chargeId ? "Charge" : undefined,
+    relatedEntityId: chargeId,
+  });
 }
 
 // ─── Patient Portal Emails ──────────────────────────────────────────────────
@@ -415,10 +439,16 @@ async function sendEmail({
   to,
   subject,
   html,
+  tenantId,
+  relatedEntityType,
+  relatedEntityId,
 }: {
   to: string;
   subject: string;
   html: string;
+  tenantId?: string;
+  relatedEntityType?: string;
+  relatedEntityId?: string;
 }) {
   // Validate email format to prevent injection
   if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(to)) {
@@ -480,6 +510,33 @@ async function sendEmail({
   }
 
   console.log(`[email] Sent OK id=${data?.id} to="${to}"`);
+
+  // Track email in DB if tenantId is provided (for Resend webhook tracking)
+  if (tenantId && data?.id) {
+    try {
+      const { db } = await import("@/lib/db");
+      await db.emailReminder.create({
+        data: {
+          tenantId,
+          recipient: to,
+          subject,
+          body: html,
+          resendMessageId: data.id,
+          lastEmailStatus: "sent",
+          lastEmailStatusAt: new Date(),
+          relatedEntityType: relatedEntityType || null,
+          relatedEntityId: relatedEntityId || null,
+        },
+      });
+    } catch (err) {
+      console.error(
+        `[email] Failed to track email in DB:`,
+        err instanceof Error ? err.message : "Unknown error"
+      );
+      // Don't fail the email send if tracking fails
+    }
+  }
+
   return data;
 }
 

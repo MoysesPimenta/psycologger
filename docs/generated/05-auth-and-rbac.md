@@ -209,20 +209,27 @@ PBKDF2(password, salt, iterations=600000, hashAlgo=SHA256, keyLength=32)
 
 **Implementation Location:** `src/lib/auth/portal-session.ts`
 
-### Login Attempt Rate Limiting
+### Login Attempt Rate Limiting (updated 2026-04-07)
 
-**Protections:**
-- **Max Attempts:** 5 failed login attempts
-- **Lockout Duration:** 15 minutes
-- **Reset On Success:** Failed attempt counter reset
-- **Tracking:** By email + IP address (dual key)
+**Dual rate limit (Upstash sliding window):**
+- 5 magic-link requests per 15 minutes per IP
+- 5 magic-link requests per 15 minutes per email
+- Whichever fires first → generic 429 (no differentiation between IP-limit and email-limit, to prevent enumeration)
+- Falls back to in-memory limiter if Upstash env vars are missing
 
-**Implementation:**
-1. On failed password attempt: increment LoginAttempt.failedAttempts
-2. Check if failedAttempts >= 5
-3. If true, check if lockoutUntil > now()
-4. If locked out, return 429 Too Many Requests
-5. On success: clear LoginAttempt record
+**Account lockout:**
+- After 10 failed login attempts within 1 hour (per account, across IPs) → lock account for 30 minutes
+- State stored on `PatientAuth.loginAttempts`, `PatientAuth.lockedUntil`, `PatientAuth.loginLastFailedAt`
+- Migration: `prisma/migrations/20260407_patient_login_lockout`
+- While locked: return the same generic 429 response (do NOT say "your account is locked" — info leak)
+- On successful login: counter and lockout reset atomically
+- Lockout event written to AuditLog as `PORTAL_ACCOUNT_LOCKED`
+
+**Last-login surfacing:**
+- `Patient.lastLoginAt` and `Patient.lastLoginIp` (IP truncated to /24 CIDR for privacy) are updated on every successful login
+- Surfaced on the patient dashboard as subtle pt-BR footer text: "Último acesso: {data} de {ip}"
+
+**Constants:** `PORTAL_MAGIC_LINK_RATE_LIMIT`, `PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS`, `PORTAL_ACCOUNT_LOCKOUT_THRESHOLD`, `PORTAL_ACCOUNT_LOCKOUT_DURATION_MS`, `PORTAL_ACCOUNT_LOCKOUT_WINDOW_MS` in `src/lib/constants.ts`.
 
 **Purpose:**
 - Prevent brute-force password attacks

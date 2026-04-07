@@ -8,12 +8,13 @@ import type { Prisma } from "@prisma/client";
 import { ok, apiError, handleApiError } from "@/lib/api";
 import { parsePagination, buildMeta } from "@/lib/api";
 import { getPatientContext } from "@/lib/patient-auth";
-import { auditLog } from "@/lib/audit";
+import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { z } from "zod";
 
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getPatientContext(req);
+    const { ipAddress, userAgent } = extractRequestMeta(req);
     const { searchParams } = new URL(req.url);
 
     // Single appointment lookup
@@ -42,6 +43,16 @@ export async function GET(req: NextRequest) {
       if (!appointment) {
         return apiError("NOT_FOUND", "Sessão não encontrada.", 404);
       }
+
+      // Audit appointment view
+      await auditLog({
+        tenantId: ctx.tenantId,
+        action: "PORTAL_APPOINTMENT_VIEW",
+        entity: "Appointment",
+        entityId: id,
+        ipAddress,
+        userAgent,
+      });
 
       // Redact video link if too far out
       if (appointment.videoLink) {
@@ -99,6 +110,16 @@ export async function GET(req: NextRequest) {
         return { ...a, videoLink: null };
       }
       return a;
+    });
+
+    // Audit appointments list view
+    await auditLog({
+      tenantId: ctx.tenantId,
+      action: "PORTAL_APPOINTMENTS_LIST",
+      entity: "Appointment",
+      summary: { tab, page, pageSize, total },
+      ipAddress,
+      userAgent,
     });
 
     return ok(safeAppointments, buildMeta(total, { page, pageSize }));

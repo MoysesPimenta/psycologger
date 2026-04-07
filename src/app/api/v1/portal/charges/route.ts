@@ -7,10 +7,12 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 import { ok, handleApiError, parsePagination, buildMeta } from "@/lib/api";
 import { getPatientContext } from "@/lib/patient-auth";
+import { auditLog, extractRequestMeta } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getPatientContext(req);
+    const { ipAddress, userAgent } = extractRequestMeta(req);
 
     if (!ctx.tenant.portalPaymentsVisible) {
       return ok([]);
@@ -57,6 +59,16 @@ export async function GET(req: NextRequest) {
         take: pageSize,
       }),
     ]);
+
+    // Audit charges view
+    await auditLog({
+      tenantId: ctx.tenantId,
+      action: "PORTAL_CHARGES_VIEW",
+      entity: "Charge",
+      summary: { tab, page, pageSize, total },
+      ipAddress,
+      userAgent,
+    });
 
     return ok(charges, buildMeta(total, { page, pageSize }));
   } catch (err) {

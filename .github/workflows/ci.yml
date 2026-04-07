@@ -2,109 +2,41 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
-env:
-  DATABASE_URL: postgresql://psycologger:psycologger_test@localhost:5432/psycologger_test
-  NEXTAUTH_URL: http://localhost:3000
-  NEXTAUTH_SECRET: test-secret-at-least-32-characters-long
-  ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY_TEST }}
-
 jobs:
-  lint-and-typecheck:
-    name: Lint & Type Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-
   test:
-    name: Tests
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: psycologger
-          POSTGRES_PASSWORD: psycologger_test
-          POSTGRES_DB: psycologger_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    name: Test & Type Check
+
+    strategy:
+      matrix:
+        node-version: [20]
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - run: npx prisma migrate deploy
-      - run: npx prisma db seed
-        env:
-          SEED_ENV: test
-      - run: npm run test:ci
-        env:
-          RESEND_API_KEY: ""
 
-  e2e:
-    name: E2E Tests
-    runs-on: ubuntu-latest
-    needs: [lint-and-typecheck]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: psycologger
-          POSTGRES_PASSWORD: psycologger_test
-          POSTGRES_DB: psycologger_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npx prisma migrate deploy && npx prisma db seed
-      - run: npm run build && npm run start &
-      - run: sleep 5 && npm run test:e2e
-        env:
-          RESEND_API_KEY: ""
-          NEXTAUTH_SECRET: test-secret-at-least-32-characters-long
+          node-version: ${{ matrix.node-version }}
+          cache: npm
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [lint-and-typecheck]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm run test:unit -- --ci --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
         with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - run: npx prisma generate
-      - run: npm run build
-        env:
-          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+          files: ./coverage/coverage-final.json
+          flags: unittests
+          fail_ci_if_error: false

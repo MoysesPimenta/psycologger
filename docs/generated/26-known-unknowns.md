@@ -2,6 +2,24 @@
 
 This document tracks everything that is ambiguous, missing evidence, contradictory, or requiring manual verification. These items should be clarified with the team or investigated before making assumptions.
 
+## Docs that need regeneration after 2026-04-07 sprint
+
+The following generated docs are now partially stale relative to code and should be regenerated when the next doc-gen pass runs:
+
+- **05-auth-and-rbac.md** — Login Attempt Rate Limiting section was hand-patched on 2026-04-07; the rest of the patient-portal sections (lockout, last-login, audit actions) need a full regen pass.
+- **08-business-domains.md** — Add billing reconciliation cron (`/api/v1/cron/billing-reconcile`).
+- **11-api-reference.md** — Add `/api/debug/sentry-test`, `/api/v1/cron/billing-reconcile`, `/api/v1/webhooks/resend`.
+- **16-integrations.md** — Add Resend webhook + Stripe reconciliation.
+- **17-security-and-privacy.md** — RLS section already updated by hand; PWA + service-worker section should be added.
+- **18-testing.md** — Stale; new Jest unit suites under `tests/unit/` and `.github/workflows/ci.yml` are not reflected.
+- **20-tech-debt-and-known-issues.md** — i18n status (no library installed) and the parked CSP-nonce branch should both be added; see `docs/runbooks/i18n-audit-2026-04-07.md` and `docs/decisions/csp-nonce-parked.md`.
+
+New runbooks live under `docs/runbooks/` (not auto-generated):
+- `backup-restore-drill.md` — quarterly PITR drill
+- `sentry-alerts.md` — alert rules to configure in Sentry UI
+- `i18n-audit-2026-04-07.md` — i18n posture and recommendation
+
+
 ## Deployment & Infrastructure
 
 ### Vercel Cron Status in Production

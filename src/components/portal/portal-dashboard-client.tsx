@@ -31,6 +31,10 @@ interface DashboardData {
     noteText: string | null;
   }>;
   unreadNotifications: number;
+  lastLogin: {
+    at: string | null;
+    ip: string | null;
+  };
   portalFlags: {
     paymentsVisible: boolean;
     journalEnabled: boolean;
@@ -241,6 +245,19 @@ export function PortalDashboardClient() {
               </Link>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Last login info (subtle footer) */}
+      {data.lastLogin.at && (
+        <div className="border-t border-gray-200/50 pt-4 mt-6">
+          <p className="text-xs text-gray-500 text-center">
+            Último acesso: {format(new Date(data.lastLogin.at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+            {data.lastLogin.ip && (
+              <>
+                {" "}de <span className="font-mono">{data.lastLogin.ip}</span></>
+            )}
+          </p>
         </div>
       )}
     </div>

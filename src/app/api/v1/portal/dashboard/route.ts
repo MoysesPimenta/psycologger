@@ -6,15 +6,17 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, handleApiError } from "@/lib/api";
 import { getPatientContext } from "@/lib/patient-auth";
+import { auditLog, extractRequestMeta } from "@/lib/audit";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getPatientContext(req);
+    const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Run queries in parallel
-    const [nextAppointment, pendingCharges, recentJournalEntries, unreadNotifications] =
+    const [nextAppointment, pendingCharges, recentJournalEntries, unreadNotifications, patient] =
       await Promise.all([
         // Next upcoming appointment
         db.appointment.findFirst({
@@ -86,6 +88,12 @@ export async function GET(req: NextRequest) {
             readAt: null,
           },
         }),
+
+        // Patient login tracking
+        db.patient.findUnique({
+          where: { id: ctx.patientId },
+          select: { lastLoginAt: true, lastLoginIp: true },
+        }),
       ]);
 
     // Redact videoLink if appointment is too far out
@@ -108,6 +116,20 @@ export async function GET(req: NextRequest) {
       0,
     );
 
+    // Audit dashboard view
+    await auditLog({
+      tenantId: ctx.tenantId,
+      action: "PORTAL_DASHBOARD_VIEW",
+      summary: {
+        nextAppointment: safeNextAppointment?.id ?? null,
+        pendingChargesCount: pendingCharges.length,
+        journalEntriesCount: safeJournalEntries.length,
+        unreadNotifications,
+      },
+      ipAddress,
+      userAgent,
+    });
+
     return ok({
       nextAppointment: safeNextAppointment
         ? {
@@ -122,6 +144,10 @@ export async function GET(req: NextRequest) {
       },
       journal: safeJournalEntries,
       unreadNotifications,
+      lastLogin: {
+        at: patient?.lastLoginAt ?? null,
+        ip: patient?.lastLoginIp ?? null,
+      },
       portalFlags: {
         paymentsVisible: ctx.tenant.portalPaymentsVisible,
         journalEnabled: ctx.tenant.portalJournalEnabled,

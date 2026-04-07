@@ -39,6 +39,7 @@ const createSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getPatientContext(req);
+    const { ipAddress, userAgent } = extractRequestMeta(req);
 
     if (!ctx.tenant.portalJournalEnabled) {
       return ok([]);
@@ -84,6 +85,16 @@ export async function GET(req: NextRequest) {
         take: pageSize,
       }),
     ]);
+
+    // Audit journal list access
+    await auditLog({
+      tenantId: ctx.tenantId,
+      action: "PORTAL_JOURNAL_LIST",
+      entity: "JournalEntry",
+      summary: { page, pageSize, total },
+      ipAddress,
+      userAgent,
+    });
 
     return ok(entries, buildMeta(total, { page, pageSize }));
   } catch (err) {

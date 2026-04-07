@@ -66,11 +66,20 @@ export const PORTAL_LOGIN_RATE_LIMIT = 5;
 /** Portal login rate-limit window (15 minutes). */
 export const PORTAL_LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 
-/** Portal magic-link rate limit: max per email within the window. */
-export const PORTAL_MAGIC_LINK_RATE_LIMIT = 10;
+/** Portal account lockout: max failed login attempts before account lockout. */
+export const PORTAL_ACCOUNT_LOCKOUT_THRESHOLD = 10;
 
-/** Portal magic-link rate-limit window (1 hour). */
-export const PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+/** Portal account lockout duration (30 minutes). */
+export const PORTAL_ACCOUNT_LOCKOUT_DURATION_MS = 30 * 60 * 1000;
+
+/** Portal account lockout check window: count failures within this period (1 hour). */
+export const PORTAL_ACCOUNT_LOCKOUT_WINDOW_MS = 60 * 60 * 1000;
+
+/** Portal magic-link rate limit: max attempts per IP and per email within the window (5 min per 15 min). */
+export const PORTAL_MAGIC_LINK_RATE_LIMIT = 5;
+
+/** Portal magic-link rate-limit window (15 minutes). */
+export const PORTAL_MAGIC_LINK_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 
 /** Portal journal entries rate limit: max creates per hour. */
 export const PORTAL_JOURNAL_RATE_LIMIT = 30;

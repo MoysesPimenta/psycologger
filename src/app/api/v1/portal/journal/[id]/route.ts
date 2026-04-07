@@ -36,6 +36,7 @@ export async function GET(
 ) {
   try {
     const ctx = await getPatientContext(req);
+    const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const entry = await db.journalEntry.findFirst({
       where: {
@@ -49,6 +50,16 @@ export async function GET(
     if (!entry) {
       return apiError("NOT_FOUND", "Entrada não encontrada.", 404);
     }
+
+    // Audit journal view
+    await auditLog({
+      tenantId: ctx.tenantId,
+      action: "PORTAL_JOURNAL_VIEW",
+      entity: "JournalEntry",
+      entityId: params.id,
+      ipAddress,
+      userAgent,
+    });
 
     // Decrypt noteText for patient viewing
     let decryptedNote = entry.noteText;

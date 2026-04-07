@@ -129,6 +129,7 @@ export default withAuth(
         // Public routes
         if (
           pathname === "/" ||
+          pathname === "/offline" ||
           pathname.startsWith("/pricing") ||
           pathname.startsWith("/login") ||
           pathname.startsWith("/signup") ||
@@ -143,6 +144,8 @@ export default withAuth(
           // letting middleware redirect them to /login breaks both manual
           // curl invocations and Vercel's scheduled cron runner.
           pathname.startsWith("/api/v1/cron/") ||
+          // Webhook endpoints authenticate via signature verification themselves
+          pathname.startsWith("/api/v1/webhooks/") ||
           // Debug endpoints authenticate via Bearer CRON_SECRET themselves
           pathname.startsWith("/api/debug/") ||
           pathname.startsWith("/_next") ||

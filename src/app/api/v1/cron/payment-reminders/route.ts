@@ -130,6 +130,8 @@ export async function POST(req: NextRequest) {
         clinicName: charge.tenant.name,
         amountFormatted: formatCurrencyPlain(net),
         dueDate: formatDatePlain(charge.dueDate),
+        tenantId: charge.tenantId,
+        chargeId: charge.id,
       });
 
       await logReminder({
@@ -200,6 +202,8 @@ export async function POST(req: NextRequest) {
         clinicName: charge.tenant.name,
         amountFormatted: formatCurrencyPlain(net),
         dueDate: formatDatePlain(charge.dueDate),
+        tenantId: charge.tenantId,
+        chargeId: charge.id,
       });
 
       // Also flip status to OVERDUE if still PENDING
