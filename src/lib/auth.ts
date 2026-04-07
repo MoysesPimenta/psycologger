@@ -12,6 +12,7 @@ import EmailProvider from "next-auth/providers/email";
 import { db } from "./db";
 import { sendMagicLink } from "./email";
 import { auditLog } from "./audit";
+import { headers as nextHeaders } from "next/headers";
 import { EMAIL_TOKEN_MAX_AGE_SECONDS, SESSION_MAX_AGE_SECONDS } from "./constants";
 
 export const authOptions: NextAuthOptions = {
@@ -81,22 +82,61 @@ export const authOptions: NextAuthOptions = {
   events: {
     async signIn({ user }) {
       // Record the email domain (not the local part) so the audit trail can
-      // distinguish provider/tenant signups without storing PII.
+      // distinguish provider/tenant signups without storing PII. Best-effort
+      // capture of request meta + first tenant membership for LGPD audit trail.
       const domain = user.email?.split("@")[1] ?? "unknown";
+      let ipAddress: string | undefined;
+      let userAgent: string | undefined;
+      try {
+        const h = nextHeaders();
+        ipAddress = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined;
+        userAgent = h.get("user-agent") ?? undefined;
+      } catch {
+        // headers() unavailable outside request scope — non-fatal
+      }
+      let tenantId: string | undefined;
+      try {
+        if (user.id) {
+          const membership = await db.membership.findFirst({
+            where: { userId: user.id },
+            select: { tenantId: true },
+            orderBy: { createdAt: "asc" },
+          });
+          tenantId = membership?.tenantId;
+        }
+      } catch {
+        // best-effort only
+      }
       await auditLog({
+        tenantId,
         userId: user.id,
         action: "LOGIN",
         summary: { method: "magic-link", emailDomain: domain },
+        ipAddress,
+        userAgent,
       });
     },
     async signOut({ token }) {
       // With JWT strategy, signOut receives token (not session)
-      if (token?.id) {
-        await auditLog({
-          userId: token.id as string,
-          action: "LOGOUT",
-        });
+      if (!token?.id) return;
+      let ipAddress: string | undefined;
+      let userAgent: string | undefined;
+      let tenantId: string | undefined;
+      try {
+        const h = nextHeaders();
+        ipAddress = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined;
+        userAgent = h.get("user-agent") ?? undefined;
+        tenantId = h.get("x-tenant-id") ?? undefined;
+      } catch {
+        // non-fatal
       }
+      await auditLog({
+        tenantId,
+        userId: token.id as string,
+        action: "LOGOUT",
+        ipAddress,
+        userAgent,
+      });
     },
   },
   // Validation of NEXTAUTH_SECRET happens centrally in src/lib/env-check.ts

@@ -142,7 +142,8 @@ if (!isValid) {
 **CSRF Check Triggers:**
 - Request method: POST, PATCH, PUT, DELETE
 - Request method NOT: GET, HEAD, OPTIONS
-- Exclude paths: `/api/auth/`, `/api/v1/cron/`, `/api/v1/portal/auth`
+- Exclude paths: `/api/auth/*`, `/api/v1/cron/*`, `/api/v1/portal/auth/logout`
+- Portal auth bootstrap routes (no session yet): `/api/v1/portal/auth/magic-link-request`, `/api/v1/portal/auth/magic-link-verify`, `/api/v1/portal/auth/activate`
 - Content-Type: application/json, application/x-www-form-urlencoded, multipart/form-data
 
 **Validation Steps:**
@@ -209,7 +210,11 @@ fetch('/api/v1/portal/journal', {
 **Why excluded:**
 - `/api/auth/*` - NextAuth has internal CSRF protection
 - `/api/v1/cron/*` - Triggered by Vercel cron (stateless, uses Bearer token)
-- `/api/v1/portal/auth` - Multi-purpose endpoint for initial auth (no session yet)
+- `/api/v1/portal/auth/magic-link-request` - No session yet (bootstrap)
+- `/api/v1/portal/auth/magic-link-verify` - No session yet (bootstrap)
+- `/api/v1/portal/auth/activate` - No session yet (bootstrap)
+
+**Important:** `/api/v1/portal/auth/logout` REQUIRES CSRF validation since the portal session already exists and a token is available.
 
 ---
 
@@ -613,4 +618,10 @@ CRON_SECRET=<Bearer token for cron>
 | **CSP** | Nonce-based inline scripts | ★★★★★ |
 | **Headers** | HSTS, X-Frame, etc. | ★★★★★ |
 | **Tenant Injection** | Cookie → header | ★★★★ |
+
+---
+
+**Last verified against code:** 2026-04-07
+- CSRF portal auth allowlist narrowed to explicit routes: magic-link-request, magic-link-verify, activate
+- `/api/v1/portal/auth/logout` now requires CSRF validation (state-changing, session exists)
 

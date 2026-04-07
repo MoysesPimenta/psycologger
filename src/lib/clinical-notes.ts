@@ -40,7 +40,24 @@ export async function encryptNote(plaintext: string): Promise<string> {
  */
 export async function decryptNote(stored: string | null | undefined): Promise<string> {
   if (stored == null) return "";
-  if (!isEncryptedNote(stored)) return stored; // legacy plaintext passthrough
+  if (!isEncryptedNote(stored)) {
+    // Legacy plaintext rows are returned unchanged so the system stays online
+    // during backfill. In production, log a structured warning so we can drive
+    // the encryption migration to completion. Set
+    // CLINICAL_NOTES_REJECT_PLAINTEXT=1 to harden once the backfill cron has
+    // reported zero remaining rows.
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[clinical-notes] plaintext note read in production", {
+        sentinel: SENTINEL,
+      });
+      if (process.env.CLINICAL_NOTES_REJECT_PLAINTEXT === "1") {
+        throw new Error(
+          "Plaintext clinical note encountered after migration cutoff. Run the encrypt-clinical-notes cron and retry.",
+        );
+      }
+    }
+    return stored;
+  }
   return decrypt(stored.slice(SENTINEL.length));
 }
 

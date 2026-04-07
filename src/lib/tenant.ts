@@ -41,7 +41,9 @@ export async function getAuthContext(
   const isSuperAdmin = userRecord?.isSuperAdmin ?? false;
 
   if (isSuperAdmin && !tenantId) {
-    // SuperAdmin platform-level access
+    // SuperAdmin platform-level access. tenantId is the empty string here —
+    // any route that issues tenant-scoped queries MUST call requireTenant(ctx)
+    // to fail fast instead of silently matching zero rows on `tenantId = ""`.
     return {
       userId,
       role: "SUPERADMIN",
@@ -54,6 +56,34 @@ export async function getAuthContext(
       tenant: {
         sharedPatientPool: true,
         adminCanViewClinical: true,
+      },
+      isSuperAdmin: true,
+    };
+  }
+
+  // SuperAdmin acting inside a specific tenant: skip the membership lookup
+  // (a SUPERADMIN may have no Membership row at all) and build the context
+  // from the Tenant record directly.
+  if (isSuperAdmin && tenantId) {
+    const tenant = await db.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, sharedPatientPool: true, adminCanViewClinical: true },
+    });
+    if (!tenant) {
+      throw new ForbiddenError("Tenant not found");
+    }
+    return {
+      userId,
+      role: "SUPERADMIN",
+      tenantId: tenant.id,
+      membership: {
+        canViewAllPatients: true,
+        canViewClinicalNotes: true,
+        canManageFinancials: true,
+      },
+      tenant: {
+        sharedPatientPool: tenant.sharedPatientPool,
+        adminCanViewClinical: tenant.adminCanViewClinical,
       },
       isSuperAdmin: true,
     };

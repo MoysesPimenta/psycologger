@@ -77,9 +77,9 @@ Requests flow through Next.js App Router → middleware enforces auth and tenant
 ## Security Invariants
 
 1. **ENCRYPTION_KEY must be set** at startup; validation runs on app boot
-2. **CPF hashed for search** but stored plaintext in `PatientProfile.cpf` (gap: should be encrypted)
+2. **CPF encrypted at rest** with AES-256-GCM (`enc:v1:` prefix) + HMAC-SHA256 blind index for searchable encryption (as of 2026-04-07)
 3. **Medical history encrypted** as `PatientProfile.encryptedMedicalHistory` using `encryptData()`
-4. **Session notes encrypted** as `SessionRecord.notes` using `encryptData()`
+4. **Session notes encrypted** with AES-256-GCM (`enc:v1:` prefix); plaintext rejection available via `CLINICAL_NOTES_REJECT_PLAINTEXT=1` (as of 2026-04-07)
 5. **Journal content encrypted** as `Journal.content` using `encryptData()`
 6. **All file uploads** validated via magic bytes before storage; no arbitrary extensions allowed
 7. **Audit logs redact PHI** — CPF, medical notes, session contents omitted in `changes` field
@@ -136,15 +136,22 @@ export async function POST(req: NextRequest) {
 - Encryption and key rotation
 
 **Stubs/Incomplete:**
-- Google Calendar sync (models exist, not implemented)
-- NFSe integration (models exist, not implemented)
-- Appointment reminder cron (only payment-reminders cron exists)
+- Google Calendar sync (models exist, OAuth + sync service not implemented)
+- NFSe integration (NfseInvoice + IntegrationCredential models, RBAC + audit action exist; provider adapter and credential CRUD not implemented — target provider: PlugNotas)
 - Internationalization (Portuguese hardcoded, no i18n framework)
 - Data exporter (LGPD deletion not automated, export to CSV only)
 
 **Missing:**
-- CPF encryption (stored plaintext, gap in security model)
-- Clinical notes encryption (SessionRecord.notes not encrypted, gap)
+- (CPF blind-index is now LANDED — `Patient.cpfBlindIndex` HMAC-SHA256 column + `(tenantId, cpfBlindIndex)` index exist; wired into patients POST/PATCH and the GET search via `isCpfShapedQuery`. Migration: `prisma/migrations/20260407_cpf_blind_index/`. The encrypt-cpfs cron backfills both encryption and blind index in one pass.)
+- Appointment reminder cron registered in vercel.json (route exists at `/api/v1/cron/appointment-reminders` and is registered)
+
+**Verified working (commonly-misreported):**
+- Clinical notes ARE encrypted: `ClinicalSession.noteText` and `SessionRevision.noteText` go through `encryptNote()` (sentinel `enc:v1:` + AES-256-GCM) on every write path; `decryptNote()` is called on every read; backfill cron at `/api/v1/cron/encrypt-clinical-notes` handles legacy plaintext
+- `x-tenant-id` header is unconditionally stripped in middleware before re-injection from the cookie
+- Magic-link tokens are stored as SHA-256 hashes (`hashLinkToken`), only the hash lives in DB
+- CSRF tokens rotate on auth callback / signOut / portal auth
+- Charge POST + PATCH already enforce `providerUserId` scope for PSYCHOLOGIST role (PATCH uses `updateMany` with the scope filter on the write to prevent race-window escapes)
+- Journal-inbox trends already verifies `assignedUserId` before querying
 - SWR for real-time appointment sync
 - Load testing and capacity planning
 - Staging environment (only localhost and production)
@@ -153,8 +160,8 @@ export async function POST(req: NextRequest) {
 
 ## Known Gaps (Prioritized)
 
-1. **CPF plaintext in database** — major compliance risk; should encrypt with deterministic encryption for search
-2. **SessionRecord.notes unencrypted** — clinical notes must be encrypted to meet security invariants
+1. ~~CPF plaintext in database~~ — RESOLVED 2026-04-07: AES-GCM ciphertext + HMAC-SHA256 blind index landed; backfill cron deployed
+2. ~~SessionRecord.notes unencrypted~~ — RESOLVED earlier: `enc:v1:` sentinel + AES-256-GCM, backfill cron at `/api/v1/cron/encrypt-clinical-notes`
 3. **No i18n framework** — Portuguese UI hardcoded; expansion to other languages blocked
 4. **Google Calendar sync stub** — appointments not synced to external calendars
 5. **NFSe integration stub** — Brazilian tax document generation not implemented
@@ -186,3 +193,12 @@ export async function POST(req: NextRequest) {
 3. **`/lib/auth.ts`** — role/permission changes must be audited; removing permissions without migration causes downtime
 4. **`/app/api/middleware.ts`** — tenant isolation logic; any bypass enables cross-tenant data leakage
 5. **`app/api/cron/payment-reminders.ts`** — Vercel cron configuration in `vercel.json`; changes require redeployment and verification
+
+---
+
+**Last verified against code:** 2026-04-07
+- CPF encryption with blind index now live
+- Clinical notes encryption with production rejection option live
+- Default appointment types seeding implemented
+- NextAuth events enrichment verified
+- CSRF narrowed allowlist verified

@@ -13,7 +13,7 @@ import { requirePermission, getPatientScope } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { randomBytes, createHash } from "crypto";
 import { PORTAL_MAGIC_LINK_EXPIRY_MS, generateActivationToken } from "@/lib/patient-auth";
-import { encryptCpf, decryptPatientCpf } from "@/lib/cpf-crypto";
+import { encryptCpf, decryptPatientCpf, cpfBlindIndex } from "@/lib/cpf-crypto";
 
 async function resolvePatient(id: string, ctx: Awaited<ReturnType<typeof getAuthContext>>) {
   const scope = getPatientScope(ctx);
@@ -84,7 +84,10 @@ export async function PATCH(
         ...(body.email !== undefined && { email: body.email }),
         ...(body.phone !== undefined && { phone: body.phone }),
         ...(body.dob !== undefined && { dob: body.dob ? new Date(body.dob) : null }),
-        ...(body.cpf !== undefined && { cpf: await encryptCpf(body.cpf) }),
+        ...(body.cpf !== undefined && {
+          cpf: await encryptCpf(body.cpf),
+          cpfBlindIndex: body.cpf && body.cpf.trim() !== "" ? cpfBlindIndex(body.cpf) : null,
+        }),
         ...(body.notes !== undefined && { notes: body.notes }),
         ...(body.tags !== undefined && { tags: body.tags }),
         ...(body.assignedUserId !== undefined && { assignedUserId: body.assignedUserId }),
@@ -152,12 +155,16 @@ export async function PATCH(
               },
             });
 
+            // Plaintext token goes only to the patient via email; DB stores
+            // the SHA-256 hash so a read-only DB compromise can't be used to
+            // log in. Mirrors hashLinkToken() in portal/auth/route.ts.
             const magicToken = randomBytes(32).toString("base64url");
+            const magicTokenHash = createHash("sha256").update(magicToken).digest("hex");
             const magicTokenExpiresAt = new Date(Date.now() + PORTAL_MAGIC_LINK_EXPIRY_MS);
 
             await db.patientAuth.update({
               where: { id: existingAuth.id },
-              data: { magicToken, magicTokenExpiresAt },
+              data: { magicToken: magicTokenHash, magicTokenExpiresAt },
             });
 
             const magicUrl = `${baseUrl}/portal/magic-login/${magicToken}`;

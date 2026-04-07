@@ -207,13 +207,25 @@ frame-ancestors 'none';
 ## Cryptography
 
 ### Encryption (AES-256-GCM)
-**Purpose**: Journal entry text, clinical session notes, integration tokens
+**Purpose**: CPF values, journal entry text, clinical session notes, integration tokens
 
 **Implementation**:
 - Algorithm: AES-256-GCM (authenticated encryption)
 - IV: Random 12-byte (96-bit) per encryption
 - AAD (Additional Authenticated Data): `tenantId:patientId` (ensures decryption only in original context)
 - Key derivation: Not used (keys stored in Supabase Vault, managed by Supabase)
+- Sentinel: `enc:v1:` prefix on encrypted fields distinguishes encrypted from plaintext during migration
+
+### Searchable Encryption (CPF Blind Index)
+**Purpose**: Enable equality search on CPF without decryption (as of 2026-04-07)
+
+**Implementation**:
+- Algorithm: HMAC-SHA256
+- Input: Normalized CPF (digits only, no formatting)
+- Key: `ENCRYPTION_KEY` environment variable
+- Storage: `Patient.cpfBlindIndex` indexed column for O(1) lookup
+- Query: `GET /api/v1/patients?q=12345678900` detects CPF shape and searches via `WHERE cpfBlindIndex = HMAC(...)`
+- Never reversible: HMAC output cannot reconstruct the CPF
 
 **Key Rotation**:
 - Old keys retained in `encryptionKey.rotationHistory`
@@ -285,11 +297,11 @@ frame-ancestors 'none';
 - Names
 - Phone numbers
 - Birthdates
-- **CPF (Tax ID)** ← SECURITY GAP: Should be encrypted
 
 **Encrypted at Rest** (AES-256-GCM):
-- Journal entry text (`journal.noteText`)
-- **Gap**: Clinical session notes (`clinicalSession.noteText`) NOT encrypted ← SHOULD BE
+- CPF values stored as `enc:v1:<base64-encrypted>` (as of 2026-04-07)
+- Journal entry text
+- Clinical session notes (`noteText` field with `enc:v1:` prefix and rejection of plaintext via `CLINICAL_NOTES_REJECT_PLAINTEXT=1` env var)
 
 **In Transit**:
 - All endpoints use HTTPS (enforced by Vercel)
@@ -592,4 +604,13 @@ font-src 'self' data:;
 - **Product Security**: Report via GitHub Security Advisory or email
 - **Incident Response**: See incident response workflow above
 - **DPO**: (Designation pending)
+
+---
+
+**Last verified against code:** 2026-04-07
+- CPF encryption implemented via `encryptCpf()` with `enc:v1:` prefix and AES-256-GCM
+- CPF blind index (HMAC-SHA256) implemented for searchable queries
+- Clinical notes encrypted with `enc:v1:` prefix; plaintext rejection available via `CLINICAL_NOTES_REJECT_PLAINTEXT=1`
+- Patient magic tokens hashed via SHA256 before storage (not plaintext)
+- CSRF protection narrowed to explicit allowlist: magic-link-request, magic-link-verify, activate
 

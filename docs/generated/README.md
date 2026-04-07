@@ -5,7 +5,18 @@ This directory contains canonical documentation generated from the Psycologger c
 2. **AI Memory Pack:** Condensed reference material designed for AI agents to understand system architecture and constraints
 
 **Generated:** 2026-04-04
+**Last verified against code:** 2026-04-07
 **Regenerate when:** Major features added, data model changed, auth/security patterns modified, deployment infra updated
+
+**Recent updates (2026-04-07):**
+- CPF encryption with blind index implementation verified
+- Clinical notes encryption with production rejection option verified
+- Default appointment types seeding verified
+- NextAuth events enrichment verified
+- Patient token hashing verified
+- CSRF narrowed allowlist verified
+- Tech debt items (CPF & clinical notes encryption) marked resolved
+- Google Calendar and NFSe integrations marked deferred
 
 ---
 

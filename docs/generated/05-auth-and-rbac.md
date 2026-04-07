@@ -642,3 +642,10 @@ Disables unused browser APIs (clinic staff don't need camera/mic).
 | **Scope** | Tenant + Tenant Admin hierarchy | Patient individual |
 | **Roles** | 5 roles | None (patient context only) |
 | **Permissions** | 27 total | N/A |
+
+---
+
+**Last verified against code:** 2026-04-07
+- Activation tokens and magic link tokens now hashed via SHA256 before storage (not plaintext)
+- NextAuth events enriched with tenantId/IP/UA via nextHeaders()
+- Patient magic tokens stored as tokenHash in PatientPortalSession

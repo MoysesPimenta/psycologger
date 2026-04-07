@@ -719,3 +719,10 @@ INSERT INTO "AuditLog" (
 
 **Last Updated:** 2026-04-04
 **Next Review:** 2026-05-04
+**Last verified against code:** 2026-04-07
+- CPF encryption with blind index implementation verified
+- Clinical notes encryption with production rejection option verified
+- Default appointment types seeding verified
+- NextAuth events enrichment verified
+- Patient token hashing verified
+- CSRF narrowed allowlist verified

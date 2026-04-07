@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, created, handleApiError, parsePagination, buildMeta, NotFoundError, BadRequestError } from "@/lib/api";
 import { requirePermission, getPatientScope } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "sessions:view");
+    requireTenant(ctx);
 
     const { searchParams } = new URL(req.url);
     const pagination = parsePagination(searchParams);
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "sessions:create");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Rate limit session creation: 100 per hour per (tenant, user) so a

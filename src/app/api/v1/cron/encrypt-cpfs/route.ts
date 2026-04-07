@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { encryptCpf, isCpfEncrypted } from "@/lib/cpf-crypto";
+import { encryptCpf, isCpfEncrypted, decryptCpf, cpfBlindIndex } from "@/lib/cpf-crypto";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const BATCH_SIZE = 100;
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
   }
 
   let encrypted = 0;
+  let blindIndexed = 0;
   let skipped = 0;
   let errors = 0;
   let cursor: string | undefined;
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
   while (true) {
     const patients = await db.patient.findMany({
       where: { cpf: { not: null } },
-      select: { id: true, cpf: true },
+      select: { id: true, cpf: true, cpfBlindIndex: true },
       take: BATCH_SIZE,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       orderBy: { id: "asc" },
@@ -43,20 +44,45 @@ export async function POST(req: NextRequest) {
     if (patients.length === 0) break;
 
     for (const patient of patients) {
-      if (!patient.cpf || isCpfEncrypted(patient.cpf)) {
+      if (!patient.cpf) {
         skipped++;
         continue;
       }
 
       try {
-        const encryptedCpf = await encryptCpf(patient.cpf);
+        // Decrypt-or-passthrough so we can compute the blind index regardless
+        // of whether the row is legacy plaintext or already encrypted.
+        const plaintext = await decryptCpf(patient.cpf);
+        if (!plaintext) {
+          skipped++;
+          continue;
+        }
+
+        const needsEncrypt = !isCpfEncrypted(patient.cpf);
+        const needsBlindIndex = !patient.cpfBlindIndex;
+
+        if (!needsEncrypt && !needsBlindIndex) {
+          skipped++;
+          continue;
+        }
+
+        const data: { cpf?: string | null; cpfBlindIndex?: string } = {};
+        if (needsEncrypt) {
+          data.cpf = await encryptCpf(plaintext);
+        }
+        if (needsBlindIndex) {
+          data.cpfBlindIndex = cpfBlindIndex(plaintext);
+        }
+
         await db.patient.update({
           where: { id: patient.id },
-          data: { cpf: encryptedCpf },
+          data,
         });
-        encrypted++;
+
+        if (needsEncrypt) encrypted++;
+        if (needsBlindIndex) blindIndexed++;
       } catch (err) {
-        console.error(`[cron/encrypt-cpfs] Failed to encrypt CPF for patient ${patient.id}:`,
+        console.error(`[cron/encrypt-cpfs] Failed to backfill CPF for patient ${patient.id}:`,
           err instanceof Error ? err.message : "Unknown error");
         errors++;
       }
@@ -68,6 +94,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     encrypted,
+    blindIndexed,
     skipped,
     errors,
     timestamp: new Date().toISOString(),

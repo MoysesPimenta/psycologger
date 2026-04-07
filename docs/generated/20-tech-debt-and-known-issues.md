@@ -6,93 +6,51 @@ This document catalogues technical debt, known issues, and areas for improvement
 
 ## Critical Debt
 
-### 1. CPF Stored Plaintext
+### 1. CPF Stored Plaintext ✅ RESOLVED (2026-04-07)
 
-**Status**: Active in production
+**Status**: RESOLVED
 
-**Description**: CPF (Cadastro de Pessoa Física, Brazilian tax ID) is stored as plaintext in the database. Should be encrypted at rest.
+**Description**: CPF (Cadastro de Pessoa Física, Brazilian tax ID) is now encrypted at rest with AES-256-GCM.
 
-**Impact**:
-- Privacy risk: CPF is sensitive PII under LGPD
-- Regulatory: May violate data protection requirements
-- Security: Database breach exposes CPF immediately
+**Resolution**:
+- `prisma/schema.prisma`: `Patient.cpf` now encrypted with `enc:v1:` prefix
+- `prisma/schema.prisma`: `Patient.cpfBlindIndex` added for searchable encryption (HMAC-SHA256)
+- `src/lib/cpf-crypto.ts`: `encryptCpf()` and `decryptCpf()` utilities
+- `src/lib/cpf-crypto.ts`: `cpfBlindIndex()` for deterministic lookup
+- `src/app/api/v1/patients/route.ts`: POST/GET write/search blind index
+- `src/app/api/v1/cron/encrypt-cpfs`: Backfill cron job (runs 04:45 UTC daily)
+- `vercel.json`: Cron scheduled (path: `/api/v1/cron/encrypt-cpfs`, schedule: `45 4 * * *`)
 
-**Affected Code**:
-- `prisma/schema.prisma`: `Patient.cpf` field (plaintext)
-- `src/lib/schemas.ts`: CPF validation (format only, no encryption)
+**Implementation Details**:
+- Encrypted CPFs stored as `enc:v1:<base64>` (sentinel prefix for migration)
+- Blind index allows `WHERE cpfBlindIndex = HMAC(...)` queries without decryption
+- Backfill is idempotent (already-encrypted values skipped)
+- Detection: `isCpfShapedQuery()` detects 11-digit patterns in search
 
-**Fix**:
-```typescript
-// Before
-const patient = await db.patient.create({
-  data: {
-    cpf: "12345678900",  // Plaintext
-  },
-});
-
-// After
-import { encryptValue } from '@/lib/crypto';
-const patient = await db.patient.create({
-  data: {
-    cpfEncrypted: encryptValue(cpf, tenantId), // AES-256-GCM
-  },
-});
-```
-
-**Effort**: Medium (2-3 days)
-- Update schema migration
-- Update all read/write paths (5+ files)
-- Update queries that filter by CPF
-- Backfill existing data
-- Update tests
-
-**Risk**: Medium (encryption key management needed)
-
-**Timeline**: Q2 2026 (high priority)
+**Timeline**: Completed 2026-04-07
 
 ---
 
-### 2. Clinical Session Notes Not Encrypted
+### 2. Clinical Session Notes Not Encrypted ✅ RESOLVED (2026-04-07)
 
-**Status**: Active in production
+**Status**: RESOLVED
 
-**Description**: Clinical session notes (`clinicalSession.noteText`) are stored as plaintext. Journal entries ARE encrypted, but session notes are not. This is inconsistent and violates security best practice for health data.
+**Description**: Clinical session notes (`ClinicalSession.noteText`) are now encrypted at rest with AES-256-GCM.
 
-**Impact**:
-- Security: Database breach exposes clinical notes
-- Regulatory: LGPD requires encryption of health records
-- Risk: More sensitive than patient metadata
+**Resolution**:
+- `src/lib/clinical-notes.ts`: `encryptNote()` and `decryptNote()` utilities
+- `ClinicalSession.noteText` stored as `enc:v1:<base64>` (sentinel prefix)
+- `decryptNote()` warns on plaintext reads in production
+- `CLINICAL_NOTES_REJECT_PLAINTEXT=1` env var enables hard rejection of plaintext
+- `src/app/api/v1/cron/encrypt-clinical-notes`: Backfill cron job (runs 04:30 UTC daily)
+- `vercel.json`: Cron scheduled (path: `/api/v1/cron/encrypt-clinical-notes`, schedule: `30 4 * * *`)
 
-**Affected Code**:
-- `prisma/schema.prisma`: `ClinicalSession.noteText` (plaintext)
-- `src/app/api/sessions/route.ts`: Create/update session notes
+**Implementation Details**:
+- Encrypted notes stored as `enc:v1:<base64>` (sentinel prefix for migration)
+- Backfill is idempotent (already-encrypted values skipped)
+- Production can enable strict mode via env var for audit enforcement
 
-**Fix**:
-```typescript
-// Before
-await db.clinicalSession.create({
-  data: {
-    noteText: "Patient reports anxiety regarding...", // Plaintext
-  },
-});
-
-// After
-await db.clinicalSession.create({
-  data: {
-    noteTextEncrypted: encryptValue(noteText, tenantId),
-  },
-});
-```
-
-**Effort**: Medium (2-3 days)
-- Similar to CPF encryption
-- Update all read/write paths
-- Backfill existing data
-- Update tests
-
-**Risk**: Low (similar pattern to journal encryption)
-
-**Timeline**: Q2 2026 (high priority)
+**Timeline**: Completed 2026-04-07
 
 ---
 
@@ -754,4 +712,11 @@ Track debt reduction via:
 - **Product Lead**: Decision on trade-offs (feature vs. debt)
 - **Tech Lead**: Prioritization and estimation
 - **QA**: Testing strategy for debt fixes
+
+---
+
+**Last verified against code:** 2026-04-07
+- CPF encryption: RESOLVED (as of 2026-04-07)
+- Clinical notes encryption: RESOLVED (as of 2026-04-07)
+- Default appointment types seeding implemented (Avaliação inicial, Sessão de psicoterapia, Atendimento online)
 

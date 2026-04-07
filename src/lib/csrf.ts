@@ -84,8 +84,16 @@ export function validateCsrf(req: NextRequest): boolean {
   // Skip cron endpoints (protected by Bearer token / CRON_SECRET)
   if (pathname.startsWith("/api/v1/cron/")) return true;
 
-  // Skip portal auth endpoints (login, activate, magic-link — no session yet)
-  if (pathname.startsWith("/api/v1/portal/auth")) return true;
+  // Skip portal auth endpoints that have no session yet (login, activate, magic-link).
+  // IMPORTANT: do NOT bypass /api/v1/portal/auth/logout — it is state-changing and
+  // happens when a portal session already exists, so a CSRF token is available.
+  // Allow only the bootstrap routes that legitimately have no cookie pair.
+  const portalAuthBootstrap = new Set([
+    "/api/v1/portal/auth/magic-link-request",
+    "/api/v1/portal/auth/magic-link-verify",
+    "/api/v1/portal/auth/activate",
+  ]);
+  if (portalAuthBootstrap.has(pathname)) return true;
 
   // Get token from cookie and header
   const cookieToken = req.cookies.get(CSRF_COOKIE_NAME)?.value;

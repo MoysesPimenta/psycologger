@@ -262,57 +262,67 @@ model Tenant {
 #### Patient
 ```prisma
 model Patient {
-  id                    String      @id @default(cuid())
-  tenantId              String
-  tenant                Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
 
-  // Identity
-  firstName             String
-  lastName              String
-  email                 String
-  phone                 String?
-  cpf                   String?     // Brazilian CPF (encrypted at rest)
-  birthDate             DateTime?
+  // Primary provider (can be null for shared pool)
+  assignedUserId String? @db.Uuid
 
-  // Contact
-  address               String?
-  city                  String?
-  state                 String?
-  zipCode               String?
+  fullName      String
+  preferredName String?
+  email         String?
+  phone         String?
+  dob           DateTime? @db.Date
+  cpf           String?   // Brazilian tax ID — encrypted at rest via encryptCpf()
+  cpfBlindIndex String?   // HMAC-SHA256 of normalized CPF for searchable encryption
+  notes         String?   // non-clinical header notes
+  tags          String[]  @default([])
 
-  // Clinical
-  psychologistId        String
-  psychologist          User        @relation(fields: [psychologistId], references: [id])
-  status                PatientStatus @default(ACTIVE)
+  // Status
+  isActive    Boolean @default(true)
+  archivedAt  DateTime?
+  archivedBy  String?  @db.Uuid
 
-  // Notes
-  notes                 String?
+  // Consent
+  consentGiven     Boolean   @default(false)
+  consentGivenAt   DateTime?
+  consentFileId    String?   @db.Uuid
 
-  // Tracking
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
-  createdBy             String
-  updatedBy             String?
-  deletedAt             DateTime?
-  deletedBy             String?
+  // Billing defaults
+  defaultAppointmentTypeId String? @db.Uuid
+  defaultFeeOverrideCents  Int?
 
-  // Relations
-  portalAuth            PatientAuth?
-  portalSessions        PatientPortalSession[]
-  appointments          Appointment[]
-  sessions              JournalEntry[]
-  charges               Charge[]
-  journals              Journal[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([tenantId, psychologistId])
-  @@unique([tenantId, email])  // Email unique per tenant
+  tenant                 Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedUser           User?     @relation("PatientPrimaryProvider", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  defaultAppointmentType AppointmentType? @relation("PatientDefaultType", fields: [defaultAppointmentTypeId], references: [id], onDelete: SetNull)
+  contacts               PatientContact[]
+  appointments           Appointment[]
+  clinicalSessions       ClinicalSession[]
+  files                  FileObject[]
+  charges                Charge[]
+  portalAuth             PatientAuth?
+  preference             PatientPreference?
+  journalEntries         JournalEntry[]
+  patientNotifications   PatientNotification[]
+  consentRecords         ConsentRecord[]
+
+  @@index([tenantId])
+  @@index([tenantId, assignedUserId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, fullName])
+  @@index([tenantId, cpfBlindIndex])  // Supports CPF search via blind index
 }
 ```
 
-**Data Sensitivity:**
-- CPF encrypted in database (sensitive Brazilian ID)
-- Email unique per tenant (prevent duplicate registrations)
-- Created/updated tracking for audit
+**Key Features:**
+- **CPF Encryption:** Stored encrypted via `encryptCpf()` with `enc:v1:` prefix
+- **CPF Blind Index:** HMAC-SHA256 hash enables equality search without decryption
+- **Soft-delete:** Use `archivedAt` + `isActive` flag for compliance
+- **Optional email:** Email not required (patients identified by fullName or CPF search)
+- **Billing defaults:** Auto-create pending charges on attended appointments using these
 
 #### Journal (Patient Portal Journals)
 ```prisma
@@ -1241,8 +1251,16 @@ return JSON.stringify(patient, null, 2);
 | **Models** | 30+ entities |
 | **Enums** | 14+ types |
 | **Indexes** | 50+ (composite + single) |
-| **Encryption** | AES-256-GCM for PII |
+| **Encryption** | AES-256-GCM for PII + AES-256-GCM for clinical notes |
+| **CPF Blind Index** | HMAC-SHA256 for searchable encryption (as of 2026-04-07) |
 | **Soft-Delete** | 30-day retention |
 | **RBAC** | 5 roles, 27 permissions |
 | **Compliance** | LGPD-ready, GDPR-compatible |
 | **Backups** | Daily, 30-day retention |
+
+---
+
+**Last verified against code:** 2026-04-07
+- Patient.cpfBlindIndex field added with @@index([tenantId, cpfBlindIndex])
+- Clinical notes encrypted with enc:v1: sentinel (decryptNote includes production rejection via CLINICAL_NOTES_REJECT_PLAINTEXT)
+- Default appointment types seeded at onboarding (Avaliação inicial, Sessão de psicoterapia, Atendimento online)

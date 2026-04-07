@@ -6,7 +6,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, noContent, handleApiError, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -20,6 +20,7 @@ export async function GET(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "sessions:view");
+    requireTenant(ctx);
 
     const session = await db.clinicalSession.findFirst({
       where: {
@@ -72,6 +73,7 @@ export async function PATCH(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "sessions:edit");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const body = updateSchema.parse(await req.json());
@@ -172,6 +174,7 @@ export async function DELETE(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "sessions:edit");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const existing = await db.clinicalSession.findFirst({

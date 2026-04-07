@@ -81,11 +81,14 @@ export async function POST(
       // Send a magic link to the new email so they can verify it
       const { randomBytes } = await import("crypto");
       const magicToken = randomBytes(32).toString("base64url");
+      // Plaintext goes to the patient via email; DB stores SHA-256 hash so a
+      // read-only DB compromise can't be used to log in.
+      const magicTokenHash = createHash("sha256").update(magicToken).digest("hex");
       const magicTokenExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
 
       await db.patientAuth.update({
         where: { id: existing.id },
-        data: { magicToken, magicTokenExpiresAt },
+        data: { magicToken: magicTokenHash, magicTokenExpiresAt },
       });
 
       const baseUrl = process.env.NEXTAUTH_URL ||

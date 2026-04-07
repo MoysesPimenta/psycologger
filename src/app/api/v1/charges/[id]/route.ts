@@ -6,7 +6,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, noContent, handleApiError, NotFoundError, BadRequestError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -28,6 +28,7 @@ export async function PATCH(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "charges:edit");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const charge = await db.charge.findFirst({
@@ -106,6 +107,7 @@ export async function DELETE(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "charges:void");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const charge = await db.charge.findFirst({

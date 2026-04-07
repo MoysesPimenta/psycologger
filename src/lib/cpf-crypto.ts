@@ -99,6 +99,10 @@ export function formatCpf(cpf: string): string {
  * Uses a separate key (ENCRYPTION_KEY) to compute the HMAC.
  * The result is a hex string suitable for indexed DB columns.
  */
+export function isCpfShapedQuery(value: string): boolean {
+  return /^\d{11}$/.test(value.replace(/[.\-\s]/g, ""));
+}
+
 export function cpfBlindIndex(cpf: string): string {
   const key = process.env.ENCRYPTION_KEY;
   if (!key) {

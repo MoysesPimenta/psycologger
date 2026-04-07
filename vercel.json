@@ -20,6 +20,14 @@
     {
       "path": "/api/v1/cron/staging-keepalive",
       "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/v1/cron/encrypt-clinical-notes",
+      "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/v1/cron/encrypt-cpfs",
+      "schedule": "45 4 * * *"
     }
   ]
 }

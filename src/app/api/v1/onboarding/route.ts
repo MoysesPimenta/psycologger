@@ -13,6 +13,32 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { generateSlug } from "@/lib/utils";
 import { SIGNUP_RATE_LIMIT, SIGNUP_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
+/**
+ * Default appointment types seeded for every new tenant. Without these, the
+ * first appointment creation crashes because `appointmentTypeId` is required.
+ */
+const DEFAULT_APPOINTMENT_TYPES: Array<{
+  name: string;
+  defaultDurationMin: number;
+  defaultPriceCents: number;
+  color: string;
+  sessionType: "IN_PERSON" | "ONLINE" | "EVALUATION" | "GROUP";
+}> = [
+  { name: "Avaliação inicial", defaultDurationMin: 60, defaultPriceCents: 25000, color: "#3b82f6", sessionType: "EVALUATION" },
+  { name: "Sessão de psicoterapia", defaultDurationMin: 50, defaultPriceCents: 20000, color: "#10b981", sessionType: "IN_PERSON" },
+  { name: "Atendimento online", defaultDurationMin: 50, defaultPriceCents: 20000, color: "#8b5cf6", sessionType: "ONLINE" },
+];
+
+async function seedDefaultAppointmentTypes(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+): Promise<void> {
+  await tx.appointmentType.createMany({
+    data: DEFAULT_APPOINTMENT_TYPES.map((t) => ({ ...t, tenantId })),
+    skipDuplicates: true,
+  });
+}
+
 const schema = z.object({
   // name is optional for users who logged in via magic link (email provider doesn't
   // collect a name, so session.user.name is null and arrives here as "").
@@ -71,6 +97,8 @@ export async function POST(req: NextRequest) {
               },
             });
 
+            await seedDefaultAppointmentTypes(tx, tenant.id);
+
             return { user: existing, tenant };
           });
           break; // success
@@ -127,6 +155,8 @@ export async function POST(req: NextRequest) {
               status: "ACTIVE",
             },
           });
+
+          await seedDefaultAppointmentTypes(tx, tenant.id);
 
           return { user, tenant };
         });

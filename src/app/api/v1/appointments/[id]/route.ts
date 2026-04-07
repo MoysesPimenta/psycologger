@@ -6,7 +6,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, handleApiError, NotFoundError, ConflictError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -19,6 +19,7 @@ export async function GET(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "appointments:view");
+    requireTenant(ctx);
 
     const appointment = await db.appointment.findFirst({
       where: { id: params.id, tenantId: ctx.tenantId },
@@ -72,6 +73,7 @@ export async function PATCH(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "appointments:edit");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const existing = await db.appointment.findFirst({

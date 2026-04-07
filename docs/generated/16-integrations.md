@@ -150,9 +150,9 @@ const file = await fetch(presignedUrl); // Client-side
 
 ---
 
-## Google Calendar (STUB)
+## Google Calendar (DEFERRED)
 
-**Intended for appointment sync with provider's personal calendar.**
+**Intended for appointment sync with provider's personal calendar. Deferred to a later deployment.**
 
 ### Current Status
 - **Model**: `GoogleCalendarToken` stores provider's Google OAuth token
@@ -160,7 +160,7 @@ const file = await fetch(presignedUrl); // Client-side
   - `GOOGLE_OAUTH_CLIENT_ID`
   - `GOOGLE_OAUTH_CLIENT_SECRET`
   - `GOOGLE_OAUTH_REDIRECT_URI`
-- **Implementation**: NOT COMPLETE
+- **Implementation**: DEFERRED (not scheduled for this release)
   - OAuth flow scaffolding exists
   - No sync logic for appointment → calendar event
   - No handling of calendar event modifications
@@ -173,9 +173,9 @@ const file = await fetch(presignedUrl); // Client-side
 
 ---
 
-## NFSe (Nota Fiscal de Serviço Eletrônica) (STUB)
+## NFSe (Nota Fiscal de Serviço Eletrônica) (DEFERRED)
 
-**Brazilian electronic invoice integration for tax compliance.**
+**Brazilian electronic invoice integration for tax compliance. Deferred to a later deployment.**
 
 ### Current Status
 - **Model**: `NfseInvoice` stores invoice metadata
@@ -184,7 +184,7 @@ const file = await fetch(presignedUrl); // Client-side
   - `externalId`: NFSe provider's unique ID
   - `pdfUrl`: Signed URL to generated PDF
   - `xmlContent`: Full XML for auditability
-- **Implementation**: NOT COMPLETE
+- **Implementation**: DEFERRED (not scheduled for this release)
   - No provider integration (e.g., Prefeitura municipal systems, third-party platforms like RPS Online)
   - No XML generation logic
   - No error handling or retry logic
@@ -198,7 +198,17 @@ const file = await fetch(presignedUrl); // Client-side
 
 ---
 
-## Sentry (OPTIONAL)
+#---
+
+**Last verified against code:** 2026-04-07
+- vercel.json includes `encrypt-clinical-notes` (04:30) and `encrypt-cpfs` (04:45) cron jobs
+- Google Calendar integration explicitly deferred
+- NFSe integration explicitly deferred
+- No PlugNotas or GCal integrations in code
+
+---
+
+# Sentry (OPTIONAL)
 
 **Error monitoring and performance tracking (not currently active).**
 

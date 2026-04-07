@@ -25,21 +25,22 @@ Q1 2027 (Jan-Mar)  → Mobile expansion, advanced analytics
 ### Security Engineering
 **Target**: Reduce security debt, close vulnerabilities
 
-#### CPF Encryption at Rest
-- Encrypt all stored CPF values using AES-256-GCM
-- Add key rotation support
-- Update all search/filter logic to handle encrypted values
-- Backfill existing data
+#### CPF Encryption at Rest ✅ COMPLETED (2026-04-07)
+- Encrypt all stored CPF values using AES-256-GCM with `enc:v1:` sentinel prefix
+- CPF blind index (HMAC-SHA256) for searchable encryption
+- All search/filter logic updated to use blind index
+- Backfill cron job: `/api/v1/cron/encrypt-cpfs` (runs 04:45 UTC daily)
 - Impact: LGPD compliance, reduces data breach risk
-- Effort: 5 days | Priority: Critical
+- Completed: 2026-04-07
 
-#### Clinical Session Notes Encryption
-- Encrypt `clinicalSession.noteText` (currently plaintext)
-- Align with journal entry encryption pattern
-- Update all read/write APIs
-- Backfill existing data
+#### Clinical Session Notes Encryption ✅ COMPLETED (2026-04-07)
+- Encrypt `ClinicalSession.noteText` using AES-256-GCM with `enc:v1:` sentinel prefix
+- Aligned with journal entry encryption pattern
+- All read/write APIs updated
+- Backfill cron job: `/api/v1/cron/encrypt-clinical-notes` (runs 04:30 UTC daily)
+- Production hardening option: `CLINICAL_NOTES_REJECT_PLAINTEXT=1` env var
 - Impact: Brings session notes to same security level as journal entries
-- Effort: 4 days | Priority: Critical
+- Completed: 2026-04-07
 
 #### Structured Logging System
 - Replace `console.log/error` with structured JSON logs
@@ -523,4 +524,5 @@ Q1 2027 (Jan-Mar)  → Mobile expansion, advanced analytics
 | Date | Changes |
 |------|---------|
 | 2026-04-04 | Initial roadmap creation |
+| 2026-04-07 | CPF encryption & clinical notes encryption marked COMPLETED |
 

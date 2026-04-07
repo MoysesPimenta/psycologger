@@ -6,13 +6,13 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import {
   ok, created, handleApiError, parsePagination, buildMeta, BadRequestError,
 } from "@/lib/api";
 import { requirePermission, getPatientScope, ForbiddenError } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
-import { encryptCpf, decryptPatientCpf, decryptPatientCpfs } from "@/lib/cpf-crypto";
+import { encryptCpf, decryptPatientCpfs, cpfBlindIndex, isCpfShapedQuery } from "@/lib/cpf-crypto";
 
 const createSchema = z.object({
   fullName: z.string().min(2).max(100),
@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
+    requireTenant(ctx);
 
     const { searchParams } = new URL(req.url);
     const pagination = parsePagination(searchParams);
@@ -53,6 +54,10 @@ export async function GET(req: NextRequest) {
           { preferredName: { contains: search, mode: "insensitive" as const } },
           { email: { contains: search, mode: "insensitive" as const } },
           { phone: { contains: search, mode: "insensitive" as const } },
+          // CPF lookup via deterministic blind index — never decrypts at rest.
+          ...(isCpfShapedQuery(search)
+            ? [{ cpfBlindIndex: cpfBlindIndex(search) }]
+            : []),
         ],
       }),
       ...(tag && { tags: { has: tag } }),
@@ -85,6 +90,7 @@ export async function POST(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:create");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const body = createSchema.parse(await req.json());
@@ -115,7 +121,8 @@ export async function POST(req: NextRequest) {
         preferredName: body.preferredName ?? null,
         email: body.email || null,
         phone: body.phone ?? null,
-        cpf: await encryptCpf(body.cpf) ?? null,
+        cpf: (await encryptCpf(body.cpf)) ?? null,
+        cpfBlindIndex: body.cpf && body.cpf.trim() !== "" ? cpfBlindIndex(body.cpf) : null,
         dob: body.dob ? new Date(body.dob) : null,
         notes: body.notes ?? null,
         tags: body.tags,
