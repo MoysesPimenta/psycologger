@@ -214,16 +214,21 @@ frame-ancestors 'none';
 
 **Why this exists**: Without RLS, any process that obtained the public anon key (which ships in `NEXT_PUBLIC_*` variables in apps that use the supabase-js client) could perform full CRUD against every table in `public`. Even though Psycologger itself does not expose the anon key today, defense in depth requires that the database refuse PostgREST traffic regardless of how the key is obtained or leaked.
 
+**Auto-enable on new tables (regression-proof)**:
+A Postgres event trigger named `trg_auto_enable_rls_on_new_tables` is installed in both projects (migration `auto_enable_rls_on_new_public_tables`, applied 2026-04-07). It fires on `ddl_command_end` for any `CREATE TABLE` in the `public` schema and immediately runs `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` on the new table. This means future Prisma migrations cannot regress the RLS posture even if a developer forgets to add the explicit `ALTER TABLE` — the database enforces it at DDL time. Verified on staging by creating a throwaway table and observing `relrowsecurity = true` without any explicit ALTER.
+
 **Operational notes**:
-- Future tables added via Prisma migrations are NOT automatically RLS-enabled. Every new migration that creates a public-schema table MUST include `ALTER TABLE public."NewTable" ENABLE ROW LEVEL SECURITY;`. This should be added to the migration template.
+- Developers may still add `ALTER TABLE public."NewTable" ENABLE ROW LEVEL SECURITY;` to migrations explicitly for clarity, but it is now belt-and-suspenders, not load-bearing.
+- The event trigger only covers `public`. Tables created in other schemas (e.g. `auth`, `storage`, custom schemas) are NOT auto-enabled — intentional, since Supabase manages those.
 - If the app ever introduces `@supabase/supabase-js` (for realtime, storage, or auth), RLS policies will need to be authored per table. Until then, the zero-policies default-deny is the correct posture.
 - The Supabase advisor will continue to report `rls_enabled_no_policy` (INFO level) on these tables. This is expected and intentional — do not "resolve" it by adding permissive policies.
 
 **Verification**:
 ```sql
--- Run in Supabase SQL editor
+-- All public tables RLS-enabled
 SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname='public';
--- All rows should show rowsecurity = true
+-- Event trigger present
+SELECT evtname, evtenabled FROM pg_event_trigger WHERE evtname='trg_auto_enable_rls_on_new_tables';
 ```
 
 ---
