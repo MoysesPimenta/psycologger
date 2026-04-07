@@ -143,29 +143,29 @@ export function PatientDetailClient({
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="ghost" size="icon" asChild className="flex-shrink-0">
             <Link href="/app/patients">
               <ChevronLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <div className="w-12 h-12 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-lg font-bold">
+          <div className="w-12 h-12 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0">
             {initials(patient.fullName)}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-900">{displayName}</h1>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 truncate">{displayName}</h1>
               {!patient.isActive && (
-                <Badge variant="secondary" className="text-xs">Inativo</Badge>
+                <Badge variant="secondary" className="text-xs flex-shrink-0">Inativo</Badge>
               )}
             </div>
             {patient.preferredName && (
-              <p className="text-sm text-gray-500">{patient.fullName}</p>
+              <p className="text-sm text-gray-500 truncate">{patient.fullName}</p>
             )}
           </div>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-wrap gap-2 items-center md:flex-nowrap">
           {/* Active / Inactive toggle */}
           <button
             onClick={handleToggleActive}
@@ -185,13 +185,13 @@ export function PatientDetailClient({
             }
           </button>
 
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="flex-1 md:flex-none">
             <Link href={`/app/sessions/new?patientId=${patient.id}`}>
               <Plus className="h-4 w-4" />
               Nova sessão
             </Link>
           </Button>
-          <Button asChild size="sm">
+          <Button asChild size="sm" className="flex-1 md:flex-none">
             <Link href={`/app/patients/${patient.id}/edit`}>
               <Edit className="h-4 w-4" />
               Editar

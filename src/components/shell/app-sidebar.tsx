@@ -55,14 +55,22 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
-      <button
-        className="fixed top-4 left-4 z-50 md:hidden bg-white border rounded-md p-2 shadow-sm"
-        onClick={() => setMobileOpen(!mobileOpen)}
-        aria-label="Menu"
-      >
-        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </button>
+      {/* Mobile top bar */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-white/90 backdrop-blur border-b flex items-center gap-3 px-4 safe-pt">
+        <button
+          className="-ml-1 p-2 rounded-lg active:bg-gray-100 tap-target"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Menu"
+        >
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-brand-600 rounded-md flex items-center justify-center">
+            <Stethoscope className="h-4 w-4 text-white" />
+          </div>
+          <span className="font-bold text-brand-900">Psycologger</span>
+        </div>
+      </header>
 
       {/* Overlay for mobile */}
       {mobileOpen && (
@@ -185,8 +193,6 @@ export function AppSidebar() {
         </div>
       </nav>
 
-      {/* Safe area spacer for mobile bottom nav */}
-      <div className="h-[60px] md:hidden" />
     </>
   );
 }
