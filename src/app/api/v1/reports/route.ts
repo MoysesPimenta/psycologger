@@ -13,6 +13,9 @@ import { requirePermission } from "@/lib/rbac";
 import { csvSafe } from "@/lib/utils";
 import { REPORT_CSV_MAX_ROWS } from "@/lib/constants";
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 import type { ChargeStatus } from "@prisma/client";
 
 const PENDING_STATUSES: ChargeStatus[] = ["PENDING", "OVERDUE"];
