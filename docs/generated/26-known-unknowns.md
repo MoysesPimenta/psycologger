@@ -221,12 +221,23 @@ This document tracks everything that is ambiguous, missing evidence, contradicto
 - **Impact:** Reminders and notifications fail silently
 - **Action needed:** Set up Resend webhook integration and monitor delivery metrics
 
+## Parked & Blocked Work
+
+### CSP Nonce Migration (feat/csp-nonce)
+- **Status:** Parked pending architectural decision
+- **Question:** Should Sentry remain in the application?
+- **Evidence:** Branch attempted to remove `withSentryConfig` wrapper from next.config.mjs; also removed `/api/health` and `/api/v1/cron/` from public routes
+- **Gap:** Sentry is actively initialized in src/instrumentation.ts and validated in src/lib/env-check.ts, but the config wrapper was removed — architectural mismatch
+- **Impact:** Error tracking would be lost in production; health checks and cron jobs would fail
+- **Action needed:** Decide whether to keep or remove Sentry. If keeping, restore wrapper. If removing, update instrumentation and env validation. See docs/decisions/csp-nonce-parked.md
+
 ## Summary of Critical Actions
 
 | Area | Action | Priority |
 |------|--------|----------|
 | Deployment | Verify Vercel cron is running | Critical |
 | Encryption | Document key rotation procedure | Critical |
+| Security | Decide on Sentry retention and finalize CSP nonce migration | High |
 | Compliance | Implement LGPD data deletion | High |
 | Security | Encrypt clinical notes | High |
 | Security | Encrypt CPF for compliance | High |
