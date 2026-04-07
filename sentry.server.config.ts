@@ -9,7 +9,7 @@ if (DSN) {
     environment: process.env.VERCEL_ENV || "development",
     // Do not send request bodies — may contain PHI
     sendDefaultPii: false,
-    beforeSend(event: Sentry.Event) {
+    beforeSend(event) {
       // Strip request data that might carry PHI
       if (event.request) {
         delete event.request.data;

@@ -7,7 +7,7 @@ if (DSN) {
     dsn: DSN,
     tracesSampleRate: 0.1,
     environment: process.env.VERCEL_ENV || "development",
-    beforeSend(event: Sentry.Event) {
+    beforeSend(event) {
       // Strip request data that might carry PHI
       if (event.request) {
         delete event.request.data;
