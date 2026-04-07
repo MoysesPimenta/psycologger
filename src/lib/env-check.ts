@@ -76,8 +76,8 @@ const ENV_RULES: EnvRule[] = [
     name: "SENTRY_DSN",
     required: false,
     validate: (v) => {
-      if (!v.match(/^https:\/\/.+@.+\.ingest\.sentry\.io\/\d+$/)) {
-        return "SENTRY_DSN should match format: https://...@...ingest.sentry.io/...";
+      if (!v.match(/^https:\/\/.+@.+\.ingest(\.[a-z]+)?\.sentry\.io\/\d+$/)) {
+        return "SENTRY_DSN should match format: https://...@...ingest[.region].sentry.io/...";
       }
       return undefined;
     },
@@ -86,8 +86,8 @@ const ENV_RULES: EnvRule[] = [
     name: "NEXT_PUBLIC_SENTRY_DSN",
     required: false,
     validate: (v) => {
-      if (!v.match(/^https:\/\/.+@.+\.ingest\.sentry\.io\/\d+$/)) {
-        return "NEXT_PUBLIC_SENTRY_DSN should match format: https://...@...ingest.sentry.io/...";
+      if (!v.match(/^https:\/\/.+@.+\.ingest(\.[a-z]+)?\.sentry\.io\/\d+$/)) {
+        return "NEXT_PUBLIC_SENTRY_DSN should match format: https://...@...ingest[.region].sentry.io/...";
       }
       return undefined;
     },
