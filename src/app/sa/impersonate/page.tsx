@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
@@ -7,8 +6,7 @@ import { ArrowLeft, AlertTriangle } from "lucide-react";
 export const metadata = { title: "Impersonar — SuperAdmin" };
 
 export default async function SAImpersonatePage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.isSuperAdmin) redirect("/sa/login");
+  await requireSuperAdmin();
 
   return (
     <div className="min-h-screen bg-gray-950 text-white p-8">

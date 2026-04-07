@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import Link from "next/link";
@@ -8,8 +7,7 @@ import { ArrowLeft } from "lucide-react";
 export const metadata = { title: "Usuários — SuperAdmin" };
 
 export default async function SAUsersPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.isSuperAdmin) redirect("/sa/login");
+  await requireSuperAdmin();
 
   const users = await db.user.findMany({
     orderBy: { createdAt: "desc" },

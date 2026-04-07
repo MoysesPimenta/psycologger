@@ -145,3 +145,26 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 };
+
+/**
+ * Server-side guard for /sa/* pages. Reads isSuperAdmin fresh from the DB
+ * because the client session intentionally does NOT expose this flag.
+ * Returns the userId on success; redirects to /sa/login on failure.
+ */
+export async function requireSuperAdmin(): Promise<string> {
+  const { getServerSession } = await import("next-auth");
+  const { redirect } = await import("next/navigation");
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+  if (!userId) {
+    redirect("/sa/login");
+  }
+  const u = await db.user.findUnique({
+    where: { id: userId },
+    select: { isSuperAdmin: true },
+  });
+  if (!u?.isSuperAdmin) {
+    redirect("/sa/login");
+  }
+  return userId as string;
+}
