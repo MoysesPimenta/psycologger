@@ -25,7 +25,11 @@ import { rateLimit } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET;
+// Prefer the inbound-specific secret so Resend can route inbound email to its
+// own webhook endpoint (separate from the outbound delivery events webhook).
+// Falls back to RESEND_WEBHOOK_SECRET if only one webhook is configured.
+const WEBHOOK_SECRET =
+  process.env.RESEND_WEBHOOK_SECRET_INBOUND || process.env.RESEND_WEBHOOK_SECRET;
 
 interface InboundPayload {
   type?: string;
@@ -130,7 +134,11 @@ export async function POST(req: NextRequest) {
 
   const domain = fromEmail.split("@")[1] ?? "";
   const subject = (event.data.subject ?? "(sem assunto)").slice(0, 500);
-  const body = event.data.text || event.data.html || "";
+  // Stash both text and html in an encrypted JSON wrapper so the thread view
+  // can render HTML (sanitized, sandboxed) while still falling back to text.
+  const text = (event.data.text || "").toString();
+  const html = (event.data.html || "").toString();
+  const bodyWrapper = JSON.stringify({ v: 1, text, html });
   const messageId =
     event.data.messageId ||
     event.data.headers?.["message-id"] ||
@@ -205,7 +213,7 @@ export async function POST(req: NextRequest) {
     select: { id: true },
   });
 
-  const bodyEncrypted = await encrypt(body);
+  const bodyEncrypted = await encrypt(bodyWrapper);
 
   if (existing) {
     await db.supportMessage.create({

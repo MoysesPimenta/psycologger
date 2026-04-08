@@ -90,7 +90,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return apiError("EMAIL_FAILED", error.message || "Falha ao enviar email", 502);
     }
 
-    const bodyEncrypted = await encrypt(parsed.data.body);
+    // Store the same JSON wrapper format as inbound so the thread view can
+    // render consistently. Outbound is always plaintext entered by an SA.
+    const bodyEncrypted = await encrypt(
+      JSON.stringify({ v: 1, text: parsed.data.body, html: "" })
+    );
 
     await db.$transaction([
       db.supportMessage.create({

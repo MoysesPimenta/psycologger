@@ -4,7 +4,9 @@ import { ArrowLeft } from "lucide-react";
 import { requireSuperAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { decrypt } from "@/lib/crypto";
+import { parseBodyWrapper, sanitizeSupportHtml } from "@/lib/support-sanitize";
 import { SupportTicketActions } from "@/components/sa/support-ticket-actions";
+import { SupportMessageHtml } from "@/components/sa/support-message-html";
 
 export const metadata = { title: "Ticket — Suporte" };
 export const dynamic = "force-dynamic";
@@ -38,13 +40,20 @@ export default async function SupportTicketPage({
   // a marker instead of crashing the whole page.
   const decryptedMessages = await Promise.all(
     ticket.messages.map(async (m) => {
-      let body = "";
       try {
-        body = await decrypt(m.bodyEncrypted);
+        const raw = await decrypt(m.bodyEncrypted);
+        const { text, html } = parseBodyWrapper(raw);
+        // Sanitize HTML server-side BEFORE shipping to the client iframe.
+        const safeHtml = html ? sanitizeSupportHtml(html) : "";
+        return { ...m, text, safeHtml, error: false };
       } catch {
-        body = "[não foi possível descriptografar esta mensagem]";
+        return {
+          ...m,
+          text: "[não foi possível descriptografar esta mensagem]",
+          safeHtml: "",
+          error: true,
+        };
       }
-      return { ...m, body };
     })
   );
 
@@ -86,9 +95,13 @@ export default async function SupportTicketPage({
               </span>
               <span>{new Date(m.createdAt).toLocaleString("pt-BR")}</span>
             </div>
-            <pre className="whitespace-pre-wrap text-sm text-gray-200 font-sans">
-              {m.body}
-            </pre>
+            {m.safeHtml ? (
+              <SupportMessageHtml html={m.safeHtml} />
+            ) : (
+              <pre className="whitespace-pre-wrap text-sm text-gray-200 font-sans">
+                {m.text}
+              </pre>
+            )}
           </div>
         ))}
       </div>
