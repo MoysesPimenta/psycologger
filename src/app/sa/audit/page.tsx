@@ -2,6 +2,7 @@ import { requireSuperAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { SaLiveFilters } from "@/components/sa/live-filters";
 
 export const metadata = { title: "Auditoria — SuperAdmin" };
 export const dynamic = "force-dynamic";
@@ -67,37 +68,15 @@ export default async function SAAuditPage({
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <input
-              type="text"
-              placeholder="Filtrar por tenant ID"
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
-              defaultValue={searchParams.tenantId || ""}
-            />
-            <input
-              type="text"
-              placeholder="Filtrar por user ID"
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
-              defaultValue={searchParams.userId || ""}
-            />
-            <input
-              type="text"
-              placeholder="Ação (ex: BILLING_, LOGIN)"
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
-              defaultValue={searchParams.actionPrefix || ""}
-            />
-            <input
-              type="date"
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white"
-              defaultValue={searchParams.since || ""}
-            />
-          </div>
-          <p className="text-xs text-gray-500">
-            Nota: Use o navegador "Encontrar" (Ctrl+F) para filtragem rápida após carregar os logs.
-          </p>
-        </div>
+        {/* Filters — live/debounced */}
+        <SaLiveFilters
+          fields={[
+            { name: "tenantId", kind: "text", placeholder: "Filtrar por tenant ID" },
+            { name: "userId", kind: "text", placeholder: "Filtrar por user ID" },
+            { name: "actionPrefix", kind: "text", placeholder: "Ação (ex: BILLING_, LOGIN)" },
+            { name: "since", kind: "date" },
+          ]}
+        />
 
         {/* Logs table */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">

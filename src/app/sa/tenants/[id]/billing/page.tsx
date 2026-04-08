@@ -155,32 +155,24 @@ export default async function TenantBillingPage({
           compensation.
         </p>
         <div className="flex gap-2">
-          {["FREE", "PRO", "CLINIC"].map((tier) => (
-            <form
+          {(["FREE", "PRO", "CLINIC"] as const).map((tier) => (
+            <a
               key={tier}
-              action=""
-              method="POST"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const url = new URL(window.location.href);
-                url.searchParams.set("action", "force-tier");
-                url.searchParams.set("tier", tier);
-                window.location.href = url.toString();
-              }}
+              href={`/sa/tenants/${tenantId}/billing?action=force-tier&tier=${tier}`}
+              className={`px-4 py-2 rounded font-semibold transition ${
+                tenant.planTier === tier
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              }`}
             >
-              <button
-                type="submit"
-                className={`px-4 py-2 rounded font-semibold transition ${
-                  tenant.planTier === tier
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                }`}
-              >
-                Force {tier}
-              </button>
-            </form>
+              Force {tier}
+            </a>
           ))}
         </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Prefer using the Ops panel on the tenant detail page — it uses the
+          audited <code>/api/v1/sa/tenants/[id]/plan-override</code> route.
+        </p>
       </div>
 
       {/* Plan Details */}

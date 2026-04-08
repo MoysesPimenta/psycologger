@@ -38,7 +38,9 @@ export default function SALayout({ children }: { children: ReactNode }) {
             <NavItem href="/sa/users" icon={Users} label="Usuários" />
             <NavItem href="/sa/quota-audit" icon={AlertTriangle} label="Over-quota" />
             <NavItem href="/sa/audit" icon={FileText} label="Auditoria" />
-            <NavItem href="/sa/impersonate" icon={Shield} label="Impersonar" />
+            {process.env.NODE_ENV !== "production" && (
+              <NavItem href="/sa/impersonate" icon={Shield} label="Impersonar" />
+            )}
           </nav>
           <div className="p-4 text-[10px] text-gray-600 border-t border-gray-800">
             <p>Toda ação é auditada.</p>

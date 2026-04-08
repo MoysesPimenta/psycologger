@@ -17,7 +17,12 @@ async function post(url: string, body: unknown = {}) {
   });
   if (!res.ok) {
     const payload = await res.json().catch(() => ({}));
-    throw new Error(payload?.error || `HTTP ${res.status}`);
+    const msg =
+      payload?.error?.message ||
+      payload?.message ||
+      (typeof payload?.error === "string" ? payload.error : null) ||
+      `HTTP ${res.status}`;
+    throw new Error(msg);
   }
   return res.json();
 }

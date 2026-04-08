@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, LogIn } from "lucide-react";
 import { searchUsers } from "@/lib/sa-search";
 import { ImpersonateButton } from "@/components/sa/impersonate-button";
+import { SaLiveFilters } from "@/components/sa/live-filters";
 
 export const metadata = { title: "Usuários — SuperAdmin" };
 export const dynamic = "force-dynamic";
@@ -46,51 +47,43 @@ export default async function SAUsersPage({
           </div>
         </div>
 
-        {/* Search and filters */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-          <input
-            type="text"
-            placeholder="Buscar por email ou nome"
-            defaultValue={q}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
-          />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <select
-              defaultValue={role}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white"
-            >
-              <option value="">Todos os papéis</option>
-              <option value="SUPERADMIN">SUPERADMIN</option>
-              <option value="TENANT_ADMIN">TENANT_ADMIN</option>
-              <option value="PSYCHOLOGIST">PSYCHOLOGIST</option>
-              <option value="ASSISTANT">ASSISTANT</option>
-              <option value="READONLY">READONLY</option>
-            </select>
-
-            <select
-              defaultValue={isSuperAdmin}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white"
-            >
-              <option value="">Todos</option>
-              <option value="true">SuperAdmin</option>
-              <option value="false">Não SuperAdmin</option>
-            </select>
-
-            <select
-              defaultValue={lastLoginRange}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white"
-            >
-              <option value="">Últimas atividades</option>
-              <option value="7d">Últimos 7 dias</option>
-              <option value="30d">Últimos 30 dias</option>
-              <option value="never">Nunca fez login</option>
-            </select>
-
-            <button className="px-3 py-2 bg-brand-600 hover:bg-brand-700 rounded text-sm font-medium transition-colors">
-              Filtrar
-            </button>
-          </div>
-        </div>
+        {/* Search and filters — live/debounced */}
+        <SaLiveFilters
+          fields={[
+            { name: "q", kind: "text", placeholder: "Buscar por email ou nome" },
+            {
+              name: "role",
+              kind: "select",
+              options: [
+                { value: "", label: "Todos os papéis" },
+                { value: "SUPERADMIN", label: "SUPERADMIN" },
+                { value: "TENANT_ADMIN", label: "TENANT_ADMIN" },
+                { value: "PSYCHOLOGIST", label: "PSYCHOLOGIST" },
+                { value: "ASSISTANT", label: "ASSISTANT" },
+                { value: "READONLY", label: "READONLY" },
+              ],
+            },
+            {
+              name: "isSuperAdmin",
+              kind: "select",
+              options: [
+                { value: "", label: "Todos" },
+                { value: "true", label: "SuperAdmin" },
+                { value: "false", label: "Não SuperAdmin" },
+              ],
+            },
+            {
+              name: "lastLoginRange",
+              kind: "select",
+              options: [
+                { value: "", label: "Últimas atividades" },
+                { value: "7d", label: "Últimos 7 dias" },
+                { value: "30d", label: "Últimos 30 dias" },
+                { value: "never", label: "Nunca fez login" },
+              ],
+            },
+          ]}
+        />
 
         {/* Users table */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">

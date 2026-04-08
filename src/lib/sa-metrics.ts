@@ -24,6 +24,7 @@
 
 import { db } from "./db";
 import { PlanTier } from "@prisma/client";
+import { PLANS } from "./billing/plans";
 
 // Pricing in cents, BRL. Keep in sync with Stripe products + billing-actions UI.
 export const PLAN_PRICE_CENTS: Record<PlanTier, number> = {
@@ -363,8 +364,6 @@ async function countOverQuotaTenants(): Promise<number> {
 }
 
 export async function listOverQuotaTenants(limit: number = 200): Promise<OverQuotaTenantRow[]> {
-  const { PLANS } = await import("./billing/plans");
-
   const tenants = await db.tenant.findMany({
     select: {
       id: true,

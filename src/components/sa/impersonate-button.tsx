@@ -32,8 +32,13 @@ export function ImpersonateButton({ userId, userName }: ImpersonateButtonProps) 
         router.push("/app/today");
         router.refresh();
       } else {
-        const error = await res.json();
-        alert(`Erro: ${error.error}`);
+        const payload = await res.json().catch(() => ({}));
+        const msg =
+          payload?.error?.message ||
+          payload?.message ||
+          (typeof payload?.error === "string" ? payload.error : null) ||
+          `HTTP ${res.status}`;
+        alert(`Erro: ${msg}`);
       }
     } catch (error) {
       console.error("Impersonation error:", error);

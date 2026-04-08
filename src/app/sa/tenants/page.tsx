@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { ArrowRight, Building2, ArrowLeft } from "lucide-react";
 import { searchTenants } from "@/lib/sa-search";
+import { SaLiveFilters } from "@/components/sa/live-filters";
 
 export const metadata = { title: "Clínicas — SuperAdmin" };
 export const dynamic = "force-dynamic";
@@ -43,41 +44,33 @@ export default async function SATenantsPage({
           </div>
         </div>
 
-        {/* Search and filters */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-          <input
-            type="text"
-            placeholder="Buscar por nome, domínio ou ID"
-            defaultValue={q}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
-          />
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <select
-              defaultValue={planTier}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white"
-            >
-              <option value="">Todos os planos</option>
-              <option value="FREE">FREE</option>
-              <option value="PRO">PRO</option>
-              <option value="CLINIC">CLINIC</option>
-            </select>
-
-            <select
-              defaultValue={subscriptionStatus}
-              className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white"
-            >
-              <option value="">Todos os status</option>
-              <option value="active">ACTIVE</option>
-              <option value="past_due">PAST_DUE</option>
-              <option value="canceled">CANCELED</option>
-              <option value="trialing">TRIALING</option>
-            </select>
-
-            <button className="px-3 py-2 bg-brand-600 hover:bg-brand-700 rounded text-sm font-medium transition-colors">
-              Filtrar
-            </button>
-          </div>
-        </div>
+        {/* Search and filters — live/debounced */}
+        <SaLiveFilters
+          fields={[
+            { name: "q", kind: "text", placeholder: "Buscar por nome, domínio ou ID" },
+            {
+              name: "planTier",
+              kind: "select",
+              options: [
+                { value: "", label: "Todos os planos" },
+                { value: "FREE", label: "FREE" },
+                { value: "PRO", label: "PRO" },
+                { value: "CLINIC", label: "CLINIC" },
+              ],
+            },
+            {
+              name: "subscriptionStatus",
+              kind: "select",
+              options: [
+                { value: "", label: "Todos os status" },
+                { value: "active", label: "ACTIVE" },
+                { value: "past_due", label: "PAST_DUE" },
+                { value: "canceled", label: "CANCELED" },
+                { value: "trialing", label: "TRIALING" },
+              ],
+            },
+          ]}
+        />
 
         {/* Tenants grid */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
