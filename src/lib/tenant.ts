@@ -1,6 +1,7 @@
 /**
  * Tenant resolution — Psycologger
  * Resolves the current tenant and membership from the session.
+ * Supports impersonation for SuperAdmin debugging.
  */
 
 import { getServerSession } from "next-auth";
@@ -8,11 +9,15 @@ import { authOptions } from "./auth";
 import { db } from "./db";
 import type { AuthContext } from "./rbac";
 import { UnauthorizedError, ForbiddenError } from "./rbac";
+import { getToken } from "next-auth/jwt";
+import { headers as nextHeaders } from "next/headers";
+import { verifyImpersonationToken } from "./impersonation";
 
 /**
  * Resolve full auth context for the current request.
  * Pass a NextRequest to automatically read the x-tenant-id header injected by
  * middleware (required for correct multi-tenant routing in API routes).
+ * Detects and resolves impersonation if the impersonation cookie is present and valid.
  * Throws UnauthorizedError if not logged in.
  * Throws ForbiddenError if no active membership found.
  */
@@ -39,6 +44,76 @@ export async function getAuthContext(
     select: { isSuperAdmin: true },
   });
   const isSuperAdmin = userRecord?.isSuperAdmin ?? false;
+
+  // === IMPERSONATION CHECK ===
+  // If the user is a superadmin, check for impersonation cookie.
+  // This must be re-verified on every request to prevent privilege escalation.
+  let impersonatedUserId: string | undefined;
+  let impersonatedTenantId: string | undefined;
+  let impersonatedBy: string | undefined;
+
+  if (isSuperAdmin) {
+    try {
+      const headers = nextHeaders();
+      const impersonateCookie = headers.get("cookie")?.split("; ").find(c => c.startsWith("psycologger-impersonate="));
+      if (impersonateCookie) {
+        const token = impersonateCookie.substring("psycologger-impersonate=".length);
+        const payload = await verifyImpersonationToken(token);
+
+        // Verify the real session user (the superadmin) is still a superadmin
+        // This prevents a compromised JWT from escalating privileges
+        if (payload.byUserId === userId) {
+          impersonatedUserId = payload.impersonatedUserId;
+          impersonatedTenantId = payload.impersonatedTenantId;
+          impersonatedBy = payload.byUserId;
+        }
+      }
+    } catch {
+      // Silently ignore invalid impersonation tokens — they'll be cleared by the stop endpoint
+    }
+  }
+
+  // If impersonation is active, resolve the impersonated user's context
+  if (impersonatedUserId && impersonatedTenantId) {
+    const membership = await db.membership.findFirst({
+      where: {
+        userId: impersonatedUserId,
+        tenantId: impersonatedTenantId,
+        status: "ACTIVE",
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            sharedPatientPool: true,
+            adminCanViewClinical: true,
+          },
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenError("Impersonated user has no active membership in this tenant");
+    }
+
+    return {
+      userId: impersonatedUserId,
+      role: membership.role,
+      tenantId: membership.tenantId,
+      membership: {
+        canViewAllPatients: membership.canViewAllPatients,
+        canViewClinicalNotes: membership.canViewClinicalNotes,
+        canManageFinancials: membership.canManageFinancials,
+      },
+      tenant: {
+        sharedPatientPool: membership.tenant.sharedPatientPool,
+        adminCanViewClinical: membership.tenant.adminCanViewClinical,
+      },
+      isSuperAdmin: false, // Impersonated user is NOT a superadmin, even if real user is
+      impersonating: true,
+      impersonatedBy,
+    };
+  }
 
   if (isSuperAdmin && !tenantId) {
     // SuperAdmin platform-level access. tenantId is the empty string here —

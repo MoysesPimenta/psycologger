@@ -151,6 +151,9 @@ export interface AuthContext {
   membership: Pick<Membership, "canViewAllPatients" | "canViewClinicalNotes" | "canManageFinancials">;
   tenant: Pick<Tenant, "sharedPatientPool" | "adminCanViewClinical">;
   isSuperAdmin?: boolean;
+  // Impersonation fields
+  impersonating?: boolean; // true if acting as another user
+  impersonatedBy?: string; // userId of the superadmin doing the impersonating
 }
 
 // ─── Core permission check ────────────────────────────────────────────────────
