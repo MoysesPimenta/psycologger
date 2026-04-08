@@ -17,7 +17,7 @@ export function SupportTicketActions({
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const send = async () => {
+  const send = async (afterStatus: "PENDING" | "CLOSED") => {
     if (!body.trim()) return;
     setIsSending(true);
     setError(null);
@@ -25,7 +25,7 @@ export function SupportTicketActions({
       const res = await fetchWithCsrf(`/api/v1/sa/support/tickets/${ticketId}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, afterStatus }),
       });
       if (res.ok) {
         setBody("");
@@ -87,15 +87,26 @@ export function SupportTicketActions({
           className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
         />
         {error && <p className="text-sm text-red-400">{error}</p>}
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
           <button
             type="button"
-            onClick={send}
+            onClick={() => send("PENDING")}
             disabled={isSending || !body.trim()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-yellow-700 hover:bg-yellow-600 disabled:opacity-50 text-sm font-medium"
+            title="Envia a resposta e marca o ticket como Aguardando cliente."
           >
             <Send className="h-4 w-4" />
-            {isSending ? "Enviando…" : "Enviar resposta"}
+            {isSending ? "Enviando…" : "Enviar & Aguardando"}
+          </button>
+          <button
+            type="button"
+            onClick={() => send("CLOSED")}
+            disabled={isSending || !body.trim()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-sm font-medium"
+            title="Envia a resposta e fecha o ticket."
+          >
+            <Send className="h-4 w-4" />
+            {isSending ? "Enviando…" : "Enviar & Fechar"}
           </button>
         </div>
       </div>

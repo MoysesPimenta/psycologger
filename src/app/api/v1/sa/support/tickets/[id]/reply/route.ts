@@ -22,6 +22,10 @@ export const dynamic = "force-dynamic";
 
 const BodySchema = z.object({
   body: z.string().min(1).max(10_000),
+  // Status to apply to the ticket after the reply is sent. SA picks between
+  // PENDING (awaiting customer) and CLOSED (issue resolved). Defaults to
+  // PENDING for backwards compatibility.
+  afterStatus: z.enum(["PENDING", "CLOSED"]).optional(),
 });
 
 const SUPPORT_FROM =
@@ -108,7 +112,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }),
       db.supportTicket.update({
         where: { id: ticket.id },
-        data: { status: "PENDING", lastMessageAt: new Date() },
+        data: {
+          status: parsed.data.afterStatus ?? "PENDING",
+          lastMessageAt: new Date(),
+        },
       }),
     ]);
 

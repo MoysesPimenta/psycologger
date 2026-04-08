@@ -293,14 +293,14 @@ export async function POST(req: NextRequest) {
     tenantId = membership?.tenantId ?? null;
   }
 
-  // Find an existing open/pending thread by (fromEmail + normalized subject)
-  // within the last 14 days; otherwise create a new ticket.
+  // Find an existing thread by (fromEmail + normalized subject) within the
+  // last 14 days — regardless of status. A customer reply to a CLOSED ticket
+  // must reopen it, not spawn a duplicate.
   const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const existing = await db.supportTicket.findFirst({
     where: {
       fromEmail,
       subjectNormalized,
-      status: { in: ["OPEN", "PENDING"] },
       lastMessageAt: { gte: since },
     },
     orderBy: { lastMessageAt: "desc" },
