@@ -29,6 +29,9 @@ export function SupportTicketActions({
       });
       if (res.ok) {
         setBody("");
+        // After a reply (regardless of PENDING vs CLOSED) return to the
+        // inbox so the SA can triage the next ticket.
+        router.push("/sa/support");
         router.refresh();
       } else {
         const p = await res.json().catch(() => ({}));
