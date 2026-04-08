@@ -31,21 +31,64 @@ export default async function SAAuditPage({
   // Filter by user. Accepts either a uuid (exact match) or a free-text
   // email/name fragment which we resolve to a set of user ids.
   const userQ = (searchParams.userQ as string) || "";
+  let userQWarning: string | null = null;
+  // Reject characters that break Postgres LIKE/regex or Prisma validation when
+  // passed through `contains`. Keep accents/letters/digits/spaces/._-+@.
+  // ASCII + common Latin accents, digits, spaces, and a few safe punctuation.
+  const SAFE_TEXT_RE = /^[a-zA-Z0-9\u00C0-\u024F\s._\-+@]+$/;
   if (userQ) {
     if (UUID_RE.test(userQ)) {
       where.userId = userQ;
+    } else if (!SAFE_TEXT_RE.test(userQ)) {
+      userQWarning = "Consulta de usuário inválida — use um email, nome ou UUID.";
     } else {
-      const matches = await db.user.findMany({
-        where: {
-          OR: [
-            { email: { contains: userQ, mode: "insensitive" } },
-            { name: { contains: userQ, mode: "insensitive" } },
-          ],
-        },
-        select: { id: true },
-        take: 50,
-      });
-      where.userId = { in: matches.length > 0 ? matches.map((u) => u.id) : ["__no_match__"] };
+      try {
+        const matches = await db.user.findMany({
+          where: {
+            OR: [
+              { email: { contains: userQ, mode: "insensitive" } },
+              { name: { contains: userQ, mode: "insensitive" } },
+            ],
+          },
+          select: { id: true },
+          take: 50,
+        });
+        where.userId = { in: matches.length > 0 ? matches.map((u) => u.id) : ["__no_match__"] };
+      } catch {
+        userQWarning = "Consulta de usuário inválida — use um email, nome ou UUID.";
+      }
+    }
+  }
+
+  // Filter by clinic (tenant) name — contains-insensitive on Tenant.name/slug,
+  // resolved to a tenant id list. Complements the UUID-based tenantId filter.
+  const clinicQ = (searchParams.clinicQ as string) || "";
+  let clinicQWarning: string | null = null;
+  if (clinicQ) {
+    if (!SAFE_TEXT_RE.test(clinicQ)) {
+      clinicQWarning = "Consulta de clínica inválida.";
+    } else {
+      try {
+        const tenants = await db.tenant.findMany({
+          where: {
+            OR: [
+              { name: { contains: clinicQ, mode: "insensitive" } },
+              { slug: { contains: clinicQ, mode: "insensitive" } },
+            ],
+          },
+          select: { id: true },
+          take: 50,
+        });
+        const ids = tenants.map((t) => t.id);
+        // Combine with existing tenantId filter if present (intersection).
+        if (where.tenantId && typeof where.tenantId === "string") {
+          where.tenantId = ids.includes(where.tenantId) ? where.tenantId : "__no_match__";
+        } else {
+          where.tenantId = { in: ids.length > 0 ? ids : ["__no_match__"] };
+        }
+      } catch {
+        clinicQWarning = "Consulta de clínica inválida.";
+      }
     }
   }
 
@@ -106,12 +149,19 @@ export default async function SAAuditPage({
         <SaLiveFilters
           fields={[
             { name: "tenantId", kind: "text", placeholder: "Tenant ID (UUID)" },
+            { name: "clinicQ", kind: "text", placeholder: "Clínica — nome ou slug" },
             { name: "userQ", kind: "text", placeholder: "Usuário — email, nome ou UUID" },
             { name: "action", kind: "text", placeholder: "Ação contém… (ex: sa, billing, login)" },
             { name: "since", kind: "date" },
             { name: "until", kind: "date" },
           ]}
         />
+
+        {(userQWarning || clinicQWarning) && (
+          <div className="bg-yellow-900/30 border border-yellow-700 text-yellow-200 text-sm rounded-lg px-4 py-2">
+            {userQWarning} {clinicQWarning}
+          </div>
+        )}
 
         {/* Logs table */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">

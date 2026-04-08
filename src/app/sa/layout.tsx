@@ -15,6 +15,7 @@ import {
   FileText,
   Shield,
   AlertTriangle,
+  Inbox,
 } from "lucide-react";
 
 // NOTE: the /sa/login page intentionally renders a `fixed inset-0` backdrop so
@@ -37,6 +38,7 @@ export default function SALayout({ children }: { children: ReactNode }) {
             <NavItem href="/sa/tenants" icon={Building2} label="Clínicas" />
             <NavItem href="/sa/users" icon={Users} label="Usuários" />
             <NavItem href="/sa/quota-audit" icon={AlertTriangle} label="Over-quota" />
+            <NavItem href="/sa/support" icon={Inbox} label="Suporte" />
             <NavItem href="/sa/audit" icon={FileText} label="Auditoria" />
             {process.env.NODE_ENV !== "production" && (
               <NavItem href="/sa/impersonate" icon={Shield} label="Impersonar" />

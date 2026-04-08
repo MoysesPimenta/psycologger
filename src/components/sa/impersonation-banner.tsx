@@ -29,7 +29,7 @@ export default function ImpersonationBanner({
         method: "POST",
       });
       if (res.ok) {
-        router.push("/sa/dashboard");
+        router.push("/sa/users");
         router.refresh();
       } else {
         const payload = await res.json().catch(() => ({}));

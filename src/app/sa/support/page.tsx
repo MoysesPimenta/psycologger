@@ -1,0 +1,207 @@
+import { requireSuperAdmin } from "@/lib/auth";
+import { db } from "@/lib/db";
+import Link from "next/link";
+import { ArrowLeft, Inbox } from "lucide-react";
+import { SaLiveFilters } from "@/components/sa/live-filters";
+
+export const metadata = { title: "Suporte — SuperAdmin" };
+export const dynamic = "force-dynamic";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SAFE_TEXT_RE = /^[a-zA-Z0-9\u00C0-\u024F\s._\-+@]+$/;
+
+export default async function SASupportPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  await requireSuperAdmin();
+
+  const page = parseInt((searchParams.page as string) || "1", 10);
+  const limit = 50;
+  const skip = (page - 1) * limit;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: Record<string, any> = {};
+
+  const status = searchParams.status as string | undefined;
+  if (status && ["OPEN", "PENDING", "CLOSED"].includes(status)) {
+    where.status = status;
+  }
+
+  if (searchParams.tenantId && UUID_RE.test(searchParams.tenantId as string)) {
+    where.tenantId = searchParams.tenantId as string;
+  }
+
+  const fromEmail = ((searchParams.fromEmail as string) || "").trim().toLowerCase();
+  let warning: string | null = null;
+  if (fromEmail) {
+    if (!SAFE_TEXT_RE.test(fromEmail)) {
+      warning = "Email inválido.";
+    } else {
+      where.fromEmail = { contains: fromEmail, mode: "insensitive" };
+    }
+  }
+
+  const since = (searchParams.since as string) || "";
+  const until = (searchParams.until as string) || "";
+  if (since || until) {
+    where.lastMessageAt = {};
+    if (since) {
+      const d = new Date(`${since}T00:00:00.000Z`);
+      if (!Number.isNaN(d.getTime())) where.lastMessageAt.gte = d;
+    }
+    if (until) {
+      const d = new Date(`${until}T23:59:59.999Z`);
+      if (!Number.isNaN(d.getTime())) where.lastMessageAt.lte = d;
+    }
+    if (Object.keys(where.lastMessageAt).length === 0) delete where.lastMessageAt;
+  }
+
+  const [tickets, totalCount, openCount, pendingCount] = await Promise.all([
+    db.supportTicket.findMany({
+      where,
+      orderBy: { lastMessageAt: "desc" },
+      take: limit,
+      skip,
+      select: {
+        id: true,
+        fromEmail: true,
+        fromName: true,
+        subject: true,
+        status: true,
+        lastMessageAt: true,
+        tenantId: true,
+      },
+    }),
+    db.supportTicket.count({ where }),
+    db.supportTicket.count({ where: { status: "OPEN" } }),
+    db.supportTicket.count({ where: { status: "PENDING" } }),
+  ]);
+
+  const pageCount = Math.ceil(totalCount / limit);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Link href="/sa/dashboard" className="text-gray-400 hover:text-white">
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        <div className="flex items-center gap-3">
+          <Inbox className="h-6 w-6 text-brand-400" />
+          <div>
+            <h1 className="text-2xl font-bold">Suporte</h1>
+            <p className="text-gray-400 text-sm">
+              {totalCount} tickets ({openCount} abertos, {pendingCount} aguardando)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <SaLiveFilters
+        fields={[
+          {
+            name: "status",
+            kind: "select",
+            options: [
+              { value: "", label: "Todos status" },
+              { value: "OPEN", label: "Abertos" },
+              { value: "PENDING", label: "Aguardando usuário" },
+              { value: "CLOSED", label: "Fechados" },
+            ],
+          },
+          { name: "tenantId", kind: "text", placeholder: "Tenant ID (UUID)" },
+          { name: "fromEmail", kind: "text", placeholder: "Email do remetente" },
+          { name: "since", kind: "date" },
+          { name: "until", kind: "date" },
+        ]}
+      />
+
+      {warning && (
+        <div className="bg-yellow-900/30 border border-yellow-700 text-yellow-200 text-sm rounded-lg px-4 py-2">
+          {warning}
+        </div>
+      )}
+
+      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-800 text-left text-xs text-gray-400">
+              <th className="p-4">Status</th>
+              <th className="p-4">Assunto</th>
+              <th className="p-4">De</th>
+              <th className="p-4">Última mensagem</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-800">
+            {tickets.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="p-8 text-center text-gray-500">
+                  Nenhum ticket encontrado.
+                </td>
+              </tr>
+            ) : (
+              tickets.map((t) => (
+                <tr key={t.id} className="hover:bg-gray-800/50 cursor-pointer">
+                  <td className="p-4">
+                    <StatusPill status={t.status} />
+                  </td>
+                  <td className="p-4">
+                    <Link href={`/sa/support/${t.id}`} className="block hover:underline">
+                      {t.subject || "(sem assunto)"}
+                    </Link>
+                  </td>
+                  <td className="p-4 text-xs text-gray-400">
+                    {t.fromName ? `${t.fromName} · ` : ""}
+                    {t.fromEmail}
+                  </td>
+                  <td className="p-4 text-xs text-gray-400">
+                    {new Date(t.lastMessageAt).toLocaleString("pt-BR")}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-400">
+            Página {page} de {pageCount}
+          </p>
+          <div className="flex gap-2">
+            {page > 1 && (
+              <Link
+                href={`/sa/support?page=${page - 1}`}
+                className="px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded text-sm"
+              >
+                Anterior
+              </Link>
+            )}
+            {page < pageCount && (
+              <Link
+                href={`/sa/support?page=${page + 1}`}
+                className="px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded text-sm"
+              >
+                Próxima
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusPill({ status }: { status: "OPEN" | "PENDING" | "CLOSED" }) {
+  const map = {
+    OPEN: "bg-red-900/50 text-red-300 border-red-800",
+    PENDING: "bg-yellow-900/50 text-yellow-300 border-yellow-800",
+    CLOSED: "bg-gray-800 text-gray-400 border-gray-700",
+  };
+  const label = { OPEN: "Aberto", PENDING: "Aguardando", CLOSED: "Fechado" }[status];
+  return (
+    <span className={`px-2 py-1 rounded border text-xs ${map[status]}`}>{label}</span>
+  );
+}

@@ -1039,3 +1039,72 @@ model StripeWebhookEvent {
 
   @@index([processedAt])
 }
+
+// ─── Support inbox (SA-only) ────────────────────────────────────────────────
+// Unscoped by tenant on purpose — read/write only from /sa/* routes.
+
+enum SupportTicketStatus {
+  OPEN      // awaiting SA reply
+  PENDING   // SA replied, awaiting user reply
+  CLOSED
+}
+
+enum SupportMessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum SupportBlocklistKind {
+  EMAIL
+  DOMAIN
+}
+
+model SupportTicket {
+  id             String              @id @default(uuid()) @db.Uuid
+  // Optional best-effort link to a tenant/user by email match at ingest time.
+  tenantId       String?             @db.Uuid
+  userId         String?             @db.Uuid
+  fromEmail      String
+  fromName       String?
+  subject        String
+  subjectNormalized String
+  status         SupportTicketStatus @default(OPEN)
+  lastMessageAt  DateTime            @default(now())
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  messages       SupportMessage[]
+
+  @@index([status])
+  @@index([fromEmail])
+  @@index([tenantId])
+  @@index([lastMessageAt])
+}
+
+model SupportMessage {
+  id               String                  @id @default(uuid()) @db.Uuid
+  ticketId         String                  @db.Uuid
+  ticket           SupportTicket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  direction        SupportMessageDirection
+  // Encrypted body (AES-256-GCM, base64) — reuses ENCRYPTION_KEY.
+  bodyEncrypted    String
+  // Raw email message-id for threading replies (In-Reply-To/References).
+  emailMessageId   String?
+  resendMessageId  String?
+  // SA user id for OUTBOUND messages.
+  senderUserId     String?                 @db.Uuid
+  createdAt        DateTime                @default(now())
+
+  @@index([ticketId])
+  @@index([createdAt])
+}
+
+model SupportBlocklist {
+  id        String               @id @default(uuid()) @db.Uuid
+  kind      SupportBlocklistKind
+  pattern   String               // lowercased email or domain
+  reason    String?
+  createdBy String?              @db.Uuid
+  createdAt DateTime             @default(now())
+
+  @@unique([kind, pattern])
+}
