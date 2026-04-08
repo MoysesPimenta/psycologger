@@ -10,6 +10,7 @@ import { ok, created, handleApiError, apiError, NotFoundError } from "@/lib/api"
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { rateLimit } from "@/lib/rate-limit";
 import { INVITE_ACCEPT_RATE_LIMIT, INVITE_ACCEPT_RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { assertCanAddTherapist } from "@/lib/billing/limits";
 // Note: invite acceptance is public — no auth imports needed
 
 export async function GET(
@@ -60,6 +61,10 @@ export async function POST(
     if (!invite) throw new NotFoundError("Invite");
     if (invite.acceptedAt) return apiError("CONFLICT", "Token de convite inválido ou expirado.", 409);
     if (invite.expiresAt < new Date()) return apiError("GONE", "Token de convite inválido ou expirado.", 410);
+
+    // Re-check plan quota at acceptance time — the tenant's plan may have
+    // downgraded between invite creation and acceptance.
+    await assertCanAddTherapist(invite.tenantId);
 
     const result = await db.$transaction(async (tx) => {
       // Find or create user

@@ -13,6 +13,7 @@ import {
 import { requirePermission, getPatientScope, ForbiddenError } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { encryptCpf, decryptPatientCpfs, cpfBlindIndex, isCpfShapedQuery } from "@/lib/cpf-crypto";
+import { assertCanAddPatient } from "@/lib/billing/limits";
 
 const createSchema = z.object({
   fullName: z.string().min(2).max(100),
@@ -94,6 +95,9 @@ export async function POST(req: NextRequest) {
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const body = createSchema.parse(await req.json());
+
+    // Plan entitlement gate — must run BEFORE create. Throws QuotaExceededError (402).
+    await assertCanAddPatient(ctx.tenantId);
 
     // Validate assignedUserId: non-admins can only assign to themselves
     if (body.assignedUserId && body.assignedUserId !== ctx.userId) {

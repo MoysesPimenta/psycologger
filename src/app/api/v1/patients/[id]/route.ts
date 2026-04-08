@@ -15,6 +15,7 @@ import { randomBytes, createHash } from "crypto";
 import { PORTAL_MAGIC_LINK_EXPIRY_MS, generateActivationToken } from "@/lib/patient-auth";
 import { encryptCpf, decryptPatientCpf, cpfBlindIndex } from "@/lib/cpf-crypto";
 import { logger } from "@/lib/logger";
+import { assertCanAddPatient } from "@/lib/billing/limits";
 
 async function resolvePatient(id: string, ctx: Awaited<ReturnType<typeof getAuthContext>>) {
   const scope = getPatientScope(ctx);
@@ -76,6 +77,11 @@ export async function PATCH(
 
     const existingPatient = await resolvePatient(params.id, ctx);
     const body = updateSchema.parse(await req.json());
+
+    // Reactivating an archived patient counts against the plan quota.
+    if (body.isActive === true && existingPatient.isActive === false) {
+      await assertCanAddPatient(ctx.tenantId);
+    }
 
     const patient = await db.patient.update({
       where: { id: params.id, tenantId: ctx.tenantId },

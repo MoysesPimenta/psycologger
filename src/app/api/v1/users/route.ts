@@ -12,6 +12,7 @@ import { requirePermission } from "@/lib/rbac";
 import { sendInviteEmail } from "@/lib/email";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { randomBytes } from "crypto";
+import { assertCanAddTherapist } from "@/lib/billing/limits";
 
 export async function GET(req: NextRequest) {
   try {
@@ -63,6 +64,12 @@ export async function POST(req: NextRequest) {
     });
     if (existingMembership) {
       return apiError("CONFLICT", "Este usuário já é membro desta clínica.", 409);
+    }
+
+    // Plan entitlement gate: block inviting a new therapist if at seat limit.
+    // Re-checked on accept to catch downgrades between invite + acceptance.
+    if (body.role === "PSYCHOLOGIST" || body.role === "ASSISTANT") {
+      await assertCanAddTherapist(ctx.tenantId);
     }
 
     const tenant = await db.tenant.findUnique({ where: { id: ctx.tenantId } });

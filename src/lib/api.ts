@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { ForbiddenError, UnauthorizedError } from "./rbac";
+import { QuotaExceededError } from "./billing/limits";
 
 // ─── Standard API response shapes ────────────────────────────────────────────
 
@@ -82,6 +83,14 @@ export function handleApiError(err: unknown): NextResponse {
   }
   if (err instanceof BadRequestError) {
     return apiError("BAD_REQUEST", err.message, 400);
+  }
+  if (err instanceof QuotaExceededError) {
+    return apiError("QUOTA_EXCEEDED", err.message, 402, {
+      resource: err.resource,
+      current: err.current,
+      limit: err.limit,
+      planTier: err.planTier,
+    });
   }
   console.error("[api] Unhandled error:", err);
   return apiError("INTERNAL_ERROR", "Um erro inesperado ocorreu", 500);
