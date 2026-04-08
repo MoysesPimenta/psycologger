@@ -24,9 +24,14 @@ export default async function SASupportPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: Record<string, any> = {};
 
+  // Default view = open inbox (OPEN + PENDING). Explicit "ALL" shows every status.
   const status = searchParams.status as string | undefined;
-  if (status && ["OPEN", "PENDING", "CLOSED"].includes(status)) {
+  if (status === "ALL") {
+    // no status filter
+  } else if (status && ["OPEN", "PENDING", "CLOSED"].includes(status)) {
     where.status = status;
+  } else {
+    where.status = { in: ["OPEN", "PENDING"] };
   }
 
   if (searchParams.tenantId && UUID_RE.test(searchParams.tenantId as string)) {
@@ -74,27 +79,18 @@ export default async function SASupportPage({
     }
   }
 
-  // User filter — resolve User.email/name contains → userId list
+  // User filter — match against the ticket itself (fromEmail / fromName) since
+  // many senders don't have a linked User row. "moyses" should hit every ticket
+  // whose fromEmail or fromName contains that substring.
   const userQ = ((searchParams.userQ as string) || "").trim();
   if (userQ) {
     if (!SAFE_TEXT_RE.test(userQ)) {
       warning = (warning ? warning + " " : "") + "Usuário inválido.";
     } else {
-      try {
-        const users = await db.user.findMany({
-          where: {
-            OR: [
-              { email: { contains: userQ, mode: "insensitive" } },
-              { name: { contains: userQ, mode: "insensitive" } },
-            ],
-          },
-          select: { id: true },
-          take: 50,
-        });
-        where.userId = { in: users.length > 0 ? users.map((u) => u.id) : [ZERO_UUID] };
-      } catch {
-        warning = (warning ? warning + " " : "") + "Usuário inválido.";
-      }
+      where.OR = [
+        { fromEmail: { contains: userQ, mode: "insensitive" } },
+        { fromName: { contains: userQ, mode: "insensitive" } },
+      ];
     }
   }
 
@@ -136,6 +132,19 @@ export default async function SASupportPage({
 
   const pageCount = Math.ceil(totalCount / limit);
 
+  // Resolve tenant names in a second query — SupportTicket.tenantId is a
+  // scalar FK without a Prisma relation on the model.
+  const tenantIds = Array.from(
+    new Set(tickets.map((t) => t.tenantId).filter((v): v is string => !!v))
+  );
+  const tenantRows = tenantIds.length
+    ? await db.tenant.findMany({
+        where: { id: { in: tenantIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const tenantMap = new Map(tenantRows.map((t) => [t.id, t.name]));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -167,10 +176,11 @@ export default async function SASupportPage({
             name: "status",
             kind: "select",
             options: [
-              { value: "", label: "Todos status" },
+              { value: "", label: "Abertos + Aguardando" },
               { value: "OPEN", label: "Abertos" },
               { value: "PENDING", label: "Aguardando usuário" },
               { value: "CLOSED", label: "Fechados" },
+              { value: "ALL", label: "Todos status" },
             ],
           },
           { name: "tenantId", kind: "text", placeholder: "Tenant ID (UUID)" },
@@ -195,13 +205,15 @@ export default async function SASupportPage({
               <th className="p-4">Status</th>
               <th className="p-4">Assunto</th>
               <th className="p-4">De</th>
+              <th className="p-4">Clínica</th>
+              <th className="p-4">Tenant ID</th>
               <th className="p-4">Última mensagem</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
             {tickets.length === 0 ? (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-gray-500">
+                <td colSpan={6} className="p-8 text-center text-gray-500">
                   Nenhum ticket encontrado.
                 </td>
               </tr>
@@ -219,6 +231,21 @@ export default async function SASupportPage({
                   <td className="p-4 text-xs text-gray-400">
                     {t.fromName ? `${t.fromName} · ` : ""}
                     {t.fromEmail}
+                  </td>
+                  <td className="p-4 text-xs">
+                    {t.tenantId && tenantMap.has(t.tenantId) ? (
+                      <Link
+                        href={`/sa/tenants/${t.tenantId}`}
+                        className="text-brand-400 hover:underline"
+                      >
+                        {tenantMap.get(t.tenantId)}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-500">—</span>
+                    )}
+                  </td>
+                  <td className="p-4 text-xs text-gray-500 font-mono">
+                    {t.tenantId ? t.tenantId.slice(0, 8) + "…" : "—"}
                   </td>
                   <td className="p-4 text-xs text-gray-400">
                     {new Date(t.lastMessageAt).toLocaleString("pt-BR")}

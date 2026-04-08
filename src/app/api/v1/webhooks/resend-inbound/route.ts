@@ -149,8 +149,33 @@ export async function POST(req: NextRequest) {
   const subject = (event.data.subject ?? "(sem assunto)").slice(0, 500);
   // Stash both text and html in an encrypted JSON wrapper so the thread view
   // can render HTML (sanitized, sandboxed) while still falling back to text.
-  const text = (event.data.text || "").toString();
-  const html = (event.data.html || "").toString();
+  // Resend has shipped multiple payload shapes — try every known field and
+  // log which branch was populated (keys only, never body contents → no PHI).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const d = event.data as any;
+  const text = (
+    d.text ||
+    d.plain ||
+    d.bodyPlain ||
+    d.body_plain ||
+    d.content?.text ||
+    ""
+  ).toString();
+  const html = (
+    d.html ||
+    d.bodyHtml ||
+    d.body_html ||
+    d.content?.html ||
+    ""
+  ).toString();
+  if (!text && !html) {
+    console.warn(
+      "[resend-inbound] empty body — keys:",
+      Object.keys(d).join(","),
+      "contentKeys:",
+      d.content ? Object.keys(d.content).join(",") : "(none)"
+    );
+  }
   const bodyWrapper = JSON.stringify({ v: 1, text, html });
   const messageId =
     event.data.messageId ||
@@ -159,12 +184,14 @@ export async function POST(req: NextRequest) {
     event.data.headers?.["Message-ID"] ||
     null;
 
-  // Blocklist check (email exact OR domain).
+  // Blocklist check — case-insensitive equals on email and domain.
+  // Stored patterns may have been entered with stray casing/whitespace; the
+  // webhook must still honor the block.
   const blocked = await db.supportBlocklist.findFirst({
     where: {
       OR: [
-        { kind: "EMAIL", pattern: fromEmail },
-        { kind: "DOMAIN", pattern: domain },
+        { kind: "EMAIL", pattern: { equals: fromEmail, mode: "insensitive" } },
+        { kind: "DOMAIN", pattern: { equals: domain, mode: "insensitive" } },
       ],
     },
     select: { id: true, kind: true, pattern: true },
