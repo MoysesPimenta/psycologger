@@ -69,24 +69,10 @@ export default withAuth(
     }
 
     // Helper to apply security headers to any response (including early rejects)
+    // NOTE: Content-Security-Policy is set statically in next.config.mjs headers
+    // (see the headers() export). Do NOT set CSP here — it would override the
+    // static header and block Sentry, Vercel Analytics, Stripe, Resend, etc.
     const applySecurityHeaders = (res: NextResponse) => {
-      // CSP header — Next.js 14 injects inline scripts for RSC hydration data
-      // without nonce attributes. DO NOT add 'strict-dynamic' here: per CSP3,
-      // strict-dynamic causes 'unsafe-inline' to be ignored, which blocks
-      // every Next.js inline hydration script and renders pages blank.
-      const csp = [
-        "default-src 'self'",
-        `script-src 'self' 'unsafe-inline'`,
-        `style-src 'self' 'unsafe-inline'`,
-        "img-src 'self' data: blob: https:",
-        "font-src 'self'",
-        "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-        "frame-ancestors 'none'",
-        "form-action 'self'",
-        "base-uri 'self'",
-        "object-src 'none'",
-      ].join("; ");
-      res.headers.set("Content-Security-Policy", csp);
       res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
       res.headers.set("X-Content-Type-Options", "nosniff");
       res.headers.set("X-Frame-Options", "DENY");

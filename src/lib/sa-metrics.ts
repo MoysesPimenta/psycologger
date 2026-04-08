@@ -16,8 +16,8 @@ const CURRENCY_RATES: Record<string, number> = {
 // Pricing tiers (in cents, BRL assumed)
 const PLAN_PRICES: Record<PlanTier, number> = {
   FREE: 0,
-  PRO: 49900, // R$ 499.00/month
-  CLINIC: 99900, // R$ 999.00/month
+  PRO: 9900, // R$ 99.00/month
+  CLINIC: 19900, // R$ 199.00/month
 };
 
 interface MetricsResult {

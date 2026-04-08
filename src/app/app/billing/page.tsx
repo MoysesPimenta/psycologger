@@ -13,6 +13,7 @@ import { getBillingState } from "@/lib/billing/subscription-status";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
+import { ManageSubscriptionButton, UpgradeButton } from "@/components/billing/billing-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -119,45 +120,20 @@ export default async function BillingPage() {
         {/* Action Buttons */}
         <div className="flex gap-3">
           {tenant.stripeSubscriptionId ? (
-            <>
-              <form
-                action="/api/v1/billing/portal"
-                method="POST"
-                className="flex-1"
-              >
-                <button
-                  type="submit"
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                  Gerenciar Assinatura
-                </button>
-              </form>
-            </>
+            <div className="flex-1">
+              <ManageSubscriptionButton />
+            </div>
           ) : (
             <div className="flex gap-3 w-full">
               {tenant.planTier !== "PRO" && (
-                <form action="/api/v1/billing/checkout" method="POST" className="flex-1">
-                  <input type="hidden" name="tier" value="PRO" />
-                  <input type="hidden" name="currency" value="BRL" />
-                  <button
-                    type="submit"
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    Upgrade para Pro
-                  </button>
-                </form>
+                <div className="flex-1">
+                  <UpgradeButton tier="PRO" label="Upgrade para Pro" color="blue" />
+                </div>
               )}
               {tenant.planTier !== "CLINIC" && (
-                <form action="/api/v1/billing/checkout" method="POST" className="flex-1">
-                  <input type="hidden" name="tier" value="CLINIC" />
-                  <input type="hidden" name="currency" value="BRL" />
-                  <button
-                    type="submit"
-                    className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
-                  >
-                    Upgrade para Clínica
-                  </button>
-                </form>
+                <div className="flex-1">
+                  <UpgradeButton tier="CLINIC" label="Upgrade para Clínica" color="emerald" />
+                </div>
               )}
             </div>
           )}

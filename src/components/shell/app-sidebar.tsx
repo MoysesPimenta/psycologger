@@ -17,6 +17,7 @@ import {
   X,
   Stethoscope,
   BookOpen,
+  CreditCard,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { cn, initials } from "@/lib/utils";
@@ -34,6 +35,7 @@ const navItemsConfig = [
 ];
 
 const bottomNavItemsConfig = [
+  { href: "/app/billing", label: "nav.billing", icon: CreditCard },
   { href: "/app/audit", label: "nav.audit", icon: Shield },
   { href: "/app/settings", label: "nav.settings", icon: Settings },
 ];

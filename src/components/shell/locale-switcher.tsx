@@ -3,8 +3,9 @@
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { locales, defaultLocale } from "@/i18n/config";
+import { locales } from "@/i18n/config";
 import type { Locale } from "@/i18n/config";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 import {
   Select,
   SelectContent,
@@ -23,7 +24,7 @@ export function LocaleSwitcher() {
     setIsPending(true);
     try {
       // Set the NEXT_LOCALE cookie via a fetch request to a server action
-      const response = await fetch("/api/set-locale", {
+      const response = await fetchWithCsrf("/api/set-locale", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale }),

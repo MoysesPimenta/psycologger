@@ -7,7 +7,8 @@
     "reports": "Reports",
     "journal": "Patient Journal",
     "settings": "Settings",
-    "audit": "Audit Log"
+    "audit": "Audit Log",
+    "billing": "Billing"
   },
   "pageTitle": {
     "today": "Today",
