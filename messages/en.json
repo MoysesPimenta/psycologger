@@ -3,12 +3,13 @@
     "today": "Today",
     "patients": "Patients",
     "calendar": "Calendar",
-    "financial": "Billing",
+    "financial": "Finance",
     "reports": "Reports",
     "journal": "Patient Journal",
     "settings": "Settings",
     "audit": "Audit Log",
-    "billing": "Billing"
+    "billing": "Billing",
+    "subscription": "Subscription"
   },
   "pageTitle": {
     "today": "Today",

@@ -12,7 +12,7 @@ import { requirePermission } from "@/lib/rbac";
 import { ok, handleApiError, BadRequestError } from "@/lib/api";
 import { auditLog } from "@/lib/audit";
 import { db } from "@/lib/db";
-import { priceIdFor } from "@/lib/billing/plans";
+import { requirePriceId } from "@/lib/billing/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -60,9 +60,12 @@ export async function POST(req: NextRequest) {
       throw new BadRequestError("Tenant not found");
     }
 
-    const priceId = priceIdFor(body.tier, body.currency);
-    if (!priceId) {
-      throw new BadRequestError("Invalid plan configuration");
+    let priceId: string;
+    try {
+      priceId = requirePriceId(body.tier, body.currency);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Plano indisponível";
+      throw new BadRequestError(msg);
     }
 
     // Create or retrieve Stripe customer

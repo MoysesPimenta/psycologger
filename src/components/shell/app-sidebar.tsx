@@ -35,7 +35,7 @@ const navItemsConfig = [
 ];
 
 const bottomNavItemsConfig = [
-  { href: "/app/billing", label: "nav.billing", icon: CreditCard },
+  { href: "/app/billing", label: "nav.subscription", icon: CreditCard },
   { href: "/app/audit", label: "nav.audit", icon: Shield },
   { href: "/app/settings", label: "nav.settings", icon: Settings },
 ];

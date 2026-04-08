@@ -12,11 +12,20 @@ export function ManageSubscriptionButton() {
     setLoading(true);
     try {
       const res = await fetchWithCsrf("/api/v1/billing/portal", { method: "POST" });
-      const data = await res.json();
-      if (data?.url) {
+      let data: { url?: string; error?: { message?: string } } = {};
+      try {
+        data = await res.json();
+      } catch {
+        /* non-JSON body */
+      }
+      if (res.ok && data?.url) {
         window.location.href = data.url;
       } else {
-        alert(data?.error?.message ?? "Erro ao abrir portal de assinatura");
+        const msg =
+          data?.error?.message ||
+          `Erro ao abrir portal de assinatura (HTTP ${res.status})`;
+        alert(msg);
+        console.error("[billing] portal failed", res.status, data);
       }
     } finally {
       setLoading(false);
@@ -54,11 +63,20 @@ export function UpgradeButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tier, currency }),
       });
-      const data = await res.json();
-      if (data?.url) {
+      let data: { url?: string; error?: { message?: string } } = {};
+      try {
+        data = await res.json();
+      } catch {
+        /* non-JSON body */
+      }
+      if (res.ok && data?.url) {
         window.location.href = data.url;
       } else {
-        alert(data?.error?.message ?? "Erro ao iniciar checkout");
+        const msg =
+          data?.error?.message ||
+          `Erro ao iniciar checkout (HTTP ${res.status})`;
+        alert(msg);
+        console.error("[billing] checkout failed", res.status, data);
       }
     } finally {
       setLoading(false);

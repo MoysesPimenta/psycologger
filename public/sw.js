@@ -1,16 +1,25 @@
-const CACHE_VERSION = "psycologger-v1";
+const CACHE_VERSION = "psycologger-v2";
+// Only precache assets we know exist. Next.js chunk filenames are hashed
+// and /favicon.ico is not present — cache.addAll() is all-or-nothing and
+// a single 404 aborts the whole install.
 const STATIC_ASSETS = [
   "/",
   "/offline.html",
-  "/favicon.ico",
-  "/_next/static/chunks/main.js",
 ];
 
-// Install: cache static assets + dashboard shell
+// Install: best-effort precache — never fail the install on a missing asset
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).then(() => self.skipWaiting());
+    caches.open(CACHE_VERSION).then(async (cache) => {
+      await Promise.all(
+        STATIC_ASSETS.map((url) =>
+          cache.add(url).catch((err) => {
+            // Swallow individual failures so one 404 doesn't poison the batch
+            console.warn("[sw] precache skip", url, err?.message);
+          })
+        )
+      );
+      return self.skipWaiting();
     })
   );
 });

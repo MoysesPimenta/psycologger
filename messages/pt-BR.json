@@ -8,7 +8,8 @@
     "journal": "Diário Pacientes",
     "settings": "Configurações",
     "audit": "Auditoria",
-    "billing": "Faturamento"
+    "billing": "Faturamento",
+    "subscription": "Assinatura"
   },
   "pageTitle": {
     "today": "Hoje",

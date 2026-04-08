@@ -60,10 +60,23 @@ export function priceIdFor(tier: PlanTier, currency: Currency): string | null {
 
   const envKey = `STRIPE_PRICE_${tier}_${currency}`;
   const priceId = process.env[envKey];
-  if (!priceId) {
-    throw new Error(`Missing env var: ${envKey}`);
+  return priceId && priceId.length > 0 ? priceId : null;
+}
+
+/**
+ * Throw a user-facing error if the price ID for a (tier, currency) is not
+ * configured. Use this at the checkout entry point so the API returns a
+ * clear message instead of a generic 500.
+ */
+export function requirePriceId(tier: PlanTier, currency: Currency): string {
+  const id = priceIdFor(tier, currency);
+  if (!id) {
+    throw new Error(
+      `Stripe price not configured for ${tier}/${currency}. ` +
+        `Set env var STRIPE_PRICE_${tier}_${currency} in Vercel.`
+    );
   }
-  return priceId;
+  return id;
 }
 
 /**

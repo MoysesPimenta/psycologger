@@ -3,12 +3,13 @@
     "today": "Hoy",
     "patients": "Pacientes",
     "calendar": "Calendario",
-    "financial": "Facturación",
+    "financial": "Finanzas",
     "reports": "Reportes",
     "journal": "Diario de Pacientes",
     "settings": "Configuración",
     "audit": "Registro de Auditoría",
-    "billing": "Facturación"
+    "billing": "Facturación",
+    "subscription": "Suscripción"
   },
   "pageTitle": {
     "today": "Hoy",
