@@ -40,6 +40,7 @@ interface InboundPayload {
     text?: string;
     html?: string;
     messageId?: string;
+    message_id?: string;
     headers?: Record<string, string>;
   };
 }
@@ -48,12 +49,24 @@ async function verifySvixSignature(
   payload: string,
   timestamp: string,
   signature: string,
-  secret: string
+  secret: string,
+  svixId: string
 ): Promise<boolean> {
   try {
     const { createHmac } = await import("crypto");
-    const signedContent = `${timestamp}.${payload}`;
-    const hmac = createHmac("sha256", secret);
+    // Svix secrets are prefixed with "whsec_" and the portion after is the
+    // base64-encoded HMAC key. HMAC-ing with the raw string will always fail
+    // signature verification against Svix's signer.
+    const base64Key = secret.startsWith("whsec_") ? secret.slice(6) : secret;
+    let keyBytes: Buffer;
+    try {
+      keyBytes = Buffer.from(base64Key, "base64");
+    } catch {
+      keyBytes = Buffer.from(base64Key, "utf8");
+    }
+    // Svix signs "<svix-id>.<svix-timestamp>.<payload>"
+    const signedContent = `${svixId}.${timestamp}.${payload}`;
+    const hmac = createHmac("sha256", keyBytes);
     hmac.update(signedContent);
     const computed = Buffer.from(hmac.digest()).toString("base64");
     // Svix signatures can come as "v1,<sig> v1,<sig2>" — compare any.
@@ -104,7 +117,7 @@ export async function POST(req: NextRequest) {
 
   const payload = await req.text();
 
-  const ok = await verifySvixSignature(payload, svixTimestamp, svixSignature, WEBHOOK_SECRET);
+  const ok = await verifySvixSignature(payload, svixTimestamp, svixSignature, WEBHOOK_SECRET, svixId);
   if (!ok) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
@@ -141,6 +154,7 @@ export async function POST(req: NextRequest) {
   const bodyWrapper = JSON.stringify({ v: 1, text, html });
   const messageId =
     event.data.messageId ||
+    event.data.message_id ||
     event.data.headers?.["message-id"] ||
     event.data.headers?.["Message-ID"] ||
     null;
