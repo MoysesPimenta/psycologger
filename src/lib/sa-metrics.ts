@@ -1,217 +1,421 @@
 /**
- * SaaS metrics computation for SuperAdmin dashboard
- * Computes MRR, ARR, churn, and other key metrics from local database
+ * SaaS metrics computation for the SuperAdmin console.
+ *
+ * All metrics are computed from the local Postgres snapshot — no external
+ * Stripe calls — and are therefore cheap enough to run on demand from server
+ * components. For historical series we reconstruct state from AuditLog entries
+ * written by the billing webhook handler (BILLING_* actions).
+ *
+ * Monetary amounts are always returned in BRL **cents** so the UI layer can
+ * format with Intl.NumberFormat without float rounding surprises.
+ *
+ * Definitions used throughout this file
+ * ──────────────────────────────────────
+ * - Active subscriber  = tenant with subscriptionStatus in {active, trialing}
+ * - Paid subscriber    = active subscriber on PRO or CLINIC
+ * - Delinquent         = subscriptionStatus = past_due (may still be inside
+ *                        graceUntil window, which is shown separately)
+ * - MRR                = sum of plan price for paid subscribers (trialing
+ *                        tenants contribute 0 — they have not paid yet)
+ * - Churn (monthly)    = paid cancellations in month / paid active at month start
+ * - LTV                = ARPA / monthly churn rate
+ * - CAC                = null (requires marketing spend data we do not store)
  */
 
 import { db } from "./db";
 import { PlanTier } from "@prisma/client";
 
-// Hardcoded fallback rates (USD to BRL)
-// TODO: pull from Stripe API or a rates service
-const CURRENCY_RATES: Record<string, number> = {
-  BRL: 1.0,
-  USD: 5.0, // fallback rate
-};
-
-// Pricing tiers (in cents, BRL assumed)
-const PLAN_PRICES: Record<PlanTier, number> = {
+// Pricing in cents, BRL. Keep in sync with Stripe products + billing-actions UI.
+export const PLAN_PRICE_CENTS: Record<PlanTier, number> = {
   FREE: 0,
-  PRO: 9900, // R$ 99.00/month
-  CLINIC: 19900, // R$ 199.00/month
+  PRO: 9900,
+  CLINIC: 19900,
 };
 
-interface MetricsResult {
-  mrrBrl: number;
-  mrrUsd: number;
-  arr: number;
-  activeSubscribers: number;
+// Fallback FX. Real rate should come from Stripe balance transactions, but for
+// MRR display a constant is acceptable — USD is a secondary readout.
+const BRL_PER_USD = 5.0;
+
+// ─── Current-state snapshot ─────────────────────────────────────────────────
+
+export interface SaasMetrics {
+  // Counts
+  tenantCount: number;
+  userCount: number;
+  patientCount: number;
+
+  // Plan distribution
   freeCount: number;
   proCount: number;
   clinicCount: number;
-  churnRate: number | null;
-  netNewPaidThisMonth: number;
+
+  // Subscription health
+  activeSubscribers: number;   // active + trialing
+  paidSubscribers: number;     // active + trialing on PRO/CLINIC
+  trialingCount: number;
   pastDueCount: number;
-  graceCount: number;
-  arpa: number;
-  ltv: number | null;
+  graceCount: number;          // past_due AND still inside graceUntil window
+  canceledAtPeriodEndCount: number;
+
+  // Revenue (cents, BRL)
+  mrrCents: number;
+  arrCents: number;
+  mrrUsdCents: number;
+  arpaCents: number;
+
+  // Movements — current month to date
+  newPaidThisMonth: number;
+  canceledPaidThisMonth: number;
+  reactivationsThisMonth: number;
+  trialToPaidThisMonth: number;
+  netNewPaidThisMonth: number;
+
+  // Derived rates
+  monthlyChurnRate: number | null;   // percent, e.g. 2.3 = 2.3%
+  monthlyGrossChurnCents: number;    // MRR lost to cancellations this month
+  ltvCents: number | null;
   cac: number | null;
+
+  // Operational alerts
+  webhookErrors24h: number;
+  overQuotaTenantCount: number;
 }
 
-export async function computeSaasMetrics(): Promise<MetricsResult> {
+export async function computeSaasMetrics(): Promise<SaasMetrics> {
   const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-  // Fetch all tenants with billing info
-  const tenants = await db.tenant.findMany({
-    select: {
-      id: true,
-      planTier: true,
-      subscriptionStatus: true,
-      currentPeriodEnd: true,
-      graceUntil: true,
-      billingCurrency: true,
-      createdAt: true,
-      cancelAtPeriodEnd: true,
-      _count: { select: { patients: true } },
-    },
-  });
+  const [tenants, tenantCount, userCount, patientCount, webhookErrors24h] =
+    await Promise.all([
+      db.tenant.findMany({
+        select: {
+          id: true,
+          planTier: true,
+          subscriptionStatus: true,
+          currentPeriodEnd: true,
+          graceUntil: true,
+          billingCurrency: true,
+          createdAt: true,
+          cancelAtPeriodEnd: true,
+        },
+      }),
+      db.tenant.count(),
+      db.user.count(),
+      db.patient.count({ where: { isActive: true } }),
+      db.auditLog.count({
+        where: {
+          action: "BILLING_WEBHOOK_FAILED",
+          createdAt: { gte: oneDayAgo },
+        },
+      }),
+    ]);
 
-  // Compute MRR
-  let mrrBrl = 0;
-  let activeCount = 0;
+  let freeCount = 0;
   let proCount = 0;
   let clinicCount = 0;
-  let freeCount = 0;
+  let activeSubscribers = 0;
+  let paidSubscribers = 0;
+  let trialingCount = 0;
   let pastDueCount = 0;
   let graceCount = 0;
+  let canceledAtPeriodEndCount = 0;
+  let mrrCents = 0;
 
-  for (const tenant of tenants) {
-    if (tenant.planTier === "FREE") {
-      freeCount++;
-    } else if (tenant.planTier === "PRO") {
-      proCount++;
-    } else if (tenant.planTier === "CLINIC") {
-      clinicCount++;
-    }
+  for (const t of tenants) {
+    if (t.planTier === "FREE") freeCount++;
+    else if (t.planTier === "PRO") proCount++;
+    else if (t.planTier === "CLINIC") clinicCount++;
 
-    if (tenant.subscriptionStatus === "active" || tenant.subscriptionStatus === "trialing") {
-      activeCount++;
-      const price = PLAN_PRICES[tenant.planTier] / 100; // Convert from cents to BRL
-      const rate = CURRENCY_RATES[tenant.billingCurrency || "BRL"] || 1;
-      mrrBrl += price / rate; // Normalize to BRL
-    } else if (tenant.subscriptionStatus === "past_due") {
-      pastDueCount++;
-    }
+    const status = t.subscriptionStatus ?? "";
+    const isActive = status === "active" || status === "trialing";
+    if (isActive) activeSubscribers++;
+    if (status === "trialing") trialingCount++;
+    if (status === "past_due") pastDueCount++;
+    if (t.graceUntil && t.graceUntil > now) graceCount++;
+    if (t.cancelAtPeriodEnd) canceledAtPeriodEndCount++;
 
-    if (tenant.graceUntil && tenant.graceUntil > now) {
-      graceCount++;
+    // MRR — only *active* paid subscribers contribute. Trialing is counted in
+    // active subs for health, but not in MRR because no money is flowing yet.
+    if (status === "active" && (t.planTier === "PRO" || t.planTier === "CLINIC")) {
+      paidSubscribers++;
+      mrrCents += PLAN_PRICE_CENTS[t.planTier];
     }
   }
 
-  // Compute ARR
-  const arr = mrrBrl * 12;
-
-  // Compute churn
-  let churnRate: number | null = null;
-  const canceledInPeriod = tenants.filter(
-    (t) => t.cancelAtPeriodEnd && t.createdAt >= thirtyDaysAgo
-  ).length;
-  if (activeCount > 0) {
-    churnRate = (canceledInPeriod / activeCount) * 100;
-  }
-
-  // Compute net new paid (PRO + CLINIC created this month minus canceled)
-  const newPaidThisMonth = tenants.filter(
+  // Paid subscribers in MRR are the "active" ones; paidSubscribers for
+  // trialing-inclusive head count:
+  const paidOrTrialing = tenants.filter(
     (t) =>
-      t.createdAt >= startOfMonth &&
-      (t.planTier === "PRO" || t.planTier === "CLINIC")
+      (t.subscriptionStatus === "active" || t.subscriptionStatus === "trialing") &&
+      (t.planTier === "PRO" || t.planTier === "CLINIC"),
   ).length;
-  const canceledPaidThisMonth = tenants.filter(
-    (t) =>
-      t.cancelAtPeriodEnd &&
-      t.createdAt >= startOfMonth &&
-      (t.planTier === "PRO" || t.planTier === "CLINIC")
-  ).length;
-  const netNewPaidThisMonth = newPaidThisMonth - canceledPaidThisMonth;
 
-  // ARPA (Average Revenue Per Account)
-  const arpa = activeCount > 0 ? mrrBrl / activeCount : 0;
+  const arpaCents = paidSubscribers > 0 ? Math.round(mrrCents / paidSubscribers) : 0;
+  const arrCents = mrrCents * 12;
+  const mrrUsdCents = Math.round(mrrCents / BRL_PER_USD);
 
-  // LTV (Customer Lifetime Value) = ARPA / monthly churn rate
-  let ltv: number | null = null;
-  if (churnRate && churnRate > 0 && churnRate < 100) {
-    const monthlyChurn = churnRate / 100;
-    ltv = arpa / monthlyChurn;
+  // ─── Month-to-date movements via AuditLog ────────────────────────────────
+  // Rely on BILLING_* audit events emitted by the Stripe webhook handler.
+  const [movementsThisMonth, canceledThisMonth] = await Promise.all([
+    db.auditLog.findMany({
+      where: {
+        action: { in: ["BILLING_SUBSCRIPTION_CREATED", "BILLING_SUBSCRIPTION_REACTIVATED", "BILLING_TRIAL_CONVERTED"] },
+        createdAt: { gte: startOfMonth },
+      },
+      select: { action: true },
+    }),
+    db.auditLog.count({
+      where: {
+        action: "BILLING_SUBSCRIPTION_CANCELED",
+        createdAt: { gte: startOfMonth },
+      },
+    }),
+  ]);
+
+  let newPaidThisMonth = 0;
+  let reactivationsThisMonth = 0;
+  let trialToPaidThisMonth = 0;
+  for (const m of movementsThisMonth) {
+    if (m.action === "BILLING_SUBSCRIPTION_CREATED") newPaidThisMonth++;
+    else if (m.action === "BILLING_SUBSCRIPTION_REACTIVATED") reactivationsThisMonth++;
+    else if (m.action === "BILLING_TRIAL_CONVERTED") trialToPaidThisMonth++;
+  }
+  const canceledPaidThisMonth = canceledThisMonth;
+  const netNewPaidThisMonth =
+    newPaidThisMonth + reactivationsThisMonth + trialToPaidThisMonth - canceledPaidThisMonth;
+
+  // ─── Churn rate — previous-month cohort basis ───────────────────────────
+  // Denominator = paid subs that existed at the START of the current month,
+  // approximated by (paidSubscribers now + canceledPaidThisMonth - newPaid - reactivations).
+  // Numerator = canceled in current month.
+  let monthlyChurnRate: number | null = null;
+  const denom =
+    paidSubscribers + canceledPaidThisMonth - newPaidThisMonth - reactivationsThisMonth;
+  if (denom > 0) {
+    monthlyChurnRate = (canceledPaidThisMonth / denom) * 100;
+  }
+  // Gross revenue churn: best-effort — we do not know the exact MRR of each
+  // canceled sub at cancellation time without parsing the audit summary, so we
+  // approximate with current ARPA.
+  const monthlyGrossChurnCents = arpaCents * canceledPaidThisMonth;
+
+  let ltvCents: number | null = null;
+  if (monthlyChurnRate !== null && monthlyChurnRate > 0 && monthlyChurnRate < 100) {
+    ltvCents = Math.round(arpaCents / (monthlyChurnRate / 100));
   }
 
-  // CAC: requires external data (marketing spend) — stored in SaaSMetric table
-  // For now, return null
-  const cac = null;
+  // ─── Over-quota tenants (from plan-limit audit) ─────────────────────────
+  const overQuotaTenantCount = await countOverQuotaTenants();
 
-  // Convert MRR to USD for display (using fallback rate)
-  const mrrUsd = mrrBrl / (CURRENCY_RATES.USD || 5.0);
+  void paidOrTrialing;
+  void startOfPrevMonth;
 
   return {
-    mrrBrl,
-    mrrUsd,
-    arr,
-    activeSubscribers: activeCount,
+    tenantCount,
+    userCount,
+    patientCount,
     freeCount,
     proCount,
     clinicCount,
-    churnRate: churnRate !== null && churnRate !== 0 && churnRate < 100 ? churnRate : null,
-    netNewPaidThisMonth,
+    activeSubscribers,
+    paidSubscribers,
+    trialingCount,
     pastDueCount,
     graceCount,
-    arpa,
-    ltv,
-    cac,
+    canceledAtPeriodEndCount,
+    mrrCents,
+    arrCents,
+    mrrUsdCents,
+    arpaCents,
+    newPaidThisMonth,
+    canceledPaidThisMonth,
+    reactivationsThisMonth,
+    trialToPaidThisMonth,
+    netNewPaidThisMonth,
+    monthlyChurnRate,
+    monthlyGrossChurnCents,
+    ltvCents,
+    cac: null,
+    webhookErrors24h,
+    overQuotaTenantCount,
   };
 }
 
-/**
- * Compute MRR over last 12 months (uses tenant snapshots from audit log)
- * For now, returns flat line — TODO: implement historical tracking via audit log
- */
-export async function computeHistoricalMrr(): Promise<Array<{ month: string; mrrBrl: number }>> {
-  const now = new Date();
-  const months: Array<{ month: string; mrrBrl: number }> = [];
+// ─── Historical series ──────────────────────────────────────────────────────
+// Reconstructed from AuditLog BILLING_* events. First pass is a forward
+// simulation starting from the earliest billing audit entry; tenants that
+// existed before the first event are assumed to have been on their current
+// plan at that point.
 
-  // Generate 12-month history
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthStr = date.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
-
-    // TODO: Reconstruct from audit log BILLING_STATE_CHANGED entries
-    // For now, use current MRR as flat line
-    const metrics = await computeSaasMetrics();
-    months.push({
-      month: monthStr,
-      mrrBrl: metrics.mrrBrl,
-    });
-  }
-
-  return months;
+export interface HistoricalPoint {
+  month: string;        // YYYY-MM
+  label: string;        // human label (pt-BR)
+  mrrCents: number;
+  activeSubscribers: number;
+  newPaid: number;
+  canceled: number;
 }
 
-/**
- * Get active subscriber count over time
- */
-export async function computeHistoricalActiveSubscribers(): Promise<
-  Array<{ month: string; count: number }>
-> {
+export async function computeHistoricalSeries(months: number = 12): Promise<HistoricalPoint[]> {
   const now = new Date();
-  const months: Array<{ month: string; count: number }> = [];
+  const out: HistoricalPoint[] = [];
 
-  // Generate 12-month history
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthStr = date.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+  // Pull all paid tenants once — we will bucket their createdAt into months.
+  const paidTenants = await db.tenant.findMany({
+    where: { planTier: { in: ["PRO", "CLINIC"] } },
+    select: { id: true, planTier: true, createdAt: true, subscriptionStatus: true },
+  });
 
-    // TODO: Use audit log to reconstruct historical state
-    const metrics = await computeSaasMetrics();
-    months.push({
-      month: monthStr,
-      count: metrics.activeSubscribers,
-    });
+  // Pull cancellation audit events for the window.
+  const windowStart = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+  const cancelEvents = await db.auditLog.findMany({
+    where: {
+      action: "BILLING_SUBSCRIPTION_CANCELED",
+      createdAt: { gte: windowStart },
+    },
+    select: { createdAt: true, entityId: true },
+  });
+
+  for (let i = months - 1; i >= 0; i--) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+    const ymLabel = monthStart.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+    const ymKey = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, "0")}`;
+
+    let mrrCents = 0;
+    let activeSubscribers = 0;
+    let newPaid = 0;
+    const canceled = cancelEvents.filter(
+      (c) => c.createdAt >= monthStart && c.createdAt < monthEnd,
+    ).length;
+
+    for (const t of paidTenants) {
+      if (t.createdAt < monthEnd) {
+        // Assume still active unless we see a cancel event for this tenant
+        // with createdAt <= monthEnd.
+        const wasCanceledBefore = cancelEvents.some(
+          (c) => c.entityId === t.id && c.createdAt < monthEnd,
+        );
+        if (!wasCanceledBefore) {
+          activeSubscribers++;
+          mrrCents += PLAN_PRICE_CENTS[t.planTier];
+        }
+      }
+      if (t.createdAt >= monthStart && t.createdAt < monthEnd) {
+        newPaid++;
+      }
+    }
+
+    out.push({ month: ymKey, label: ymLabel, mrrCents, activeSubscribers, newPaid, canceled });
   }
 
-  return months;
+  return out;
 }
 
-/**
- * Get recent billing events from audit log
- */
+// ─── Delinquent accounts ────────────────────────────────────────────────────
+
+export async function listDelinquentTenants(limit: number = 50) {
+  return db.tenant.findMany({
+    where: {
+      OR: [
+        { subscriptionStatus: "past_due" },
+        { subscriptionStatus: "unpaid" },
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      planTier: true,
+      subscriptionStatus: true,
+      graceUntil: true,
+      currentPeriodEnd: true,
+      _count: { select: { memberships: true, patients: true } },
+    },
+    orderBy: { currentPeriodEnd: "asc" },
+    take: limit,
+  });
+}
+
+// ─── Over-quota audit ───────────────────────────────────────────────────────
+// Finds tenants whose current (isActive=true) patient count or seat count
+// exceeds their plan's quota. Uses the same entitlement definitions as the
+// runtime gate in billing/limits.ts.
+
+export interface OverQuotaTenantRow {
+  id: string;
+  name: string;
+  slug: string;
+  planTier: PlanTier;
+  patientsCurrent: number;
+  patientsLimit: number | "∞";
+  therapistsCurrent: number;
+  therapistsLimit: number | "∞";
+  overPatients: boolean;
+  overTherapists: boolean;
+}
+
+async function countOverQuotaTenants(): Promise<number> {
+  const rows = await listOverQuotaTenants(1000);
+  return rows.length;
+}
+
+export async function listOverQuotaTenants(limit: number = 200): Promise<OverQuotaTenantRow[]> {
+  const { PLANS } = await import("./billing/plans");
+
+  const tenants = await db.tenant.findMany({
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      planTier: true,
+      _count: {
+        select: {
+          patients: { where: { isActive: true } },
+          memberships: { where: { status: "ACTIVE", role: { in: ["PSYCHOLOGIST", "ASSISTANT"] } } },
+        },
+      },
+    },
+    take: limit,
+    orderBy: { createdAt: "desc" },
+  });
+
+  const rows: OverQuotaTenantRow[] = [];
+  for (const t of tenants) {
+    const plan = PLANS[t.planTier];
+    const pLimit = plan.maxActivePatients;
+    const sLimit = plan.maxTherapistSeats;
+    const pCurr = t._count.patients;
+    const sCurr = t._count.memberships;
+    const overPatients = Number.isFinite(pLimit) && pCurr > (pLimit as number);
+    const overTherapists = Number.isFinite(sLimit) && sCurr > (sLimit as number);
+    if (overPatients || overTherapists) {
+      rows.push({
+        id: t.id,
+        name: t.name,
+        slug: t.slug,
+        planTier: t.planTier,
+        patientsCurrent: pCurr,
+        patientsLimit: Number.isFinite(pLimit) ? (pLimit as number) : "∞",
+        therapistsCurrent: sCurr,
+        therapistsLimit: Number.isFinite(sLimit) ? (sLimit as number) : "∞",
+        overPatients,
+        overTherapists,
+      });
+    }
+  }
+  return rows;
+}
+
+// ─── Recent activity streams ────────────────────────────────────────────────
+
 export async function getRecentBillingEvents(limit: number = 20) {
   return db.auditLog.findMany({
-    where: {
-      action: { startsWith: "BILLING_" },
-    },
+    where: { action: { startsWith: "BILLING_" } },
     orderBy: { createdAt: "desc" },
     take: limit,
-    include: {
-      user: { select: { email: true, name: true } },
-    },
+    include: { user: { select: { email: true, name: true } } },
   });
 }

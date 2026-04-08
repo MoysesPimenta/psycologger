@@ -1,180 +1,231 @@
 import { requireSuperAdmin } from "@/lib/auth";
-import { db } from "@/lib/db";
 import Link from "next/link";
-import { ArrowLeft, TrendingUp } from "lucide-react";
-import { computeSaasMetrics, getRecentBillingEvents, computeHistoricalMrr, computeHistoricalActiveSubscribers } from "@/lib/sa-metrics";
+import { TrendingUp, AlertTriangle } from "lucide-react";
+import {
+  computeSaasMetrics,
+  getRecentBillingEvents,
+  computeHistoricalSeries,
+  listDelinquentTenants,
+} from "@/lib/sa-metrics";
 
 export const metadata = { title: "Métricas — SuperAdmin" };
 export const dynamic = "force-dynamic";
 
+const fmtBrlCents = (cents: number) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+
+const fmtUsdCents = (cents: number) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+
 export default async function SAMetricsPage() {
   await requireSuperAdmin();
 
-  const [metrics, recentBilling, mrrHistory, subscriberHistory] = await Promise.all([
+  const [metrics, recentBilling, series, delinquent] = await Promise.all([
     computeSaasMetrics(),
     getRecentBillingEvents(20),
-    computeHistoricalMrr(),
-    computeHistoricalActiveSubscribers(),
+    computeHistoricalSeries(12),
+    listDelinquentTenants(25),
   ]);
 
-  const formatCurrency = (cents: number, currency: string = "BRL") => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(cents / 100);
-  };
+  // Simple sparkline: pick MRR series scaled to 100px height.
+  const maxMrr = Math.max(1, ...series.map((p) => p.mrrCents));
+  const sparkPoints = series
+    .map((p, i) => {
+      const x = (i / Math.max(1, series.length - 1)) * 600;
+      const y = 100 - (p.mrrCents / maxMrr) * 100;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Link href="/sa/dashboard" className="text-gray-400 hover:text-white">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold">Métricas SaaS</h1>
-            <p className="text-gray-400 text-sm mt-1">Performance e receita da plataforma</p>
-          </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold">Métricas SaaS</h1>
+        <p className="text-gray-400 text-sm mt-1">
+          Receita, retenção e saúde da plataforma — atualizado a cada request.
+        </p>
+      </div>
+
+      {/* Top KPI row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Kpi label="MRR" value={fmtBrlCents(metrics.mrrCents)} footer={`≈ ${fmtUsdCents(metrics.mrrUsdCents)}`} />
+        <Kpi label="ARR" value={fmtBrlCents(metrics.arrCents)} footer="12 meses" />
+        <Kpi label="Assinantes pagos" value={String(metrics.paidSubscribers)} footer={`${metrics.activeSubscribers} incl. trials`} />
+        <Kpi label="ARPA" value={fmtBrlCents(metrics.arpaCents)} footer="por conta paga" />
+      </div>
+
+      {/* Plan mix row */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Kpi label="FREE" value={String(metrics.freeCount)} />
+        <Kpi label="PRO" value={String(metrics.proCount)} />
+        <Kpi label="CLINIC" value={String(metrics.clinicCount)} />
+        <Kpi label="Trialing" value={String(metrics.trialingCount)} />
+        <Kpi
+          label="Past-due / Grace"
+          value={`${metrics.pastDueCount} / ${metrics.graceCount}`}
+          tone={metrics.pastDueCount > 0 ? "warn" : "default"}
+        />
+      </div>
+
+      {/* Retention row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <Kpi
+          label="Churn mensal"
+          value={metrics.monthlyChurnRate !== null ? `${metrics.monthlyChurnRate.toFixed(1)}%` : "—"}
+          footer={metrics.monthlyChurnRate === null ? "sem base" : `${metrics.canceledPaidThisMonth} canceladas`}
+        />
+        <Kpi
+          label="Perda bruta (mês)"
+          value={fmtBrlCents(metrics.monthlyGrossChurnCents)}
+          footer="≈ ARPA × canceladas"
+        />
+        <Kpi
+          label="LTV"
+          value={metrics.ltvCents !== null ? fmtBrlCents(metrics.ltvCents) : "—"}
+          footer="ARPA / churn"
+        />
+        <Kpi
+          label="Novos (mês)"
+          value={String(metrics.newPaidThisMonth + metrics.reactivationsThisMonth + metrics.trialToPaidThisMonth)}
+          footer={`${metrics.newPaidThisMonth} new + ${metrics.reactivationsThisMonth} react + ${metrics.trialToPaidThisMonth} trial→paid`}
+        />
+        <Kpi
+          label="Net-new pagas"
+          value={String(metrics.netNewPaidThisMonth)}
+          footer="este mês"
+          tone={metrics.netNewPaidThisMonth < 0 ? "warn" : "default"}
+        />
+      </div>
+
+      {/* MRR sparkline */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-brand-400" />
+            MRR — últimos 12 meses
+          </h2>
+          <span className="text-xs text-gray-500">reconstruído do audit log</span>
         </div>
-
-        {/* Key metrics cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* MRR */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <p className="text-gray-400 text-sm">MRR</p>
-            <p className="text-3xl font-bold mt-2">{formatCurrency(metrics.mrrBrl * 100)}</p>
-            <p className="text-xs text-gray-500 mt-1">≈ ${formatCurrency(metrics.mrrUsd * 100)}</p>
-          </div>
-
-          {/* ARR */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <p className="text-gray-400 text-sm">ARR</p>
-            <p className="text-3xl font-bold mt-2">{formatCurrency(metrics.arr * 100)}</p>
-            <p className="text-xs text-gray-500 mt-1">12 meses</p>
-          </div>
-
-          {/* Active subscribers */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <p className="text-gray-400 text-sm">Assinantes ativos</p>
-            <p className="text-3xl font-bold mt-2">{metrics.activeSubscribers}</p>
-            <p className="text-xs text-gray-500 mt-1">ACTIVE + TRIALING</p>
-          </div>
-
-          {/* ARPA */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <p className="text-gray-400 text-sm">ARPA</p>
-            <p className="text-3xl font-bold mt-2">{formatCurrency(metrics.arpa * 100)}</p>
-            <p className="text-xs text-gray-500 mt-1">por conta</p>
-          </div>
-        </div>
-
-        {/* Secondary metrics grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Plan distribution */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <p className="text-gray-400 text-sm">Clínicas FREE</p>
-            <p className="text-2xl font-bold mt-2">{metrics.freeCount}</p>
-          </div>
-
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <p className="text-gray-400 text-sm">Clínicas PRO</p>
-            <p className="text-2xl font-bold mt-2">{metrics.proCount}</p>
-          </div>
-
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <p className="text-gray-400 text-sm">Clínicas CLINIC</p>
-            <p className="text-2xl font-bold mt-2">{metrics.clinicCount}</p>
-          </div>
-
-          <div className={`bg-gray-900 border ${metrics.pastDueCount > 0 ? "border-yellow-600" : "border-gray-800"} rounded-xl p-6`}>
-            <p className="text-gray-400 text-sm">Past-due / Grace</p>
-            <p className={`text-2xl font-bold mt-2 ${metrics.pastDueCount > 0 ? "text-yellow-400" : ""}`}>
-              {metrics.pastDueCount} / {metrics.graceCount}
-            </p>
-          </div>
-        </div>
-
-        {/* Churn & LTV */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <p className="text-gray-400 text-sm">Churn (30 dias)</p>
-            <p className="text-3xl font-bold mt-2">
-              {metrics.churnRate !== null ? `${metrics.churnRate.toFixed(1)}%` : "—"}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              {metrics.churnRate === null ? "Dados insuficientes" : "Canceladas neste mês"}
-            </p>
-          </div>
-
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <p className="text-gray-400 text-sm">LTV</p>
-            <p className="text-3xl font-bold mt-2">
-              {metrics.ltv !== null ? formatCurrency(metrics.ltv * 100) : "—"}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              {metrics.ltv === null ? "Churn insuficiente" : "Valor da vida útil"}
-            </p>
-          </div>
-
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <p className="text-gray-400 text-sm">Novo pago este mês</p>
-            <p className="text-3xl font-bold mt-2">{metrics.netNewPaidThisMonth}</p>
-            <p className="text-xs text-gray-500 mt-1">PRO + CLINIC líquido</p>
-          </div>
-        </div>
-
-        {/* Recent billing activity */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl">
-          <div className="flex items-center justify-between p-6 border-b border-gray-800">
-            <h2 className="font-semibold flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-brand-400" />
-              Atividade de billing (últimos 20)
-            </h2>
-          </div>
-          <div className="divide-y divide-gray-800 max-h-96 overflow-y-auto">
-            {recentBilling.length > 0 ? (
-              recentBilling.map((event) => (
-                <div key={event.id} className="p-4 hover:bg-gray-800/50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium text-sm">{event.action.replace("BILLING_", "")}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(event.createdAt).toLocaleString("pt-BR")}
-                      </p>
-                      {event.user && (
-                        <p className="text-xs text-gray-500 mt-1">{event.user.email}</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      {event.summaryJson && (
-                        <details className="text-xs text-gray-500 cursor-pointer group">
-                          <summary className="group-open:hidden">Detalhes</summary>
-                          <pre className="text-xs bg-gray-950 p-2 rounded mt-2 overflow-auto max-w-md">
-                            {JSON.stringify(event.summaryJson, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="p-6 text-center text-gray-500 text-sm">Nenhuma atividade de billing</p>
-            )}
-          </div>
-        </div>
-
-        {/* TODO: Chart placeholders */}
-        <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-6">
-          <p className="text-blue-400 text-sm">
-            <span className="font-semibold">TODO:</span> Gráficos de MRR e assinantes ativos (últimos 12 meses).
-            Implementar usando dados históricos do audit log (BILLING_STATE_CHANGED).
-          </p>
+        <svg viewBox="0 0 600 110" className="w-full h-32">
+          <polyline
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-brand-400"
+            points={sparkPoints}
+          />
+        </svg>
+        <div className="mt-4 grid grid-cols-12 gap-1 text-[10px] text-gray-500">
+          {series.map((p) => (
+            <div key={p.month} className="text-center">
+              <div>{p.label}</div>
+              <div className="text-gray-400">{fmtBrlCents(p.mrrCents)}</div>
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* Delinquent */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl">
+        <div className="p-5 border-b border-gray-800 flex items-center justify-between">
+          <h2 className="font-semibold flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-yellow-400" />
+            Inadimplentes ({delinquent.length})
+          </h2>
+        </div>
+        {delinquent.length === 0 ? (
+          <p className="p-6 text-center text-sm text-gray-500">Nenhuma conta inadimplente 🎉</p>
+        ) : (
+          <div className="divide-y divide-gray-800">
+            {delinquent.map((t) => (
+              <Link
+                key={t.id}
+                href={`/sa/tenants/${t.id}`}
+                className="flex items-center justify-between p-4 hover:bg-gray-800/50 text-sm"
+              >
+                <div>
+                  <p className="font-medium">{t.name}</p>
+                  <p className="text-xs text-gray-400">
+                    {t.slug} · {t.planTier} · {t.subscriptionStatus}
+                  </p>
+                </div>
+                <div className="text-right text-xs text-gray-400">
+                  {t.graceUntil && <div>Grace até {new Date(t.graceUntil).toLocaleDateString("pt-BR")}</div>}
+                  <div>
+                    {t._count.memberships} membros · {t._count.patients} pacientes
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Recent billing events */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl">
+        <div className="p-5 border-b border-gray-800">
+          <h2 className="font-semibold">Atividade de billing (últimos 20)</h2>
+        </div>
+        <div className="divide-y divide-gray-800 max-h-96 overflow-y-auto">
+          {recentBilling.length === 0 ? (
+            <p className="p-6 text-center text-gray-500 text-sm">Sem eventos recentes</p>
+          ) : (
+            recentBilling.map((event) => (
+              <div key={event.id} className="p-4 text-sm">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-medium">{event.action.replace("BILLING_", "")}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {new Date(event.createdAt).toLocaleString("pt-BR")}
+                      {event.user?.email ? ` · ${event.user.email}` : ""}
+                    </p>
+                  </div>
+                  {event.summaryJson ? (
+                    <details className="text-xs text-gray-500">
+                      <summary className="cursor-pointer">json</summary>
+                      <pre className="bg-gray-950 p-2 rounded mt-1 overflow-auto max-w-md">
+                        {JSON.stringify(event.summaryJson, null, 2)}
+                      </pre>
+                    </details>
+                  ) : null}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Kpi({
+  label,
+  value,
+  footer,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  footer?: string;
+  tone?: "default" | "warn";
+}) {
+  const borderClass = tone === "warn" ? "border-yellow-600" : "border-gray-800";
+  const valueClass = tone === "warn" ? "text-yellow-400" : "";
+  return (
+    <div className={`bg-gray-900 border ${borderClass} rounded-xl p-5`}>
+      <p className="text-gray-400 text-xs uppercase tracking-wide">{label}</p>
+      <p className={`text-2xl font-bold mt-2 ${valueClass}`}>{value}</p>
+      {footer && <p className="text-xs text-gray-500 mt-1">{footer}</p>}
     </div>
   );
 }

@@ -28,7 +28,7 @@ export default function SALoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 bg-gray-950 flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white">SuperAdmin</h1>

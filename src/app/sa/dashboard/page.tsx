@@ -65,7 +65,7 @@ export default async function SADashboardPage() {
             </div>
             <div>
               <p className="text-gray-400">MRR</p>
-              <p className="text-2xl font-bold mt-1">{formatCurrency(metrics.mrrBrl * 100)}</p>
+              <p className="text-2xl font-bold mt-1">{formatCurrency(metrics.mrrCents)}</p>
             </div>
             <div>
               <p className="text-gray-400">Assinantes ativos</p>
