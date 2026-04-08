@@ -84,6 +84,11 @@ export function validateCsrf(req: NextRequest): boolean {
   // Skip cron endpoints (protected by Bearer token / CRON_SECRET)
   if (pathname.startsWith("/api/v1/cron/")) return true;
 
+  // Skip webhook endpoints (protected by signature verification themselves:
+  // Stripe uses its signing secret, Resend uses Svix headers). These are
+  // called by third parties that cannot carry our CSRF cookie.
+  if (pathname.startsWith("/api/v1/webhooks/")) return true;
+
   // Skip portal auth endpoints that have no session yet (login, activate, magic-link).
   // IMPORTANT: do NOT bypass /api/v1/portal/auth/logout — it is state-changing and
   // happens when a portal session already exists, so a CSRF token is available.

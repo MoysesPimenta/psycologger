@@ -43,6 +43,61 @@ export default async function SASupportPage({
     }
   }
 
+  const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
+
+  // Clinic filter — resolve Tenant.name/slug contains → tenantId list
+  const clinicQ = ((searchParams.clinicQ as string) || "").trim();
+  if (clinicQ) {
+    if (!SAFE_TEXT_RE.test(clinicQ)) {
+      warning = (warning ? warning + " " : "") + "Clínica inválida.";
+    } else {
+      try {
+        const tenants = await db.tenant.findMany({
+          where: {
+            OR: [
+              { name: { contains: clinicQ, mode: "insensitive" } },
+              { slug: { contains: clinicQ, mode: "insensitive" } },
+            ],
+          },
+          select: { id: true },
+          take: 50,
+        });
+        const ids = tenants.map((t) => t.id);
+        if (where.tenantId && typeof where.tenantId === "string") {
+          where.tenantId = ids.includes(where.tenantId) ? where.tenantId : ZERO_UUID;
+        } else {
+          where.tenantId = { in: ids.length > 0 ? ids : [ZERO_UUID] };
+        }
+      } catch {
+        warning = (warning ? warning + " " : "") + "Clínica inválida.";
+      }
+    }
+  }
+
+  // User filter — resolve User.email/name contains → userId list
+  const userQ = ((searchParams.userQ as string) || "").trim();
+  if (userQ) {
+    if (!SAFE_TEXT_RE.test(userQ)) {
+      warning = (warning ? warning + " " : "") + "Usuário inválido.";
+    } else {
+      try {
+        const users = await db.user.findMany({
+          where: {
+            OR: [
+              { email: { contains: userQ, mode: "insensitive" } },
+              { name: { contains: userQ, mode: "insensitive" } },
+            ],
+          },
+          select: { id: true },
+          take: 50,
+        });
+        where.userId = { in: users.length > 0 ? users.map((u) => u.id) : [ZERO_UUID] };
+      } catch {
+        warning = (warning ? warning + " " : "") + "Usuário inválido.";
+      }
+    }
+  }
+
   const since = (searchParams.since as string) || "";
   const until = (searchParams.until as string) || "";
   if (since || until) {
@@ -119,6 +174,8 @@ export default async function SASupportPage({
             ],
           },
           { name: "tenantId", kind: "text", placeholder: "Tenant ID (UUID)" },
+          { name: "clinicQ", kind: "text", placeholder: "Clínica — nome ou slug" },
+          { name: "userQ", kind: "text", placeholder: "Usuário — email ou nome" },
           { name: "fromEmail", kind: "text", placeholder: "Email do remetente" },
           { name: "since", kind: "date" },
           { name: "until", kind: "date" },

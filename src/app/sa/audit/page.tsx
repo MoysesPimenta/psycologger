@@ -126,6 +126,7 @@ export default async function SAAuditPage({
       skip,
       include: {
         user: { select: { email: true, name: true } },
+        tenant: { select: { id: true, name: true, slug: true } },
       },
     }),
     db.auditLog.count({ where }),
@@ -171,8 +172,9 @@ export default async function SAAuditPage({
               <tr className="border-b border-gray-800 text-left text-xs text-gray-400">
                 <th className="p-4">Timestamp</th>
                 <th className="p-4">Ação</th>
+                <th className="p-4">Clínica</th>
                 <th className="p-4">Usuário</th>
-                <th className="p-4">Tenant</th>
+                <th className="p-4">Tenant ID</th>
                 <th className="p-4">Resumo</th>
               </tr>
             </thead>
@@ -184,6 +186,18 @@ export default async function SAAuditPage({
                   </td>
                   <td className="p-4">
                     <span className="px-2 py-1 rounded bg-gray-800 text-xs">{log.action}</span>
+                  </td>
+                  <td className="p-4 text-xs">
+                    {log.tenant ? (
+                      <Link
+                        href={`/sa/tenants/${log.tenant.id}`}
+                        className="text-brand-400 hover:underline"
+                      >
+                        {log.tenant.name}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-500">—</span>
+                    )}
                   </td>
                   <td className="p-4 text-sm">
                     {log.user ? (
