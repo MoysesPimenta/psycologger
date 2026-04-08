@@ -86,8 +86,20 @@ function extractFromEmail(from: InboundPayload["data"] extends infer D ? (D exte
 } {
   if (!from) return { email: "", name: null };
   if (typeof from === "string") {
-    const m = from.match(/(?:"?([^"<]+)"?\s*)?<?([^<>\s]+@[^<>\s]+)>?/);
-    return { email: (m?.[2] ?? "").trim().toLowerCase(), name: m?.[1]?.trim() || null };
+    const raw = from.trim();
+    // Only try to split "Name <email@x>" if angle brackets are actually present.
+    // Without this guard a greedy name capture mangles plain addresses like
+    // "moyses@konektera.com" into name="moyse" + email="s@konektera.com".
+    const angle = raw.match(/^\s*"?([^"<]*?)"?\s*<([^<>\s]+@[^<>\s]+)>\s*$/);
+    if (angle) {
+      return {
+        email: angle[2].trim().toLowerCase(),
+        name: angle[1]?.trim() || null,
+      };
+    }
+    // Plain address — strip any stray quotes/whitespace and lowercase.
+    const plain = raw.replace(/^["'\s]+|["'\s]+$/g, "");
+    return { email: plain.toLowerCase(), name: null };
   }
   return { email: (from.email ?? "").trim().toLowerCase(), name: from.name?.trim() || null };
 }
