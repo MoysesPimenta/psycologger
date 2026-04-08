@@ -410,7 +410,15 @@
     "upgradeClinicPlan": "Reactivate with Clinic Plan",
     "viewPlans": "View Plans",
     "needHelp": "Need help?",
-    "contactSupport": "Contact support"
+    "contactSupport": "Contact support",
+    "planFreeName": "Free Plan",
+    "planProName": "Pro Plan",
+    "planClinicName": "Clinic Plan",
+    "planFreeDesc": "Up to 3 active patients, 1 therapist",
+    "planProDesc": "Up to 25 active patients, 1 therapist",
+    "planClinicDesc": "Unlimited patients, up to 5 therapists",
+    "upgradeToPro": "Upgrade to Pro",
+    "upgradeToClinic": "Upgrade to Clinic"
   },
   "journal": {
     "title": "Patient Journal",

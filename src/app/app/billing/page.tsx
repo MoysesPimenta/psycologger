@@ -11,15 +11,29 @@ import { db } from "@/lib/db";
 import { getPlan } from "@/lib/billing/plans";
 import { getBillingState } from "@/lib/billing/subscription-status";
 import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS, es } from "date-fns/locale";
 import Link from "next/link";
 import { ManageSubscriptionButton, UpgradeButton } from "@/components/billing/billing-actions";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
+
+const PLAN_NAME_KEY = {
+  FREE: "planFreeName",
+  PRO: "planProName",
+  CLINIC: "planClinicName",
+} as const;
+
+const PLAN_DESC_KEY = {
+  FREE: "planFreeDesc",
+  PRO: "planProDesc",
+  CLINIC: "planClinicDesc",
+} as const;
 
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
   const t = await getTranslations("billing");
+  const locale = await getLocale();
+  const dateFnsLocale = locale === "en" ? enUS : locale === "es" ? es : ptBR;
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
@@ -73,8 +87,8 @@ export default async function BillingPage() {
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold">{plan.name}</h2>
-            <p className="text-gray-600 mt-1">{plan.description}</p>
+            <h2 className="text-2xl font-bold">{t(PLAN_NAME_KEY[tenant.planTier])}</h2>
+            <p className="text-gray-600 mt-1">{t(PLAN_DESC_KEY[tenant.planTier])}</p>
           </div>
           <span className={`px-3 py-1 rounded-full text-sm font-semibold ${stateBadgeColor}`}>
             {stateLabel}
@@ -102,7 +116,7 @@ export default async function BillingPage() {
             <div>
               <p className="text-sm text-gray-600">{t("billingPeriod")}</p>
               <p className="text-sm">
-                {t("nextRenewal")} {new Date(tenant.currentPeriodEnd).toLocaleDateString("pt-BR")}
+                {t("nextRenewal")} {new Date(tenant.currentPeriodEnd).toLocaleDateString(locale)}
               </p>
             </div>
           )}
@@ -112,7 +126,7 @@ export default async function BillingPage() {
               <p className="text-sm text-yellow-800">
                 {t("graceExpires")}{" "}
                 <strong>
-                  {formatDistanceToNow(new Date(tenant.graceUntil), { locale: ptBR })}
+                  {formatDistanceToNow(new Date(tenant.graceUntil), { locale: dateFnsLocale })}
                 </strong>
               </p>
             </div>
@@ -129,12 +143,12 @@ export default async function BillingPage() {
             <div className="flex gap-3 w-full">
               {tenant.planTier !== "PRO" && (
                 <div className="flex-1">
-                  <UpgradeButton tier="PRO" label="Upgrade para Pro" color="blue" />
+                  <UpgradeButton tier="PRO" label={t("upgradeToPro")} color="blue" />
                 </div>
               )}
               {tenant.planTier !== "CLINIC" && (
                 <div className="flex-1">
-                  <UpgradeButton tier="CLINIC" label="Upgrade para Clínica" color="emerald" />
+                  <UpgradeButton tier="CLINIC" label={t("upgradeToClinic")} color="emerald" />
                 </div>
               )}
             </div>
@@ -146,8 +160,8 @@ export default async function BillingPage() {
       <div>
         <h3 className="text-lg font-semibold mb-4">{t("comparePlans")}</h3>
         <div className="grid grid-cols-3 gap-4">
-          {["FREE", "PRO", "CLINIC"].map((tier) => {
-            const p = getPlan(tier as any);
+          {(["FREE", "PRO", "CLINIC"] as const).map((tier) => {
+            const p = getPlan(tier);
             const isCurrent = tenant.planTier === tier;
             return (
               <div
@@ -158,8 +172,8 @@ export default async function BillingPage() {
                     : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
               >
-                <h4 className="font-semibold mb-2">{p.name}</h4>
-                <p className="text-xs text-gray-600 mb-3">{p.description}</p>
+                <h4 className="font-semibold mb-2">{t(PLAN_NAME_KEY[tier])}</h4>
+                <p className="text-xs text-gray-600 mb-3">{t(PLAN_DESC_KEY[tier])}</p>
                 <div className="space-y-2 text-sm">
                   <div>
                     <span className="text-gray-600">{t("patients")} </span>
