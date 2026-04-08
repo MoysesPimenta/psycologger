@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useTranslations, useLocale } from "next-intl";
 import { ChevronLeft, ChevronRight, Plus, Clock, User, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,8 @@ export function CalendarClient({
   userId: string;
   role: string;
 }) {
+  const t = useTranslations("calendar");
+  const locale = useLocale();
   const [view, setView] = useState<ViewMode>("week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -114,7 +117,7 @@ export function CalendarClient({
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
-            Hoje
+            {t("today")}
           </Button>
         </div>
 
@@ -123,8 +126,8 @@ export function CalendarClient({
           {view === "week" && (
             <button
               onClick={() => setShow24h((v) => !v)}
-              aria-label={show24h ? "Show business hours (7am–7pm)" : "Show 24 hours"}
-              title={show24h ? "Mostrar horário comercial (7h–19h)" : "Mostrar 24 horas"}
+              aria-label={show24h ? t("businessHours") : t("allDay")}
+              title={show24h ? t("businessHours") : t("allDay")}
               className={cn(
                 "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 show24h
@@ -147,13 +150,13 @@ export function CalendarClient({
                   view === v ? "bg-brand-600 text-white" : "text-gray-600 hover:bg-gray-50"
                 )}
               >
-                {v === "week" ? "Semana" : "Mês"}
+                {v === "week" ? t("week") : t("month")}
               </button>
             ))}
           </div>
           <Button size="sm" asChild className="w-full sm:w-auto">
             <Link href="/app/appointments/new">
-              <Plus className="h-4 w-4" /> Nova consulta
+              <Plus className="h-4 w-4" /> {t("newAppointment")}
             </Link>
           </Button>
         </div>

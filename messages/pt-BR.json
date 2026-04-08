@@ -91,7 +91,18 @@
     "other": "Outro",
     "new": "Nova cobrança",
     "title": "Cobranças",
-    "manage": "Gerencie cobranças e pagamentos"
+    "manage": "Gerencie cobranças e pagamentos",
+    "statusPending": "Pendente",
+    "statusPending_plural": "Pendentes",
+    "statusPaid": "Pago",
+    "statusOverdue": "Vencido",
+    "statusPartiallyPaid": "Pago parcialmente",
+    "received": "Recebido",
+    "created": "Cobrança criada",
+    "overdue": "Cobrança em atraso",
+    "defaultCharge": "Cobrança padrão",
+    "downloading": "Baixando...",
+    "exportCSV": "Exportar CSV"
   },
   "patients": {
     "headerSubtitle": "Gerencie seus pacientes e prontuários",
@@ -131,10 +142,24 @@
     "exportDesc": "Baixe todos os dados da clínica",
     "clinic_title": "Configurações da Clínica",
     "users_title": "Usuários & Papéis",
-    "integrations_title": "Integrações"
+    "integrations_title": "Integrações",
+    "appointmentTypesTitle": "Tipos de Consulta",
+    "appointmentTypesSubtitle": "Configure os tipos, modalidades, durações e preços padrão",
+    "profileTitle": "Meu Perfil",
+    "profileSubtitle": "Atualize seu nome, telefone e informações de contato",
+    "exportTitle": "Exportar Dados",
+    "exportSubtitle": "Baixe os dados da sua clínica em formato CSV",
+    "remindersTitle": "Lembretes",
+    "remindersSubtitle": "Configure os emails automáticos enviados aos pacientes"
   },
   "calendar": {
-    "headerSubtitle": "Gerencie consultas e horários"
+    "headerSubtitle": "Gerencie consultas e horários",
+    "today": "Hoje",
+    "week": "Semana",
+    "month": "Mês",
+    "businessHours": "Mostrar horário comercial (7h–19h)",
+    "allDay": "Mostrar 24 horas",
+    "newAppointment": "Nova consulta"
   },
   "financial": {
     "currentMonth": "Mês atual",
@@ -153,12 +178,73 @@
     "newChargeSubtitle": "Registre uma nova cobrança para um paciente"
   },
   "reports": {
-    "headerSubtitle": "Análise financeira e exportação"
+    "headerSubtitle": "Análise financeira e exportação",
+    "tabDashboard": "Resumo mensal",
+    "tabCashflow": "Fluxo de caixa",
+    "tabPrevisibility": "Previsibilidade",
+    "tabExport": "Exportar",
+    "financialSectionTitle": "Financeiro",
+    "chargedLabel": "Cobrado (competência)",
+    "chargesCount": "cobranças",
+    "receivedLabel": "Recebido (caixa)",
+    "receivedSub": "Pagamentos no mês",
+    "pendingLabel": "Pendente",
+    "pendingSub": "A receber",
+    "overdueLabel": "Inadimplente",
+    "overdueSub": "Vencido",
+    "newPatientsLabel": "Novos pacientes",
+    "newPatientsSub": "Este mês",
+    "cashBasisLabel": "Regime de caixa",
+    "cashBasisDesc": "Dinheiro efetivamente recebido em",
+    "accrualBasisLabel": "Regime de competência",
+    "accrualBasisDesc": "Cobranças com vencimento em",
+    "appointmentsSectionTitle": "Consultas",
+    "appointmentsTotal": "Total",
+    "appointmentsCompleted": "Realizadas",
+    "appointmentsCanceled": "Canceladas",
+    "appointmentsNoShow": "Faltas",
+    "revenueByProvider": "Receita por profissional",
+    "paidSessions": "sessões pagas",
+    "pendingAmount": "pendente",
+    "paymentMethods": "Forma de pagamento",
+    "last6Months": "Últimos 6 meses",
+    "cashflowCash": "Caixa",
+    "cashflowAccrual": "Comp.",
+    "cashflowMonth": "Mês",
+    "cashflowSessions": "Sessões",
+    "cashflowDifference": "Diferença",
+    "cashflowTotal": "Total",
+    "cashflowLegendCash": "Caixa — dinheiro recebido no mês",
+    "cashflowLegendAccrual": "Competência — cobranças com vencimento no mês",
+    "overdueCharges": "Cobranças vencidas",
+    "overdueChargesCount": "cobrança",
+    "overdueChargesCountPlural": "cobranças",
+    "overdueChargesNote": "em atraso",
+    "overdueAmount": "a receber",
+    "previsibilityTitle": "Previsão de recebimento — próximos 3 meses",
+    "previsibilityPending": "cobranças pendentes",
+    "previsibilityNote": "Baseado nas cobranças com status pendente, parcial ou vencido. Não inclui consultas futuras sem cobrança registrada.",
+    "exportSectionTitle": "Exportar dados",
+    "exportMonthlyLabel": "Relatório mensal de cobranças",
+    "exportMonthlyDesc": "Cobranças de",
+    "exportAllChargesLabel": "Cobranças (histórico completo)",
+    "exportAllChargesDesc": "Todas as cobranças e pagamentos",
+    "exportPatientsLabel": "Pacientes",
+    "exportPatientsDesc": "Lista de pacientes ativos",
+    "exportAppointmentsLabel": "Consultas",
+    "exportAppointmentsDesc": "Histórico de consultas",
+    "noData": "Nenhum dado disponível."
+  },
+  "appointments": {
+    "financialSection": "Financeiro",
+    "chargeCreated": "Cobrança criada"
   },
   "audit": {
     "title": "Auditoria",
     "logTitle": "Log de Auditoria",
-    "subtitle": "Registro de todas as ações no sistema"
+    "subtitle": "Registro de todas as ações no sistema",
+    "chargeCreated": "Cobrança criada",
+    "exportCSV": "Exportar CSV"
   },
   "localeSwitcher": {
     "label": "Idioma",
@@ -218,15 +304,5 @@
     "sleep": "Sono",
     "flaggedAuto": "Esta entrada foi sinalizada automaticamente por palavras-chave de risco.",
     "discussNextSession": "O paciente quer discutir este tema na próxima sessão."
-  },
-  "settings": {
-    "appointmentTypesTitle": "Tipos de Consulta",
-    "appointmentTypesSubtitle": "Configure os tipos, modalidades, durações e preços padrão",
-    "profileTitle": "Meu Perfil",
-    "profileSubtitle": "Atualize seu nome, telefone e informações de contato",
-    "exportTitle": "Exportar Dados",
-    "exportSubtitle": "Baixe os dados da sua clínica em formato CSV",
-    "remindersTitle": "Lembretes",
-    "remindersSubtitle": "Configure os emails automáticos enviados aos pacientes"
   }
 }

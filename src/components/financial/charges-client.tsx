@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 import { formatDate, formatCurrency, chargeStatusLabel, paymentMethodLabel } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ const statusVariant: Record<string, "success" | "warning" | "destructive" | "sec
 };
 
 export function ChargesClient() {
+  const t = useTranslations("charges");
   const [charges, setCharges] = useState<Charge[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");

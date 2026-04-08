@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,16 +50,6 @@ interface PrevisibilityData {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MONTHS = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
-
-const METHOD_LABELS: Record<string, string> = {
-  PIX: "PIX", CASH: "Dinheiro", CARD: "Cartão",
-  TRANSFER: "Transferência", INSURANCE: "Plano", OTHER: "Outro",
-};
-
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = [CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1];
 
@@ -100,10 +91,33 @@ type Tab = "dashboard" | "cashflow" | "previsibility" | "export";
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ReportsClient() {
+  const t = useTranslations("reports");
+  const tCharges = useTranslations("charges");
+  const locale = useLocale();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [tab, setTab] = useState<Tab>("dashboard");
+
+  // Helper to get locale-aware month name
+  const getMonthName = (monthNum: number) => {
+    return new Intl.DateTimeFormat(locale, { month: "long" }).format(
+      new Date(year, monthNum - 1, 1)
+    );
+  };
+
+  // Helper to get payment method label
+  const getPaymentMethodLabel = (method: string): string => {
+    const methodMap: Record<string, string> = {
+      PIX: tCharges("pix"),
+      CASH: tCharges("cash"),
+      CARD: tCharges("card"),
+      TRANSFER: tCharges("transfer"),
+      INSURANCE: tCharges("insurance"),
+      OTHER: tCharges("other"),
+    };
+    return methodMap[method] ?? method;
+  };
 
   const [dashData, setDashData] = useState<MonthlyData | null>(null);
   const [cashflow, setCashflow] = useState<CashflowMonth[]>([]);
@@ -169,10 +183,10 @@ export function ReportsClient() {
   }
 
   const tabLabels: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: "dashboard", label: "Resumo mensal", icon: BarChart3 },
-    { id: "cashflow", label: "Fluxo de caixa", icon: TrendingUp },
-    { id: "previsibility", label: "Previsibilidade", icon: Clock },
-    { id: "export", label: "Exportar", icon: Download },
+    { id: "dashboard", label: t("tabDashboard"), icon: BarChart3 },
+    { id: "cashflow", label: t("tabCashflow"), icon: TrendingUp },
+    { id: "previsibility", label: t("tabPrevisibility"), icon: Clock },
+    { id: "export", label: t("tabExport"), icon: Download },
   ];
 
   return (
@@ -184,8 +198,8 @@ export function ReportsClient() {
           onChange={(e) => setMonth(Number(e.target.value))}
           className="border rounded-md px-3 py-2 text-sm h-10"
         >
-          {MONTHS.map((m, i) => (
-            <option key={i} value={i + 1}>{m}</option>
+          {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+            <option key={m} value={m}>{getMonthName(m)}</option>
           ))}
         </select>
         <select
@@ -198,7 +212,7 @@ export function ReportsClient() {
           ))}
         </select>
         <p className="text-xs sm:text-sm text-gray-500 sm:ml-auto">
-          Dados de {MONTHS[month - 1]} {year}
+          Dados de {getMonthName(month)} {year}
         </p>
       </div>
 
@@ -236,35 +250,35 @@ export function ReportsClient() {
               <div>
                 <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-brand-600" />
-                  Financeiro — {MONTHS[month - 1]} {year}
+                  {t("financialSectionTitle")} — {getMonthName(month)} {year}
                 </h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                   <StatCard
-                    label="Cobrado (competência)"
+                    label={t("chargedLabel")}
                     value={formatCurrency(dashData.summary.totalCharged)}
-                    sub={`${dashData.summary.chargesCount} cobranças`}
+                    sub={`${dashData.summary.chargesCount} ${t("chargesCount")}`}
                     icon={DollarSign}
                     color="text-gray-900"
                   />
                   <StatCard
-                    label="Recebido (caixa)"
+                    label={t("receivedLabel")}
                     value={formatCurrency(dashData.summary.totalCaixa)}
-                    sub="Pagamentos no mês"
+                    sub={t("receivedSub")}
                     icon={ArrowUpRight}
                     color="text-green-600"
                   />
                   <StatCard
-                    label="Pendente"
+                    label={t("pendingLabel")}
                     value={formatCurrency(dashData.summary.totalPending)}
-                    sub="A receber"
+                    sub={t("pendingSub")}
                     icon={Clock}
                     color="text-yellow-600"
                   />
                   {dashData.summary.totalOverdue > 0 && (
                     <StatCard
-                      label="Inadimplente"
+                      label={t("overdueLabel")}
                       value={formatCurrency(dashData.summary.totalOverdue)}
-                      sub="Vencido"
+                      sub={t("overdueSub")}
                       icon={AlertCircle}
                       color="text-red-600"
                       bg="bg-red-50"
@@ -272,9 +286,9 @@ export function ReportsClient() {
                   )}
                   {dashData.summary.totalOverdue === 0 && (
                     <StatCard
-                      label="Novos pacientes"
+                      label={t("newPatientsLabel")}
                       value={String(dashData.summary.newPatients)}
-                      sub="Este mês"
+                      sub={t("newPatientsSub")}
                       icon={Users}
                       color="text-brand-600"
                     />
@@ -284,14 +298,14 @@ export function ReportsClient() {
                 {/* Caixa vs Competência explanation */}
                 <div className="mt-3 rounded-lg bg-gray-50 border p-3 grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-xs text-gray-500 font-medium mb-1">Regime de caixa</p>
+                    <p className="text-xs text-gray-500 font-medium mb-1">{t("cashBasisLabel")}</p>
                     <p className="font-bold text-green-700">{formatCurrency(dashData.summary.totalCaixa)}</p>
-                    <p className="text-xs text-gray-400">Dinheiro efetivamente recebido em {MONTHS[month - 1]}</p>
+                    <p className="text-xs text-gray-400">{t("cashBasisDesc")} {getMonthName(month)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 font-medium mb-1">Regime de competência</p>
+                    <p className="text-xs text-gray-500 font-medium mb-1">{t("accrualBasisLabel")}</p>
                     <p className="font-bold text-gray-900">{formatCurrency(dashData.summary.totalCharged)}</p>
-                    <p className="text-xs text-gray-400">Cobranças com vencimento em {MONTHS[month - 1]}</p>
+                    <p className="text-xs text-gray-400">{t("accrualBasisDesc")} {getMonthName(month)}</p>
                   </div>
                 </div>
               </div>
@@ -300,13 +314,13 @@ export function ReportsClient() {
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-brand-600" />
-                  Consultas
+                  {t("appointmentsSectionTitle")}
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <StatCard label="Total" value={String(dashData.apptStats.total)} icon={Calendar} />
-                  <StatCard label="Realizadas" value={String(dashData.apptStats.completed)} icon={ArrowUpRight} color="text-green-600" />
-                  <StatCard label="Canceladas" value={String(dashData.apptStats.canceled)} icon={ArrowDownRight} color="text-red-500" />
-                  <StatCard label="Faltas" value={String(dashData.apptStats.noShow)} icon={AlertCircle} color="text-orange-500" />
+                  <StatCard label={t("appointmentsTotal")} value={String(dashData.apptStats.total)} icon={Calendar} />
+                  <StatCard label={t("appointmentsCompleted")} value={String(dashData.apptStats.completed)} icon={ArrowUpRight} color="text-green-600" />
+                  <StatCard label={t("appointmentsCanceled")} value={String(dashData.apptStats.canceled)} icon={ArrowDownRight} color="text-red-500" />
+                  <StatCard label={t("appointmentsNoShow")} value={String(dashData.apptStats.noShow)} icon={AlertCircle} color="text-orange-500" />
                 </div>
               </div>
 
@@ -315,7 +329,7 @@ export function ReportsClient() {
                 <div className="bg-white rounded-xl border p-5">
                   <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
                     <BarChart3 className="h-4 w-4 text-brand-600" />
-                    Receita por profissional
+                    {t("revenueByProvider")}
                   </h3>
                   <div className="space-y-4">
                     {dashData.byProvider
@@ -327,12 +341,12 @@ export function ReportsClient() {
                             <div className="flex items-center justify-between text-sm">
                               <div>
                                 <p className="font-medium text-gray-900">{p.name}</p>
-                                <p className="text-xs text-gray-500">{p.sessions} sessões pagas</p>
+                                <p className="text-xs text-gray-500">{p.sessions} {t("paidSessions")}</p>
                               </div>
                               <div className="text-right">
                                 <p className="font-bold text-green-700">{formatCurrency(p.received)}</p>
                                 {p.pending > 0 && (
-                                  <p className="text-xs text-yellow-600">+ {formatCurrency(p.pending)} pendente</p>
+                                  <p className="text-xs text-yellow-600">+ {formatCurrency(p.pending)} {t("pendingAmount")}</p>
                                 )}
                               </div>
                             </div>
@@ -349,7 +363,7 @@ export function ReportsClient() {
                 <div className="bg-white rounded-xl border p-5">
                   <h3 className="font-semibold text-gray-900 mb-4 text-sm flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-brand-600" />
-                    Forma de pagamento
+                    {t("paymentMethods")}
                   </h3>
                   <div className="space-y-3">
                     {Object.entries(dashData.byMethod)
@@ -360,7 +374,7 @@ export function ReportsClient() {
                         return (
                           <div key={method} className="space-y-1">
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-700">{METHOD_LABELS[method] ?? method}</span>
+                              <span className="text-gray-700">{getPaymentMethodLabel(method)}</span>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-400">{pct}%</span>
                                 <span className="font-medium">{formatCurrency(amount)}</span>
@@ -387,7 +401,7 @@ export function ReportsClient() {
             <div className="bg-white rounded-xl border p-5 space-y-4">
               <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-brand-600" />
-                Últimos 6 meses
+                {t("last6Months")}
               </h3>
 
               {/* Chart-like bar display */}
@@ -399,14 +413,14 @@ export function ReportsClient() {
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <span className="font-medium w-16">{m.month}</span>
                         <div className="flex items-center gap-4">
-                          <span className="text-gray-700">{m.sessions} sessões</span>
-                          <span className="text-green-700 font-medium">Caixa: {formatCurrency(m.caixa)}</span>
-                          <span className="text-gray-600">Comp.: {formatCurrency(m.competencia)}</span>
+                          <span className="text-gray-700">{m.sessions} {t("cashflowSessions")}</span>
+                          <span className="text-green-700 font-medium">{t("cashflowCash")}: {formatCurrency(m.caixa)}</span>
+                          <span className="text-gray-600">{t("cashflowAccrual")}: {formatCurrency(m.competencia)}</span>
                         </div>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-20">Caixa</span>
+                          <span className="text-xs text-gray-400 w-20">{t("cashflowCash")}</span>
                           <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
                             <div
                               className="h-full bg-green-500 rounded-full"
@@ -416,7 +430,7 @@ export function ReportsClient() {
                           <span className="text-xs font-medium w-24 text-right">{formatCurrency(m.caixa)}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-20">Competência</span>
+                          <span className="text-xs text-gray-400 w-20">{t("cashflowAccrual")}</span>
                           <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
                             <div
                               className="h-full bg-brand-400 rounded-full"
@@ -435,11 +449,11 @@ export function ReportsClient() {
               <div className="flex items-center gap-4 pt-2 border-t text-xs text-gray-500">
                 <span className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-green-500 inline-block" />
-                  Caixa — dinheiro recebido no mês
+                  {t("cashflowLegendCash")}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-brand-400 inline-block" />
-                  Competência — cobranças com vencimento no mês
+                  {t("cashflowLegendAccrual")}
                 </span>
               </div>
 
@@ -448,11 +462,11 @@ export function ReportsClient() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-xs text-gray-500">
-                      <th className="text-left py-2 font-medium">Mês</th>
-                      <th className="text-right py-2 font-medium">Sessões</th>
-                      <th className="text-right py-2 font-medium">Caixa</th>
-                      <th className="text-right py-2 font-medium">Competência</th>
-                      <th className="text-right py-2 font-medium">Diferença</th>
+                      <th className="text-left py-2 font-medium">{t("cashflowMonth")}</th>
+                      <th className="text-right py-2 font-medium">{t("cashflowSessions")}</th>
+                      <th className="text-right py-2 font-medium">{t("cashflowCash")}</th>
+                      <th className="text-right py-2 font-medium">{t("cashflowAccrual")}</th>
+                      <th className="text-right py-2 font-medium">{t("cashflowDifference")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -470,7 +484,7 @@ export function ReportsClient() {
                   </tbody>
                   <tfoot>
                     <tr className="font-bold text-gray-900 border-t-2">
-                      <td className="py-2">Total</td>
+                      <td className="py-2">{t("cashflowTotal")}</td>
                       <td className="py-2 text-right">{cashflow.reduce((s, m) => s + m.sessions, 0)}</td>
                       <td className="py-2 text-right text-green-700">{formatCurrency(cashflow.reduce((s, m) => s + m.caixa, 0))}</td>
                       <td className="py-2 text-right">{formatCurrency(cashflow.reduce((s, m) => s + m.competencia, 0))}</td>
@@ -481,7 +495,7 @@ export function ReportsClient() {
               </div>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">Nenhum dado disponível.</p>
+            <p className="text-gray-500 text-center py-8">{t("noData")}</p>
           )}
         </div>
       )}
@@ -499,10 +513,10 @@ export function ReportsClient() {
                   <div className="flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
                     <div>
-                      <h3 className="font-semibold text-red-800">Cobranças vencidas</h3>
+                      <h3 className="font-semibold text-red-800">{t("overdueCharges")}</h3>
                       <p className="text-sm text-red-700 mt-1">
-                        {previsibility.overdue.count} cobrança{previsibility.overdue.count !== 1 ? "s" : ""} em atraso —{" "}
-                        <span className="font-bold">{formatCurrency(previsibility.overdue.total)}</span> a receber
+                        {previsibility.overdue.count} {previsibility.overdue.count === 1 ? t("overdueChargesCount") : t("overdueChargesCountPlural")} {t("overdueChargesNote")} —{" "}
+                        <span className="font-bold">{formatCurrency(previsibility.overdue.total)}</span> {t("overdueAmount")}
                       </p>
                     </div>
                   </div>
@@ -513,7 +527,7 @@ export function ReportsClient() {
               <div className="bg-white rounded-xl border p-5 space-y-4">
                 <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
                   <Clock className="h-4 w-4 text-brand-600" />
-                  Previsão de recebimento — próximos 3 meses
+                  {t("previsibilityTitle")}
                 </h3>
                 <div className="space-y-4">
                   {previsibility.upcoming.map((m) => {
@@ -523,7 +537,7 @@ export function ReportsClient() {
                         <div className="flex items-center justify-between text-sm">
                           <div>
                             <p className="font-medium text-gray-900">{m.month}</p>
-                            <p className="text-xs text-gray-500">{m.count} cobranças pendentes</p>
+                            <p className="text-xs text-gray-500">{m.count} {t("previsibilityPending")}</p>
                           </div>
                           <p className="font-bold text-brand-700">{formatCurrency(m.expected)}</p>
                         </div>
@@ -533,12 +547,12 @@ export function ReportsClient() {
                   })}
                 </div>
                 <p className="text-xs text-gray-400 pt-2 border-t">
-                  Baseado nas cobranças com status pendente, parcial ou vencido. Não inclui consultas futuras sem cobrança registrada.
+                  {t("previsibilityNote")}
                 </p>
               </div>
             </>
           ) : (
-            <p className="text-gray-500 text-center py-8">Nenhum dado disponível.</p>
+            <p className="text-gray-500 text-center py-8">{t("noData")}</p>
           )}
         </div>
       )}
@@ -547,13 +561,13 @@ export function ReportsClient() {
       {tab === "export" && (
         <div className="space-y-4">
           <div className="bg-white rounded-xl border p-5 space-y-4">
-            <h3 className="font-semibold text-gray-900 text-sm">Exportar dados</h3>
+            <h3 className="font-semibold text-gray-900 text-sm">{t("exportSectionTitle")}</h3>
 
             {[
-              { label: "Relatório mensal de cobranças", type: "monthly", desc: `Cobranças de ${MONTHS[month - 1]} ${year}` },
-              { label: "Cobranças (histórico completo)", type: "charges", desc: "Todas as cobranças e pagamentos" },
-              { label: "Pacientes", type: "patients", desc: "Lista de pacientes ativos" },
-              { label: "Consultas", type: "appointments", desc: "Histórico de consultas" },
+              { label: t("exportMonthlyLabel"), type: "monthly", desc: `${t("exportMonthlyDesc")} ${getMonthName(month)} ${year}` },
+              { label: t("exportAllChargesLabel"), type: "charges", desc: t("exportAllChargesDesc") },
+              { label: t("exportPatientsLabel"), type: "patients", desc: t("exportPatientsDesc") },
+              { label: t("exportAppointmentsLabel"), type: "appointments", desc: t("exportAppointmentsDesc") },
             ].map((item) => (
               <div key={item.type} className="flex items-center justify-between py-3 border-b last:border-0">
                 <div>

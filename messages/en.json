@@ -91,7 +91,18 @@
     "other": "Other",
     "new": "New charge",
     "title": "Charges",
-    "manage": "Manage charges and payments"
+    "manage": "Manage charges and payments",
+    "statusPending": "Pending",
+    "statusPending_plural": "Pending",
+    "statusPaid": "Paid",
+    "statusOverdue": "Overdue",
+    "statusPartiallyPaid": "Partially paid",
+    "received": "Received",
+    "created": "Charge created",
+    "overdue": "Overdue charge",
+    "defaultCharge": "Default charge",
+    "downloading": "Downloading...",
+    "exportCSV": "Export CSV"
   },
   "patients": {
     "headerSubtitle": "Manage your patients and records",
@@ -131,10 +142,24 @@
     "exportDesc": "Download all practice data",
     "clinic_title": "Practice Settings",
     "users_title": "Users & Roles",
-    "integrations_title": "Integrations"
+    "integrations_title": "Integrations",
+    "appointmentTypesTitle": "Appointment Types",
+    "appointmentTypesSubtitle": "Configure types, modalities, durations and prices",
+    "profileTitle": "My Profile",
+    "profileSubtitle": "Update your name, phone and contact information",
+    "exportTitle": "Export Data",
+    "exportSubtitle": "Download your practice data in CSV format",
+    "remindersTitle": "Reminders",
+    "remindersSubtitle": "Configure automated emails sent to patients"
   },
   "calendar": {
-    "headerSubtitle": "Manage appointments and schedules"
+    "headerSubtitle": "Manage appointments and schedules",
+    "today": "Today",
+    "week": "Week",
+    "month": "Month",
+    "businessHours": "Show business hours (7am–7pm)",
+    "allDay": "Show 24 hours",
+    "newAppointment": "New appointment"
   },
   "financial": {
     "currentMonth": "Current month",
@@ -153,12 +178,73 @@
     "newChargeSubtitle": "Record a new charge for a patient"
   },
   "reports": {
-    "headerSubtitle": "Financial analysis and data export"
+    "headerSubtitle": "Financial analysis and data export",
+    "tabDashboard": "Monthly summary",
+    "tabCashflow": "Cash flow",
+    "tabPrevisibility": "Forecast",
+    "tabExport": "Export",
+    "financialSectionTitle": "Finance",
+    "chargedLabel": "Billed (accrual)",
+    "chargesCount": "charges",
+    "receivedLabel": "Received (cash)",
+    "receivedSub": "Payments this month",
+    "pendingLabel": "Pending",
+    "pendingSub": "To be received",
+    "overdueLabel": "Overdue",
+    "overdueSub": "Past due",
+    "newPatientsLabel": "New patients",
+    "newPatientsSub": "This month",
+    "cashBasisLabel": "Cash basis",
+    "cashBasisDesc": "Actual money received in",
+    "accrualBasisLabel": "Accrual basis",
+    "accrualBasisDesc": "Charges due in",
+    "appointmentsSectionTitle": "Appointments",
+    "appointmentsTotal": "Total",
+    "appointmentsCompleted": "Completed",
+    "appointmentsCanceled": "Canceled",
+    "appointmentsNoShow": "No-shows",
+    "revenueByProvider": "Revenue by provider",
+    "paidSessions": "sessions billed",
+    "pendingAmount": "pending",
+    "paymentMethods": "Payment method",
+    "last6Months": "Last 6 months",
+    "cashflowCash": "Cash",
+    "cashflowAccrual": "Accrual",
+    "cashflowMonth": "Month",
+    "cashflowSessions": "Sessions",
+    "cashflowDifference": "Difference",
+    "cashflowTotal": "Total",
+    "cashflowLegendCash": "Cash — money received this month",
+    "cashflowLegendAccrual": "Accrual — charges due this month",
+    "overdueCharges": "Overdue charges",
+    "overdueChargesCount": "charge",
+    "overdueChargesCountPlural": "charges",
+    "overdueChargesNote": "past due",
+    "overdueAmount": "to be received",
+    "previsibilityTitle": "Collection forecast — next 3 months",
+    "previsibilityPending": "pending charges",
+    "previsibilityNote": "Based on charges with pending, partial or overdue status. Does not include future appointments without recorded charges.",
+    "exportSectionTitle": "Export data",
+    "exportMonthlyLabel": "Monthly charge report",
+    "exportMonthlyDesc": "Charges for",
+    "exportAllChargesLabel": "Charges (full history)",
+    "exportAllChargesDesc": "All charges and payments",
+    "exportPatientsLabel": "Patients",
+    "exportPatientsDesc": "List of active patients",
+    "exportAppointmentsLabel": "Appointments",
+    "exportAppointmentsDesc": "Appointment history",
+    "noData": "No data available."
+  },
+  "appointments": {
+    "financialSection": "Finance",
+    "chargeCreated": "Charge created"
   },
   "audit": {
     "title": "Audit Log",
     "logTitle": "Audit Log",
-    "subtitle": "Record of all system actions"
+    "subtitle": "Record of all system actions",
+    "chargeCreated": "Charge created",
+    "exportCSV": "Export CSV"
   },
   "localeSwitcher": {
     "label": "Language",
@@ -218,15 +304,5 @@
     "sleep": "Sleep",
     "flaggedAuto": "This entry was flagged automatically for risk keywords.",
     "discussNextSession": "Patient wants to discuss this topic in the next session."
-  },
-  "settings": {
-    "appointmentTypesTitle": "Appointment Types",
-    "appointmentTypesSubtitle": "Configure types, modalities, durations and prices",
-    "profileTitle": "My Profile",
-    "profileSubtitle": "Update your name, phone and contact information",
-    "exportTitle": "Export Data",
-    "exportSubtitle": "Download your practice data in CSV format",
-    "remindersTitle": "Reminders",
-    "remindersSubtitle": "Configure automated emails sent to patients"
   }
 }

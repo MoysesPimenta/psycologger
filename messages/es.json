@@ -91,7 +91,18 @@
     "other": "Otro",
     "new": "Nuevo cargo",
     "title": "Cargos",
-    "manage": "Administra cargos y pagos"
+    "manage": "Administra cargos y pagos",
+    "statusPending": "Pendiente",
+    "statusPending_plural": "Pendiente",
+    "statusPaid": "Pagada",
+    "statusOverdue": "Vencida",
+    "statusPartiallyPaid": "Parcialmente pagada",
+    "received": "Recibido",
+    "created": "Cargo creado",
+    "overdue": "Cargo vencido",
+    "defaultCharge": "Cargo por defecto",
+    "downloading": "Descargando...",
+    "exportCSV": "Exportar CSV"
   },
   "patients": {
     "headerSubtitle": "Administra tus pacientes y registros",
@@ -131,10 +142,24 @@
     "exportDesc": "Descarga todos los datos de tu práctica",
     "clinic_title": "Configuración de Práctica",
     "users_title": "Usuarios y Roles",
-    "integrations_title": "Integraciones"
+    "integrations_title": "Integraciones",
+    "appointmentTypesTitle": "Tipos de Cita",
+    "appointmentTypesSubtitle": "Configura tipos, modalidades, duraciones y precios",
+    "profileTitle": "Mi Perfil",
+    "profileSubtitle": "Actualiza tu nombre, teléfono e información de contacto",
+    "exportTitle": "Exportar Datos",
+    "exportSubtitle": "Descarga los datos de tu práctica en formato CSV",
+    "remindersTitle": "Recordatorios",
+    "remindersSubtitle": "Configura correos automáticos enviados a los pacientes"
   },
   "calendar": {
-    "headerSubtitle": "Administra citas y horarios"
+    "headerSubtitle": "Administra citas y horarios",
+    "today": "Hoy",
+    "week": "Semana",
+    "month": "Mes",
+    "businessHours": "Mostrar horario comercial (7am–7pm)",
+    "allDay": "Mostrar 24 horas",
+    "newAppointment": "Nueva cita"
   },
   "financial": {
     "currentMonth": "Mes actual",
@@ -153,12 +178,73 @@
     "newChargeSubtitle": "Registra un nuevo cargo para un paciente"
   },
   "reports": {
-    "headerSubtitle": "Análisis financiero y exportación de datos"
+    "headerSubtitle": "Análisis financiero y exportación de datos",
+    "tabDashboard": "Resumen mensual",
+    "tabCashflow": "Flujo de caja",
+    "tabPrevisibility": "Previsión",
+    "tabExport": "Exportar",
+    "financialSectionTitle": "Finanzas",
+    "chargedLabel": "Facturado (devengado)",
+    "chargesCount": "cargos",
+    "receivedLabel": "Recibido (caja)",
+    "receivedSub": "Pagos este mes",
+    "pendingLabel": "Pendiente",
+    "pendingSub": "Por recibir",
+    "overdueLabel": "Vencido",
+    "overdueSub": "Pasado de vencimiento",
+    "newPatientsLabel": "Nuevos pacientes",
+    "newPatientsSub": "Este mes",
+    "cashBasisLabel": "Base de caja",
+    "cashBasisDesc": "Dinero efectivamente recibido en",
+    "accrualBasisLabel": "Base devengada",
+    "accrualBasisDesc": "Cargos vencidos en",
+    "appointmentsSectionTitle": "Citas",
+    "appointmentsTotal": "Total",
+    "appointmentsCompleted": "Completadas",
+    "appointmentsCanceled": "Canceladas",
+    "appointmentsNoShow": "No presentadas",
+    "revenueByProvider": "Ingresos por proveedor",
+    "paidSessions": "sesiones cobradas",
+    "pendingAmount": "pendiente",
+    "paymentMethods": "Método de pago",
+    "last6Months": "Últimos 6 meses",
+    "cashflowCash": "Caja",
+    "cashflowAccrual": "Devengado",
+    "cashflowMonth": "Mes",
+    "cashflowSessions": "Sesiones",
+    "cashflowDifference": "Diferencia",
+    "cashflowTotal": "Total",
+    "cashflowLegendCash": "Caja — dinero recibido este mes",
+    "cashflowLegendAccrual": "Devengado — cargos vencidos este mes",
+    "overdueCharges": "Cargos vencidos",
+    "overdueChargesCount": "cargo",
+    "overdueChargesCountPlural": "cargos",
+    "overdueChargesNote": "pasado de vencimiento",
+    "overdueAmount": "por recibir",
+    "previsibilityTitle": "Previsión de cobro — próximos 3 meses",
+    "previsibilityPending": "cargos pendientes",
+    "previsibilityNote": "Basado en cargos con estado pendiente, parcial o vencido. No incluye citas futuras sin cargos registrados.",
+    "exportSectionTitle": "Exportar datos",
+    "exportMonthlyLabel": "Informe mensual de cargos",
+    "exportMonthlyDesc": "Cargos de",
+    "exportAllChargesLabel": "Cargos (historial completo)",
+    "exportAllChargesDesc": "Todos los cargos y pagos",
+    "exportPatientsLabel": "Pacientes",
+    "exportPatientsDesc": "Lista de pacientes activos",
+    "exportAppointmentsLabel": "Citas",
+    "exportAppointmentsDesc": "Historial de citas",
+    "noData": "No hay datos disponibles."
+  },
+  "appointments": {
+    "financialSection": "Finanzas",
+    "chargeCreated": "Cargo creado"
   },
   "audit": {
     "title": "Registro de Auditoría",
     "logTitle": "Registro de Auditoría",
-    "subtitle": "Historial de todas las acciones del sistema"
+    "subtitle": "Historial de todas las acciones del sistema",
+    "chargeCreated": "Cargo creado",
+    "exportCSV": "Exportar CSV"
   },
   "localeSwitcher": {
     "label": "Idioma",
@@ -218,15 +304,5 @@
     "sleep": "Sueño",
     "flaggedAuto": "Esta entrada fue marcada automáticamente por palabras clave de riesgo.",
     "discussNextSession": "El paciente quiere discutir este tema en la próxima sesión."
-  },
-  "settings": {
-    "appointmentTypesTitle": "Tipos de Cita",
-    "appointmentTypesSubtitle": "Configura tipos, modalidades, duraciones y precios",
-    "profileTitle": "Mi Perfil",
-    "profileSubtitle": "Actualiza tu nombre, teléfono e información de contacto",
-    "exportTitle": "Exportar Datos",
-    "exportSubtitle": "Descarga los datos de tu práctica en formato CSV",
-    "remindersTitle": "Recordatorios",
-    "remindersSubtitle": "Configura correos automáticos enviados a los pacientes"
   }
 }
