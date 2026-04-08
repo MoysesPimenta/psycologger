@@ -1,0 +1,119 @@
+name: Database backup
+
+# Hourly encrypted pg_dump of the production Supabase database,
+# uploaded as a workflow artifact. Artifacts are retained for 30 days.
+#
+# Required secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DIRECT_URL  — Postgres connection string from Supabase
+#                          (Project Settings → Database → Connection string →
+#                          URI, the DIRECT one on port 5432, NOT the pooler).
+#                          Format: postgresql://postgres.<ref>:<pwd>@aws-0-<region>.pooler.supabase.com:5432/postgres
+#                          (or the equivalent 5432 host)
+#   BACKUP_PASSPHRASE    — Symmetric GPG passphrase. Store it in a password
+#                          manager; without it the backups are unrecoverable.
+#
+# Manual trigger: Actions → "Database backup" → Run workflow.
+# Restore: see docs/runbooks/backup-restore-drill.md.
+
+on:
+  schedule:
+    # Every hour at :05 — staggered off the top of the hour so Supabase
+    # cron jobs and hourly Stripe settlements don't fight us for a
+    # connection slot.
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: pg_dump + encrypt + upload
+    runs-on: ubuntu-latest
+    # Don't stack runs — if one takes > 1h (shouldn't), the next is skipped
+    concurrency:
+      group: db-backup
+      cancel-in-progress: false
+    # Network-egress sandbox: no npm, no checkout needed
+    permissions:
+      contents: read
+    steps:
+      - name: Install postgresql-client-16
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-16 >/dev/null
+
+      - name: Verify client and target versions
+        env:
+          PGURL: ${{ secrets.SUPABASE_DIRECT_URL }}
+        run: |
+          if [ -z "$PGURL" ]; then
+            echo "::error::SUPABASE_DIRECT_URL secret is not set"; exit 1
+          fi
+          pg_dump --version
+          psql "$PGURL" -c "SELECT version();" | head -5
+
+      - name: Run pg_dump (custom format, no owner/acl)
+        env:
+          PGURL: ${{ secrets.SUPABASE_DIRECT_URL }}
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          echo "BACKUP_STAMP=$STAMP" >> "$GITHUB_ENV"
+          # --format=custom produces a compressed binary dump consumable by pg_restore
+          # --no-owner / --no-acl keep the dump portable across projects
+          # --exclude-schema excludes internal supabase schemas that are recreated on restore
+          pg_dump "$PGURL" \
+            --format=custom \
+            --no-owner \
+            --no-acl \
+            --exclude-schema='auth' \
+            --exclude-schema='storage' \
+            --exclude-schema='graphql' \
+            --exclude-schema='graphql_public' \
+            --exclude-schema='realtime' \
+            --exclude-schema='supabase_functions' \
+            --exclude-schema='extensions' \
+            --exclude-schema='pgsodium*' \
+            --exclude-schema='vault' \
+            --file="psycologger-$STAMP.dump"
+          ls -lh "psycologger-$STAMP.dump"
+
+      - name: Encrypt with GPG (symmetric, AES256)
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PASSPHRASE" ]; then
+            echo "::error::BACKUP_PASSPHRASE secret is not set"; exit 1
+          fi
+          gpg --batch --yes --pinentry-mode loopback \
+            --symmetric --cipher-algo AES256 \
+            --passphrase "$PASSPHRASE" \
+            "psycologger-$BACKUP_STAMP.dump"
+          ls -lh "psycologger-$BACKUP_STAMP.dump.gpg"
+          # Remove the plaintext dump before the artifact step uploads anything
+          rm -f "psycologger-$BACKUP_STAMP.dump"
+
+      - name: Compute checksum
+        run: |
+          sha256sum "psycologger-$BACKUP_STAMP.dump.gpg" > "psycologger-$BACKUP_STAMP.dump.gpg.sha256"
+          cat "psycologger-$BACKUP_STAMP.dump.gpg.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: psycologger-backup-${{ env.BACKUP_STAMP }}
+          path: |
+            psycologger-${{ env.BACKUP_STAMP }}.dump.gpg
+            psycologger-${{ env.BACKUP_STAMP }}.dump.gpg.sha256
+          retention-days: 30
+          if-no-files-found: error
+          compression-level: 0  # already gpg-compressed
+
+      - name: Summary
+        run: |
+          echo "### Backup complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Timestamp: \`$BACKUP_STAMP\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Artifact: \`psycologger-backup-$BACKUP_STAMP\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Retention: 30 days" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Restore: see \`docs/runbooks/backup-restore-drill.md\`" >> "$GITHUB_STEP_SUMMARY"

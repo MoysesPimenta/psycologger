@@ -1,106 +1,140 @@
-# Backup & Restore Drill — Supabase PITR
+# Backup & Restore Runbook
 
-**Owner:** ops
-**Cadence:** quarterly (calendar a recurring 30-min slot)
-**Last drill:** never (as of 2026-04-07 — schedule one)
+## Current backup posture
 
-## Why
+| Item           | Value                                                          |
+| -------------- | -------------------------------------------------------------- |
+| Strategy       | GitHub Actions → encrypted `pg_dump` → artifact storage        |
+| Cadence        | Hourly at `:05` (UTC), plus manual `workflow_dispatch`         |
+| Retention      | 30 days (GitHub artifact `retention-days: 30`)                 |
+| Encryption     | GPG symmetric, AES-256, passphrase in `BACKUP_PASSPHRASE` secret |
+| Scope          | Application schema (`public`), excludes Supabase internals     |
+| Integrity      | `sha256sum` sidecar shipped with every artifact                |
+| Trigger file   | `.github/workflows/db-backup.yml`                              |
+| Restore script | `scripts/restore-backup.sh`                                    |
 
-Supabase takes daily logical + physical backups and supports Point-in-Time Recovery (PITR) on Pro+ plans. None of that matters if we've never restored from one. This runbook is the test.
+The dump excludes these Supabase-managed schemas so the artifact stays
+portable across projects: `auth`, `storage`, `graphql*`, `realtime`,
+`supabase_functions`, `extensions`, `pgsodium*`, `vault`. The
+application's own `public` schema is captured in full — including
+NextAuth's `User`, `Account`, `Session`, and `VerificationToken` tables,
+so staff logins survive a restore.
 
-## What you're testing
+## One-time setup (do this first)
 
-1. The PITR snapshot from N hours ago is actually restorable.
-2. Encrypted columns (`enc:v1:...`) round-trip through the restored DB and decrypt with the current `ENCRYPTION_KEY`.
-3. The auto-RLS event trigger (`trg_auto_enable_rls_on_new_tables`) survives the restore.
-4. Prisma migrations on the restored DB are at the expected version.
-5. Estimated wall-clock time from "fire" to "app readable on a side URL" — record it for your incident playbook.
+1. **Generate the passphrase.** Strong random string, store in a
+   password manager BEFORE adding to GitHub — if you lose it, every
+   backup becomes unrecoverable ciphertext.
 
-## Steps
+   ```bash
+   openssl rand -base64 48
+   ```
 
-### 1. Create a temporary restore target
+2. **Add the two repo secrets** at
+   `Settings → Secrets and variables → Actions → New repository secret`:
 
-In the Supabase dashboard for the **production** project (`tgkgcapoykcazkimiwzw`):
-- Settings → Database → Backups → "Restore to a new project"
-- Pick a snapshot ~24h old
-- Name: `psycologger-restore-drill-YYYY-MM-DD`
-- Region: same as prod
+   - `SUPABASE_DIRECT_URL` — Supabase → Project Settings → Database →
+     Connection string → **URI** tab. Use the **direct** connection
+     (port 5432), NOT the pooler (6543). Format:
+     `postgresql://postgres.<ref>:<password>@<host>:5432/postgres`
+   - `BACKUP_PASSPHRASE` — the passphrase from step 1.
 
-Wait for the new project to provision (usually 5–10 min). Note the new `project_ref`.
+3. **Trigger a manual run**: `Actions → Database backup → Run workflow
+   → main`. First run takes 30–90s and produces an artifact named
+   `psycologger-backup-YYYYMMDDTHHMMSSZ`.
 
-### 2. Verify schema and trigger
+4. **Verify decryption locally** — this is the single most important
+   step. A backup that can't be decrypted isn't a backup.
 
-In the Supabase SQL editor for the restored project:
+   ```bash
+   gh run download <run-id> --name psycologger-backup-<stamp>
+   export BACKUP_PASSPHRASE='...the passphrase...'
+   gpg --batch --pinentry-mode loopback \
+     --passphrase "$BACKUP_PASSPHRASE" \
+     --decrypt psycologger-<stamp>.dump.gpg > /tmp/test.dump
+   pg_restore --list /tmp/test.dump | head   # should list tables
+   rm /tmp/test.dump
+   ```
 
-```sql
--- All app tables present + RLS enabled
-SELECT tablename, rowsecurity
-FROM pg_tables
-WHERE schemaname='public'
-ORDER BY tablename;
+   If this fails, fix it *now* — not during an outage.
 
--- Auto-RLS event trigger restored
-SELECT evtname, evtenabled
-FROM pg_event_trigger
-WHERE evtname='trg_auto_enable_rls_on_new_tables';
+## Recovery drill (run quarterly)
 
--- Prisma migration history matches main
-SELECT migration_name, finished_at
-FROM "_prisma_migrations"
-ORDER BY finished_at DESC
-LIMIT 10;
-```
+A backup is only as good as the last successful restore. Schedule a
+30-minute drill every quarter.
 
-All app tables should have `rowsecurity = true`. The event trigger should be `O` (enabled). The latest migration name should match `prisma/migrations/` HEAD.
+1. **Create a throwaway Supabase project** (free tier, any region).
+   Copy its direct connection string.
 
-### 3. Verify encrypted-field round-trip
+2. **Download the most recent backup:**
 
-Pick one patient row with an encrypted CPF:
+   ```bash
+   gh run list --workflow db-backup.yml --limit 5
+   gh run download <run-id>
+   ```
 
-```sql
-SELECT id, "cpfEncrypted"
-FROM "Patient"
-WHERE "cpfEncrypted" IS NOT NULL
-LIMIT 1;
-```
+3. **Run the restore script:**
 
-Copy the row id and the encrypted value. Then locally:
+   ```bash
+   export BACKUP_PASSPHRASE='...'
+   scripts/restore-backup.sh \
+     psycologger-<stamp>.dump.gpg \
+     'postgresql://postgres:<pwd>@db.<ref>.supabase.co:5432/postgres'
+   ```
 
-```bash
-# Point a temporary .env at the restored project's connection string
-DATABASE_URL="postgresql://postgres:[PW]@db.<restored-ref>.supabase.co:5432/postgres" \
-ENCRYPTION_KEY="$ENCRYPTION_KEY_PROD" \
-npx tsx -e '
-  import { decryptCpf } from "./src/lib/cpf-crypto";
-  // paste the encrypted value
-  const enc = "enc:v1:...";
-  console.log(decryptCpf(enc, { tenantId: "...", patientId: "..." }));
-'
-```
+4. **Sanity-check in the Supabase SQL editor:**
 
-Should print the original CPF in digit form. If it throws, your `ENCRYPTION_KEY` rotation history is wrong — investigate before restoring in a real incident.
+   ```sql
+   SELECT COUNT(*) FROM "Tenant";
+   SELECT COUNT(*) FROM "User";
+   SELECT COUNT(*) FROM "Patient";
+   SELECT COUNT(*) FROM "Appointment";
+   SELECT MAX("createdAt") FROM "Appointment";
+   ```
 
-### 4. Boot the app against the restored DB (optional but recommended)
+   `MAX(createdAt)` shows how close to the backup moment your data lands.
 
-Spin up a Vercel preview deployment with `DATABASE_URL` pointed at the restored project. Log in as a known therapist. Open one patient. Confirm the page renders, the CPF displays correctly (decrypted), and the appointments calendar loads.
+5. **Record the drill** in the log below.
 
-Record the wall-clock time from step 1 to here. That's your **realistic RTO**.
+6. **Delete the throwaway project** — don't leave orphans accumulating.
 
-### 5. Tear down
+## Recovery from a real disaster
 
-- Delete the restored Supabase project (Settings → General → Delete project)
-- Delete the Vercel preview deployment
-- Update this file's "Last drill" date and add a note in the changelog below
+1. Identify the most recent **clean** backup (before whatever broke prod).
+2. `gh run download <run-id>` to retrieve the artifact.
+3. **Never restore over the live database directly.** Instead:
+   - Restore into a fresh Supabase project via `scripts/restore-backup.sh`.
+   - Verify the restored data.
+   - Point Vercel's `DATABASE_URL` at the new project.
+   - Redeploy.
+   - Flip DNS / domain aliases if applicable.
+4. Only after the new project is serving traffic, pause the broken
+   project (don't delete — it may be forensically useful).
+5. Write a postmortem within 48 hours. Blame-free, focused on what the
+   system allowed to go wrong.
 
-## Drill changelog
+## Drill log
 
-| Date | Operator | Snapshot age | Wall-clock RTO | Notes |
-|------|----------|--------------|----------------|-------|
-| _never_ | _ | _ | _ | _initial drill not yet performed_ |
+| Date       | Drilled by | Result | Restore time | Notes                          |
+| ---------- | ---------- | ------ | ------------ | ------------------------------ |
+| _TBD_      | _TBD_      | _TBD_  | _TBD_        | First drill pending user setup |
 
-## Failure modes to watch for
+## Known limitations
 
-- **Encryption key not in rotation history.** If the restored row was encrypted under an older key not present in your current `encryptionKey.rotationHistory`, decryption silently returns garbage or throws. Fix: keep historical keys forever.
-- **Migration drift.** If the restored DB is at a Prisma migration ahead of or behind `main`, your app code won't match the schema. Fix: never delete old migrations from `prisma/migrations/`.
-- **Event trigger missing.** If `trg_auto_enable_rls_on_new_tables` isn't there, the snapshot predates the migration `auto_enable_rls_on_new_public_tables` (applied 2026-04-07). Re-apply it manually after restore.
-- **Stripe webhook secret mismatch.** A restored DB has stale `EmailReminder.resendMessageId` references and historical Stripe charge IDs. The reconcile cron will see "drift" against current Stripe data. Don't run crons against the restored DB.
+- **Hourly RPO** means worst-case data loss is ~1 hour. If you need
+  tighter, enable Supabase Point-in-Time Recovery (paid add-on) — that
+  gives minute-level recovery without replacing this workflow.
+- **30-day retention.** If LGPD requires longer, add a second job that
+  periodically copies artifacts to Cloudflare R2 / Backblaze B2 / a
+  private GitHub release.
+- **Supabase Auth `auth` schema is excluded.** NextAuth uses its own
+  tables in `public`, so staff login survives. If you migrate to
+  Supabase Auth, revisit the schema excludes in the workflow.
+- **Application secrets are not backed up here.** Vercel's env store
+  is the source of truth; keep a copy of `.env` in a password manager.
+
+## TODO
+
+- [ ] Sentry alert on `db-backup` workflow failure.
+- [ ] Quarterly drill calendar entry.
+- [ ] Long-term cold storage for LGPD retention if required.
