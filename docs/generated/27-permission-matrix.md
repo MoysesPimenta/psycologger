@@ -222,3 +222,22 @@ if (!consent) return 403; // Access denied until consent given
 - **Can:** View own data, cancel/reschedule appointments (if enabled), manage consents, update notification settings
 - **Cannot:** Access other patient data, view clinical notes (unless shared), modify charges
 - **Primary role:** Self-management, appointment coordination
+
+## April 2026 update — SuperAdmin ops permissions
+
+All routes below require `requireSuperAdmin()` (re-read from DB, never from
+JWT). Each writes an AuditLog entry with actor userId, ipAddress, userAgent,
+and reason.
+
+| Route | Method | Audit action | Effect |
+| --- | --- | --- | --- |
+| `/api/v1/sa/tenants/[id]/suspend` | POST | `SA_TENANT_SUSPEND` | ACTIVE memberships → SUSPENDED |
+| `/api/v1/sa/tenants/[id]/reactivate` | POST | `SA_TENANT_REACTIVATE` | reverses suspend |
+| `/api/v1/sa/tenants/[id]/plan-override` | POST | `SA_PLAN_OVERRIDE` | sets `planTier`+`planSince`, does NOT touch Stripe |
+| `/api/v1/sa/tenants/[id]/notes` | GET/POST | `SA_INTERNAL_NOTE` | append-only notes stored as audit entries |
+
+Plan-limit enforcement (`assertCanAddPatient`/`assertCanAddTherapist`) is now
+invoked by: `POST /api/v1/patients`, `PATCH /api/v1/patients/[id]` on
+reactivation, `POST /api/v1/users` (PSYCHOLOGIST/ASSISTANT invites), and
+`POST /api/v1/invites/[token]` (invite accept, re-check in case of plan
+downgrade). Violations return HTTP 402 `QUOTA_EXCEEDED`.

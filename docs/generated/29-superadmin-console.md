@@ -336,3 +336,47 @@ test("SuperAdmin impersonation flow", async ({ browser }) => {
 - `docs/generated/27-permission-matrix.md` — RBAC roles and permissions
 - `src/lib/auth.ts` — Authentication and `requireSuperAdmin()` guard
 - `src/middleware.ts` — Request routing and tenant resolution
+
+## April 2026 update — rewritten SA surface
+
+**Shared layout.** `src/app/sa/layout.tsx` wraps every `/sa/*` page in a
+sidebar with entries: Dashboard, Métricas, Clínicas, Usuários, Sobre o limite
+(`/sa/quota-audit`), Auditoria, Permissões. `/sa/login` uses
+`fixed inset-0 z-50` to cover the sidebar pre-auth.
+
+**Ops routes (all `requireSuperAdmin()` + audit).**
+
+| Route | Method | Audit action |
+| --- | --- | --- |
+| `/api/v1/sa/tenants/[id]/suspend` | POST | `SA_TENANT_SUSPEND` (flips ACTIVE memberships → SUSPENDED) |
+| `/api/v1/sa/tenants/[id]/reactivate` | POST | `SA_TENANT_REACTIVATE` |
+| `/api/v1/sa/tenants/[id]/plan-override` | POST | `SA_PLAN_OVERRIDE` (writes `planTier`+`planSince`, does **not** touch Stripe) |
+| `/api/v1/sa/tenants/[id]/notes` | GET/POST | `SA_INTERNAL_NOTE` — append-only, stored in AuditLog, no new table |
+
+Driven by `src/components/sa/tenant-ops-panel.tsx` (client, `useTransition` +
+`router.refresh()`).
+
+**`/sa/metrics` rewrite.** Renders the full `SaasMetrics` interface from
+`src/lib/sa-metrics.ts`: MRR / ARR / paid subscribers / ARPA; plan mix
+(FREE/PRO/CLINIC/trialing/past_due); retention (`monthlyChurnRate`,
+`monthlyGrossChurnCents`, `ltvCents`, movements: new/canceled/reactivated/
+trialToPaid/netNew). 12-month MRR sparkline via `computeHistoricalSeries(12)`
+(previously TODO). `CAC` remains `null` — no marketing spend table yet.
+
+**`/sa/quota-audit`** — new page. Lists `listOverQuotaTenants(500)`
+(clinic/plan/patients-current-limit/therapists-current-limit/Revisar link) to
+triage historical violators from before the April 2026 enforcement fix.
+
+**`/sa/tenants/[id]` bug fix.** Was reading legacy `tenant.plan` (beta string);
+now uses `tenant.planTier`. Adds a red over-quota banner driven by
+`getTenantQuotaUsage`, activity timeline filtering on the new SA_* + BILLING_*
+actions, and an internal notes list sourced from `SA_INTERNAL_NOTE` audit
+entries.
+
+**Pricing.** FREE R$ 0 / PRO R$ 99 / CLINIC R$ 199. Source of truth:
+`src/lib/billing/plans.ts`; mirrored by `PLAN_PRICE_CENTS` in
+`src/lib/sa-metrics.ts`.
+
+**Impersonation unchanged** — signed `psycologger-impersonate` JWT cookie,
+byUserId-bound to the real SA session user, 1h TTL, re-verified on every
+request, forces `isSuperAdmin=false` on the impersonated context.

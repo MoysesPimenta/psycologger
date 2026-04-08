@@ -439,3 +439,55 @@ All billing state changes logged in `AuditLog`:
 
 **Last Updated:** 2026-04-07
 **Status:** Ready for production after Stripe account setup
+
+## April 2026 update — enforcement wiring & webhook lifecycle
+
+**Plan-limit enforcement is now wired into the API surface.** Before April
+2026 the helpers in `src/lib/billing/limits.ts` existed but were never called,
+and `countActivePatients` used a 90-day-activity WHERE clause that trivially
+bypassed the cap for new patients. Both defects are fixed.
+
+Enforcement points (all call `assertCanAddPatient` / `assertCanAddTherapist`
+which throw `QuotaExceededError`):
+
+- `POST /api/v1/patients`
+- `PATCH /api/v1/patients/[id]` — only on `isActive:false → true` (reactivation)
+- `POST /api/v1/users` — only when `role ∈ {PSYCHOLOGIST, ASSISTANT}`
+- `POST /api/v1/invites/[token]` — re-check on accept (plan may have downgraded)
+
+`QuotaExceededError` is mapped by `src/lib/api.ts` to HTTP 402 with body:
+```json
+{"code":"QUOTA_EXCEEDED","resource":"patient","current":4,"limit":3,"planTier":"FREE"}
+```
+
+`countActivePatients` now filters strictly on `{tenantId, isActive:true}`. The
+90-day metric is preserved separately as `countPatientsWithRecentActivity` and
+is only used for engagement reporting, never enforcement.
+
+### Stripe webhook lifecycle emitter
+
+`src/app/api/v1/webhooks/stripe/route.ts` now emits fine-grained lifecycle
+events in addition to the legacy `BILLING_STATE_CHANGED` mirror (both are
+written in order by `emitBillingPair`). All carry `entityId = tenant.id` so
+sa-metrics can join on it.
+
+| Condition | Action emitted |
+| --- | --- |
+| `checkout.session.completed` with prior FREE + prior subscription | `BILLING_SUBSCRIPTION_REACTIVATED` |
+| `checkout.session.completed` otherwise | `BILLING_SUBSCRIPTION_CREATED` |
+| `customer.subscription.updated` trialing → active | `BILLING_TRIAL_CONVERTED` |
+| `customer.subscription.updated` canceled/null → active | `BILLING_SUBSCRIPTION_REACTIVATED` |
+| `customer.subscription.created` with status=active | `BILLING_SUBSCRIPTION_CREATED` |
+| `customer.subscription.deleted` | `BILLING_SUBSCRIPTION_CANCELED` |
+| top-level handler throw | `BILLING_WEBHOOK_FAILED` (best-effort, may have no tenantId) |
+
+Idempotency is unchanged (`StripeWebhookEvent` table by `event.id`).
+
+### Pricing (source of truth: `src/lib/billing/plans.ts`)
+
+- FREE — R$ 0 — 3 active patients, 1 seat
+- PRO  — R$ 99 / month — 25 active patients, 1 seat
+- CLINIC — R$ 199 / month — Infinity patients, 5 seats
+
+`PLAN_PRICE_CENTS` in `src/lib/sa-metrics.ts` mirrors these; update both
+together when pricing changes.

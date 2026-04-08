@@ -202,3 +202,37 @@ export async function POST(req: NextRequest) {
 - Default appointment types seeding implemented
 - NextAuth events enrichment verified
 - CSRF narrowed allowlist verified
+
+## April 2026 update — plan-limit enforcement & SA console
+
+- `src/lib/billing/limits.ts` is the canonical plan-entitlement module. Exports
+  `QuotaExceededError`, `countActivePatients` (filters on `isActive=true`, **not**
+  90-day activity), `countPatientsWithRecentActivity` (engagement metric only),
+  `countTherapistSeats`, `assertCanAddPatient`, `assertCanAddTherapist`,
+  `getTenantQuotaUsage`. Plans whose cap is `Infinity` short-circuit without DB
+  queries.
+- Quota is enforced in: `POST /api/v1/patients`, `PATCH /api/v1/patients/[id]`
+  (reactivation `isActive:false→true`), `POST /api/v1/users` (invite create for
+  PSYCHOLOGIST/ASSISTANT), `POST /api/v1/invites/[token]` (invite accept).
+- `QuotaExceededError` is mapped in `src/lib/api.ts` to HTTP 402 with body
+  `{code:"QUOTA_EXCEEDED", resource, current, limit, planTier}`.
+- New SA ops routes under `/api/v1/sa/tenants/[id]/`: `suspend`, `reactivate`,
+  `plan-override`, `notes` (GET/POST). All require `requireSuperAdmin()`.
+- New audit actions: `BILLING_SUBSCRIPTION_CREATED`, `BILLING_SUBSCRIPTION_CANCELED`,
+  `BILLING_SUBSCRIPTION_REACTIVATED`, `BILLING_TRIAL_CONVERTED`,
+  `BILLING_WEBHOOK_FAILED`, `SA_TENANT_SUSPEND`, `SA_TENANT_REACTIVATE`,
+  `SA_PLAN_OVERRIDE`, `SA_INTERNAL_NOTE`. Internal notes live in `AuditLog`,
+  no new table.
+- Stripe webhook (`src/app/api/v1/webhooks/stripe/route.ts`) now emits lifecycle
+  events alongside a legacy `BILLING_STATE_CHANGED` mirror so sa-metrics can
+  reconstruct history from `entityId = tenant.id`.
+- `src/lib/sa-metrics.ts` rewrite: full `SaasMetrics` interface (MRR/ARR/ARPA/
+  churn/LTV/movements/webhook errors/over-quota count) plus
+  `computeHistoricalSeries(months)` for the 12-month MRR sparkline on `/sa/metrics`.
+- New page `/sa/quota-audit` lists historical over-quota tenants.
+- Tenant detail page bug fixed: was reading legacy `tenant.plan` string; now
+  uses `tenant.planTier`.
+- Pricing source of truth `src/lib/billing/plans.ts`: FREE R$0 (3 pat / 1 seat),
+  PRO R$99 (25 pat / 1 seat), CLINIC R$199 (Infinity pat / 5 seats).
+- Unit tests: `tests/unit/billing-limits.test.ts` covers the enforcement
+  invariants via a `jest.mock("@/lib/db", …)` pure-unit pattern.
