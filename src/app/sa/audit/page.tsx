@@ -28,19 +28,50 @@ export default async function SAAuditPage({
     where.tenantId = searchParams.tenantId as string;
   }
 
-  // Filter by user — same uuid guard.
-  if (searchParams.userId && UUID_RE.test(searchParams.userId as string)) {
-    where.userId = searchParams.userId as string;
+  // Filter by user. Accepts either a uuid (exact match) or a free-text
+  // email/name fragment which we resolve to a set of user ids.
+  const userQ = (searchParams.userQ as string) || "";
+  if (userQ) {
+    if (UUID_RE.test(userQ)) {
+      where.userId = userQ;
+    } else {
+      const matches = await db.user.findMany({
+        where: {
+          OR: [
+            { email: { contains: userQ, mode: "insensitive" } },
+            { name: { contains: userQ, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true },
+        take: 50,
+      });
+      where.userId = { in: matches.length > 0 ? matches.map((u) => u.id) : ["__no_match__"] };
+    }
   }
 
-  // Filter by action prefix
-  if (searchParams.actionPrefix) {
-    where.action = { startsWith: searchParams.actionPrefix as string };
+  // Filter by action — contains, case-insensitive. "sa" matches SA_PLAN_OVERRIDE,
+  // "billing" matches BILLING_*, etc.
+  const actionQ = (searchParams.action as string) || (searchParams.actionPrefix as string) || "";
+  if (actionQ) {
+    where.action = { contains: actionQ, mode: "insensitive" };
   }
 
-  // Date range filter
-  if (searchParams.since) {
-    where.createdAt = { gte: new Date(searchParams.since as string) };
+  // Date range filter. Date inputs produce "YYYY-MM-DD"; treat `since` as the
+  // start of that day and `until` as the end (so "until=2026-04-08" includes
+  // events that happened during 2026-04-08).
+  const since = (searchParams.since as string) || "";
+  const until = (searchParams.until as string) || "";
+  if (since || until) {
+    where.createdAt = {};
+    if (since) {
+      const d = new Date(`${since}T00:00:00.000Z`);
+      if (!Number.isNaN(d.getTime())) where.createdAt.gte = d;
+    }
+    if (until) {
+      const d = new Date(`${until}T23:59:59.999Z`);
+      if (!Number.isNaN(d.getTime())) where.createdAt.lte = d;
+    }
+    if (Object.keys(where.createdAt).length === 0) delete where.createdAt;
   }
 
   const [logs, totalCount] = await Promise.all([
@@ -74,10 +105,11 @@ export default async function SAAuditPage({
         {/* Filters — live/debounced */}
         <SaLiveFilters
           fields={[
-            { name: "tenantId", kind: "text", placeholder: "Filtrar por tenant ID" },
-            { name: "userId", kind: "text", placeholder: "Filtrar por user ID" },
-            { name: "actionPrefix", kind: "text", placeholder: "Ação (ex: BILLING_, LOGIN)" },
+            { name: "tenantId", kind: "text", placeholder: "Tenant ID (UUID)" },
+            { name: "userQ", kind: "text", placeholder: "Usuário — email, nome ou UUID" },
+            { name: "action", kind: "text", placeholder: "Ação contém… (ex: sa, billing, login)" },
             { name: "since", kind: "date" },
+            { name: "until", kind: "date" },
           ]}
         />
 

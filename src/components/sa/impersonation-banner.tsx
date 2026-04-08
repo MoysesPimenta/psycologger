@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { AlertCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 export interface ImpersonationBannerProps {
   impersonatedUserName?: string;
@@ -24,15 +25,24 @@ export default function ImpersonationBanner({
   const handleStop = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/v1/sa/impersonate/stop", {
+      const res = await fetchWithCsrf("/api/v1/sa/impersonate/stop", {
         method: "POST",
       });
       if (res.ok) {
         router.push("/sa/dashboard");
         router.refresh();
+      } else {
+        const payload = await res.json().catch(() => ({}));
+        const msg =
+          payload?.error?.message ||
+          payload?.message ||
+          (typeof payload?.error === "string" ? payload.error : null) ||
+          `HTTP ${res.status}`;
+        alert(`Falha ao parar impersonação: ${msg}`);
       }
     } catch (error) {
       console.error("Failed to stop impersonation:", error);
+      alert("Erro ao parar impersonação");
     } finally {
       setIsLoading(false);
     }
