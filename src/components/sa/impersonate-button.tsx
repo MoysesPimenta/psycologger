@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 export interface ImpersonateButtonProps {
   userId: string;
@@ -21,7 +22,7 @@ export function ImpersonateButton({ userId, userName }: ImpersonateButtonProps) 
   const handleImpersonate = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/v1/sa/impersonate", {
+      const res = await fetchWithCsrf("/api/v1/sa/impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),

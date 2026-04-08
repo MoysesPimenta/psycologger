@@ -8,9 +8,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PlanTier } from "@prisma/client";
+import { fetchWithCsrf } from "@/lib/csrf-client";
 
 async function post(url: string, body: unknown = {}) {
-  const res = await fetch(url, {
+  const res = await fetchWithCsrf(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

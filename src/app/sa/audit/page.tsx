@@ -20,13 +20,16 @@ export default async function SAAuditPage({
 
   const where: Record<string, any> = {};
 
-  // Filter by tenant
-  if (searchParams.tenantId) {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  // Filter by tenant — only if the value parses as a uuid (column is @db.Uuid,
+  // Prisma throws PrismaClientValidationError on non-uuid input).
+  if (searchParams.tenantId && UUID_RE.test(searchParams.tenantId as string)) {
     where.tenantId = searchParams.tenantId as string;
   }
 
-  // Filter by user
-  if (searchParams.userId) {
+  // Filter by user — same uuid guard.
+  if (searchParams.userId && UUID_RE.test(searchParams.userId as string)) {
     where.userId = searchParams.userId as string;
   }
 

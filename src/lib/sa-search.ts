@@ -5,6 +5,8 @@
 
 import { db } from "./db";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export interface TenantSearchParams {
   q?: string; // Search by name, domain, or ID
   planTier?: string; // Filter by plan tier (FREE, PRO, CLINIC)
@@ -33,11 +35,16 @@ export async function searchTenants(params: TenantSearchParams) {
 
   // Search by name, slug, or id
   if (params.q) {
-    where.OR = [
+    const or: Record<string, any>[] = [
       { name: { contains: params.q, mode: "insensitive" } },
       { slug: { contains: params.q, mode: "insensitive" } },
-      { id: { equals: params.q } }, // exact match on id
     ];
+    // id is a uuid column — Prisma throws on non-uuid values, so only include
+    // the id equality branch when the query string parses as a uuid.
+    if (UUID_RE.test(params.q)) {
+      or.push({ id: { equals: params.q } });
+    }
+    where.OR = or;
   }
 
   // Filter by plan tier

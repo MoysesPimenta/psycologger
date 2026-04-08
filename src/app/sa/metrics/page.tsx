@@ -30,11 +30,36 @@ const fmtUsdCents = (cents: number) =>
 export default async function SAMetricsPage() {
   await requireSuperAdmin();
 
+  // Call each metric query in isolation so one failure surfaces with a
+  // pinpoint log entry instead of bubbling a generic server-components error.
+  async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`[sa_metrics] ${label} failed:`, err);
+      return fallback;
+    }
+  }
+
+  const emptyMetrics = {
+    tenantCount: 0, userCount: 0, patientCount: 0,
+    freeCount: 0, proCount: 0, clinicCount: 0,
+    activeSubscribers: 0, paidSubscribers: 0, trialingCount: 0,
+    pastDueCount: 0, graceCount: 0, canceledAtPeriodEndCount: 0,
+    mrrCents: 0, arrCents: 0, mrrUsdCents: 0, arpaCents: 0,
+    newPaidThisMonth: 0, canceledPaidThisMonth: 0,
+    reactivationsThisMonth: 0, trialToPaidThisMonth: 0, netNewPaidThisMonth: 0,
+    monthlyChurnRate: null as number | null, monthlyGrossChurnCents: 0,
+    ltvCents: null as number | null, cac: null as number | null,
+    webhookErrors24h: 0, overQuotaTenantCount: 0,
+  };
+
   const [metrics, recentBilling, series, delinquent] = await Promise.all([
-    computeSaasMetrics(),
-    getRecentBillingEvents(20),
-    computeHistoricalSeries(12),
-    listDelinquentTenants(25),
+    safe("computeSaasMetrics", computeSaasMetrics, emptyMetrics),
+    safe("getRecentBillingEvents", () => getRecentBillingEvents(20), [] as Awaited<ReturnType<typeof getRecentBillingEvents>>),
+    safe("computeHistoricalSeries", () => computeHistoricalSeries(12), [] as Awaited<ReturnType<typeof computeHistoricalSeries>>),
+    safe("listDelinquentTenants", () => listDelinquentTenants(25), [] as Awaited<ReturnType<typeof listDelinquentTenants>>),
   ]);
 
   // Simple sparkline: pick MRR series scaled to 100px height.
