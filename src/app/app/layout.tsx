@@ -19,7 +19,20 @@ export default async function AppLayout({
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const ctx = await getAuthContext();
+  let ctx;
+  try {
+    ctx = await getAuthContext();
+  } catch (err) {
+    // If the user has no ACTIVE membership but does have SUSPENDED ones, send
+    // them to the dedicated suspended-clinic page instead of the generic
+    // error boundary.
+    const suspended = await db.membership.findFirst({
+      where: { userId: session.user.id, status: "SUSPENDED" },
+      select: { id: true },
+    });
+    if (suspended) redirect("/suspended");
+    throw err;
+  }
 
   // Check subscription status (unless SUPERADMIN)
   let billingState: "FREE" | "ACTIVE" | "GRACE" | "BLOCKED" | null = null;
