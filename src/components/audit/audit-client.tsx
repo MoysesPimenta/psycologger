@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Download, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/utils";
@@ -18,6 +19,7 @@ interface AuditEntry {
 
 export function AuditClient() {
   const { toast } = useToast();
+  const t = useTranslations("audit");
   const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
@@ -40,7 +42,7 @@ export function AuditClient() {
       const res = await fetch("/api/v1/audit?export=true");
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        toast({ title: json?.error ?? "Erro ao exportar auditoria", variant: "destructive" });
+        toast({ title: json?.error ?? t("exportCSV"), variant: "destructive" });
         return;
       }
       const blob = await res.blob();
@@ -51,7 +53,7 @@ export function AuditClient() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      toast({ title: "Erro de rede ao exportar auditoria", variant: "destructive" });
+      toast({ title: t("exportCSV"), variant: "destructive" });
     }
   }
 
@@ -63,19 +65,19 @@ export function AuditClient() {
           onChange={(e) => setFilter(e.target.value)}
           className="border rounded-md px-3 py-2 sm:py-1.5 text-sm bg-white h-11 sm:h-auto"
         >
-          <option value="">Todas as ações</option>
-          <option value="LOGIN">Login</option>
-          <option value="PATIENT_CREATE">Paciente criado</option>
-          <option value="SESSION_CREATE">Sessão criada</option>
-          <option value="SESSION_UPDATE">Sessão atualizada</option>
-          <option value="CHARGE_CREATE">Cobrança criada</option>
-          <option value="PAYMENT_CREATE">Pagamento registrado</option>
-          <option value="APPOINTMENT_CREATE">Consulta criada</option>
+          <option value="">{t("filterAllActions")}</option>
+          <option value="LOGIN">{t("filterLogin")}</option>
+          <option value="PATIENT_CREATE">{t("filterPatientCreate")}</option>
+          <option value="SESSION_CREATE">{t("filterSessionCreate")}</option>
+          <option value="SESSION_UPDATE">{t("filterSessionUpdate")}</option>
+          <option value="CHARGE_CREATE">{t("filterChargeCreate")}</option>
+          <option value="PAYMENT_CREATE">{t("filterPaymentCreate")}</option>
+          <option value="APPOINTMENT_CREATE">{t("filterAppointmentCreate")}</option>
         </select>
         <Button variant="outline" size="sm" onClick={exportCsv} className="h-11 sm:h-auto w-full sm:w-auto gap-1.5">
           <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">Exportar CSV</span>
-          <span className="sm:hidden">Exportar</span>
+          <span className="hidden sm:inline">{t("exportCSV")}</span>
+          <span className="sm:hidden">{t("exportCSV")}</span>
         </Button>
       </div>
 
@@ -85,11 +87,11 @@ export function AuditClient() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="text-left p-3 font-medium text-gray-500">Data/Hora</th>
-                <th className="text-left p-3 font-medium text-gray-500">Usuário</th>
-                <th className="text-left p-3 font-medium text-gray-500">Ação</th>
-                <th className="text-left p-3 font-medium text-gray-500">Entidade</th>
-                <th className="text-left p-3 font-medium text-gray-500">IP</th>
+                <th className="text-left p-3 font-medium text-gray-500">{t("tableHeaderDateTime")}</th>
+                <th className="text-left p-3 font-medium text-gray-500">{t("tableHeaderUser")}</th>
+                <th className="text-left p-3 font-medium text-gray-500">{t("tableHeaderAction")}</th>
+                <th className="text-left p-3 font-medium text-gray-500">{t("tableHeaderEntity")}</th>
+                <th className="text-left p-3 font-medium text-gray-500">{t("tableHeaderIP")}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -105,7 +107,7 @@ export function AuditClient() {
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-gray-500">
                     <Shield className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                    Nenhum registro encontrado.
+                    {t("emptyState")}
                   </td>
                 </tr>
               ) : (
@@ -140,7 +142,7 @@ export function AuditClient() {
         ) : logs.length === 0 ? (
           <div className="bg-white rounded-lg border p-8 text-center text-gray-500">
             <Shield className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-            <p className="text-sm">Nenhum registro encontrado.</p>
+            <p className="text-sm">{t("emptyState")}</p>
           </div>
         ) : (
           logs.map((log) => (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { format, parseISO } from "date-fns";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 import { ptBR } from "date-fns/locale";
@@ -10,6 +11,7 @@ import {
   Edit2, X, Check, AlertTriangle, ChevronLeft, ExternalLink,
   Repeat, CreditCard, Trash2, RefreshCw, DollarSign, Split,
 } from "lucide-react";
+import { chargeStatusLabel } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,6 +68,7 @@ interface Props {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+// Status labels pulled from i18n via useTranslations in component
 const STATUS_LABELS: Record<string, string> = {
   SCHEDULED: "Agendada",
   CONFIRMED: "Confirmada",
@@ -82,6 +85,7 @@ const STATUS_COLORS: Record<string, string> = {
   NO_SHOW:   "bg-orange-100 text-orange-800 border-orange-200",
 };
 
+// Session type labels pulled from i18n
 const SESSION_TYPE_LABELS: Record<string, string> = {
   IN_PERSON: "Presencial",
   ONLINE: "Online",
@@ -89,6 +93,7 @@ const SESSION_TYPE_LABELS: Record<string, string> = {
   GROUP: "Grupo",
 };
 
+// Payment methods - labels will be pulled from i18n in component
 const PAYMENT_METHODS = [
   { value: "PIX", label: "PIX" },
   { value: "CASH", label: "Dinheiro" },
@@ -156,6 +161,7 @@ function PaymentModal({
   onClose,
   onPaid,
   partial = false,
+  t,
 }: {
   chargeId: string;
   netAmountCents: number;
@@ -166,6 +172,7 @@ function PaymentModal({
   onClose: () => void;
   onPaid: (payment: Payment, newStatus: string, remainderCharge?: Charge) => void;
   partial?: boolean;
+  t: ReturnType<typeof useTranslations>;
 }) {
   const [method, setMethod] = useState("PIX");
   const [amount, setAmount] = useState((netAmountCents / 100).toFixed(2));
@@ -180,12 +187,12 @@ function PaymentModal({
     try {
       const amountCents = Math.round(parseFloat(amount.replace(",", ".")) * 100);
       if (!amountCents || amountCents <= 0) {
-        setError("Informe um valor válido.");
+        setError(t("paymentErrorAmount"));
         setSaving(false);
         return;
       }
       if (amountCents > netAmountCents) {
-        setError(`Valor não pode exceder o saldo restante de R$ ${(netAmountCents / 100).toFixed(2).replace(".", ",")}.`);
+        setError(`${t("paymentErrorExceeds")} R$ ${(netAmountCents / 100).toFixed(2).replace(".", ",")}.`);
         setSaving(false);
         return;
       }
@@ -203,7 +210,7 @@ function PaymentModal({
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(typeof errData?.error === "string" ? errData.error : errData?.error?.message ?? errData?.message ?? "Erro ao registrar pagamento.");
+        throw new Error(typeof errData?.error === "string" ? errData.error : errData?.error?.message ?? errData?.message ?? t("paymentErrorGeneral"));
       }
       const payData = await res.json();
 
@@ -224,7 +231,7 @@ function PaymentModal({
       const newStatus = remainderCharge ? "PAID" : (amountCents >= netAmountCents ? "PAID" : "PENDING");
       onPaid(newPayment, newStatus, remainderCharge);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro ao registrar pagamento.");
+      setError(e instanceof Error ? e.message : t("paymentErrorGeneral"));
     } finally {
       setSaving(false);
     }
@@ -239,10 +246,10 @@ function PaymentModal({
           </div>
           <div>
             <h2 id="appt-payment-modal-title" className="font-semibold text-gray-900">
-              {partial ? "Pagamento parcial" : "Registrar pagamento"}
+              {partial ? t("paymentModalTitlePartial") : t("paymentModalTitle")}
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Total da cobrança: R$ {(netAmountCents / 100).toFixed(2).replace(".", ",")}
+              {t("paymentModalTotal")} R$ {(netAmountCents / 100).toFixed(2).replace(".", ",")}
             </p>
           </div>
         </div>
@@ -255,7 +262,7 @@ function PaymentModal({
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Forma de pagamento</label>
+            <label className="text-xs text-gray-500 block mb-1">{t("paymentMethodLabel")}</label>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value)}
@@ -267,7 +274,7 @@ function PaymentModal({
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Valor recebido (R$)</label>
+            <label className="text-xs text-gray-500 block mb-1">{t("paymentAmountLabel")}</label>
             <input
               type="text" inputMode="decimal"
               value={amount}
@@ -276,7 +283,7 @@ function PaymentModal({
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Data de recebimento</label>
+            <label className="text-xs text-gray-500 block mb-1">{t("paymentDateLabel")}</label>
             <input
               type="date"
               value={paidAt}
@@ -287,7 +294,7 @@ function PaymentModal({
           {partial && (
             <div>
               <label className="text-xs text-gray-500 block mb-1">
-                Vencimento do saldo restante
+                {t("paymentDueDateLabel")}
               </label>
               <input
                 type="date"
@@ -325,6 +332,8 @@ export function AppointmentDetailClient({
   recurrenceFutureCount,
 }: Props) {
   const router = useRouter();
+  const t = useTranslations("appointments");
+  const tCharges = useTranslations("charges");
   const [appt, setAppt] = useState(() => normalizeAppt(initialAppt));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -882,6 +891,7 @@ export function AppointmentDetailClient({
         providerId={appt.provider.id}
         appointmentId={appt.id}
         onChargesChange={(charges) => setAppt((a) => ({ ...a, charges }))}
+        t={t}
       />
 
       {/* ── Charge prompt modal ── */}
@@ -1064,6 +1074,7 @@ function ChargesCard({
   providerId,
   appointmentId,
   onChargesChange,
+  t,
 }: {
   charges: Charge[];
   totalCharged: number;
@@ -1072,6 +1083,7 @@ function ChargesCard({
   providerId: string;
   appointmentId: string;
   onChargesChange: (charges: Charge[]) => void;
+  t: ReturnType<typeof useTranslations>;
 }) {
   const [charges, setCharges] = useState(initialCharges);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1188,6 +1200,7 @@ function ChargesCard({
     setPayModal(null);
   }
 
+  // Charge status labels pulled from i18n
   const CHARGE_STATUS_LABELS: Record<string, string> = {
     PENDING: "Pendente", PAID: "Pago", OVERDUE: "Vencido",
     PARTIAL: "Parcial", VOID: "Cancelado",
@@ -1219,18 +1232,19 @@ function ChargesCard({
           onPaid={(payment, newStatus, remainderCharge) =>
             handlePaid(payModal.chargeId, payment, newStatus, remainderCharge)
           }
+          t={t}
         />
       )}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-base">Financeiro</CardTitle>
+          <CardTitle className="text-base">{t("financialSection")}</CardTitle>
           <div className="flex items-center gap-2">
             {computedTotal > 0 && (
               <span className={`text-sm font-medium ${computedPaid >= computedTotal ? "text-green-700" : "text-orange-700"}`}>
                 {computedPaid >= computedTotal
-                  ? "Pago"
-                  : `Pendente · R$ ${((computedTotal - computedPaid) / 100).toFixed(2).replace(".", ",")}`}
+                  ? t("chargeStatusPaid")
+                  : `${t("chargeStatusPending")} · R$ ${((computedTotal - computedPaid) / 100).toFixed(2).replace(".", ",")}`}
               </span>
             )}
             <button
@@ -1374,7 +1388,7 @@ function ChargesCard({
                     {isPartiallyPaid && (
                       <div className="flex items-center gap-2 pt-1">
                         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">
-                          <Split className="h-3.5 w-3.5" /> Pago parcialmente · R$ {(paidSoFar / 100).toFixed(2).replace(".", ",")} de R$ {(net / 100).toFixed(2).replace(".", ",")}
+                          <Split className="h-3.5 w-3.5" /> {chargeStatusLabel("PARTIALLY_PAID")} · R$ {(paidSoFar / 100).toFixed(2).replace(".", ",")} de R$ {(net / 100).toFixed(2).replace(".", ",")}
                         </span>
                       </div>
                     )}

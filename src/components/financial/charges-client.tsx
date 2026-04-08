@@ -53,10 +53,10 @@ export function ChargesClient() {
         const json = await res.json();
         setCharges(json.data);
       } else {
-        setFetchError("Erro ao carregar cobranças. Tente novamente.");
+        setFetchError(t("loadError"));
       }
     } catch {
-      setFetchError("Erro de conexão. Tente novamente.");
+      setFetchError(t("connectionError"));
     } finally {
       setLoading(false);
     }
@@ -95,13 +95,13 @@ export function ChargesClient() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao registrar pagamento.");
+        throw new Error(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? t("markPaidError"));
       }
-      toast({ title: "Pagamento registrado!", variant: "success" });
+      toast({ title: t("markPaidSuccess"), variant: "success" });
       fetchCharges();
     } catch (e: unknown) {
       toast({
-        title: "Erro ao registrar pagamento",
+        title: t("markPaidError"),
         description: e instanceof Error ? e.message : undefined,
         variant: "destructive",
       });
@@ -112,10 +112,10 @@ export function ChargesClient() {
 
   // ── Summary label varies by active tab ────────────────────────────────────
   function summaryLabel() {
-    if (filter === "PAID") return "Total recebido";
-    if (filter === "OVERDUE") return "Total vencido";
-    if (filter === "PENDING") return "Total pendente";
-    return "Total cobrado";
+    if (filter === "PAID") return t("summaryTotalReceived");
+    if (filter === "OVERDUE") return t("summaryTotalOverdue");
+    if (filter === "PENDING") return t("summaryTotalPending");
+    return t("summaryTotalBilled");
   }
 
   return (
@@ -123,16 +123,16 @@ export function ChargesClient() {
       {fetchError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
           <span>{fetchError}</span>
-          <button onClick={() => fetchCharges()} className="text-red-600 underline text-xs ml-4">Tentar novamente</button>
+          <button onClick={() => fetchCharges()} className="text-red-600 underline text-xs ml-4">{t("retryButton")}</button>
         </div>
       )}
       {/* Filter tabs */}
       <div className="flex gap-2 overflow-x-auto">
         {[
-          { value: "", label: "Todas" },
-          { value: "PENDING", label: "Pendentes" },
-          { value: "OVERDUE", label: "Vencidas" },
-          { value: "PAID", label: "Pagas" },
+          { value: "", label: t("filterAll") },
+          { value: "PENDING", label: t("filterPending") },
+          { value: "OVERDUE", label: t("filterOverdue") },
+          { value: "PAID", label: t("filterPaid") },
         ].map((f) => (
           <button
             key={f.value}
@@ -163,17 +163,17 @@ export function ChargesClient() {
           </div>
           {filter === "" && summary.totalPaid > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span className="text-xs text-gray-500 font-medium">Recebido</span>
+              <span className="text-xs text-gray-500 font-medium">{t("summaryReceived")}</span>
               <span className="text-sm font-bold text-green-700">{formatCurrency(summary.totalPaid)}</span>
             </div>
           )}
           {filter === "" && summary.totalRemaining > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span className="text-xs text-gray-500 font-medium">A receber</span>
+              <span className="text-xs text-gray-500 font-medium">{t("summaryToReceive")}</span>
               <span className="text-sm font-bold text-yellow-700">{formatCurrency(summary.totalRemaining)}</span>
             </div>
           )}
-          <span className="text-xs text-gray-400 sm:ml-auto col-span-2 sm:col-span-auto">{summary.count} cobrança{summary.count !== 1 ? "s" : ""}</span>
+          <span className="text-xs text-gray-400 sm:ml-auto col-span-2 sm:col-span-auto">{summary.count} {summary.count !== 1 ? t("chargeCounts") : t("chargeCount")}</span>
         </div>
       )}
 
@@ -183,7 +183,7 @@ export function ChargesClient() {
         ))
       ) : charges.length === 0 ? (
         <div className="bg-white rounded-xl border p-12 text-center text-gray-500">
-          Nenhuma cobrança encontrada.
+          {t("noCharges")}
         </div>
       ) : (
         <div className="space-y-2 pb-4">
@@ -211,12 +211,12 @@ export function ChargesClient() {
                       </Badge>
                     </div>
                     <div className="text-xs sm:text-sm text-gray-500 mt-1">
-                      Vencimento: {formatDate(charge.dueDate)}
+                      {t("dueDate")} {formatDate(charge.dueDate)}
                       {charge.description && <span className="hidden sm:inline"> · {charge.description}</span>}
                     </div>
                     {charge.payments.length > 0 && (
                       <div className="text-xs text-green-600 mt-0.5">
-                        Recebido: {formatCurrency(charge.paidAmountCents)}
+                        {t("summaryReceived")}: {formatCurrency(charge.paidAmountCents)}
                       </div>
                     )}
                   </div>
@@ -257,8 +257,8 @@ export function ChargesClient() {
                           onClick={() => markPaid(charge.id, netAmount - charge.paidAmountCents)}
                         >
                           <CreditCard className="h-3 w-3" />
-                          <span className="hidden sm:inline">Marcar pago</span>
-                          <span className="sm:hidden">Pago</span>
+                          <span className="hidden sm:inline">{t("markPaid")}</span>
+                          <span className="sm:hidden">{t("paid")}</span>
                         </Button>
                       </div>
                     )}
@@ -287,8 +287,8 @@ export function ChargesClient() {
                           onClick={() => markPaid(charge.id, remaining)}
                         >
                           <CreditCard className="h-3 w-3" />
-                          <span className="hidden sm:inline">Pagar resto</span>
-                          <span className="sm:hidden">Pagar</span>
+                          <span className="hidden sm:inline">{t("payRemainder")}</span>
+                          <span className="sm:hidden">{t("paid")}</span>
                         </Button>
                       </div>
                     )}
@@ -340,7 +340,7 @@ export function ChargesClient() {
                       }}
                     >
                       <CreditCard className="h-3 w-3" />
-                      Confirmar
+                      {t("confirmPartialPayment")}
                     </Button>
                     <button
                       onClick={() => setPartialFormId(null)}
@@ -349,7 +349,7 @@ export function ChargesClient() {
                       <X className="h-4 w-4" />
                     </button>
                     <span className="text-xs text-gray-500 ml-auto">
-                      Pendente: {formatCurrency(remaining)}
+                      {t("pendingAmount")} {formatCurrency(remaining)}
                     </span>
                   </div>
                 )}

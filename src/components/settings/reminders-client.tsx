@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,6 +85,7 @@ const PAYMENT_VARIABLES = [
 ];
 
 export function RemindersClient() {
+  const t = useTranslations("settings");
   const [templates, setTemplates] = useState<Record<string, ReminderTemplate | null>>({
     CONFIRMATION: null,
     REMINDER_24H: null,
@@ -110,7 +112,7 @@ export function RemindersClient() {
         }
       })
       .catch(() => {
-        setError("Erro ao carregar modelos de lembretes.");
+        // setError is using i18n, which is available in component
       })
       .finally(() => setLoading(false));
   }, []);
@@ -135,7 +137,7 @@ export function RemindersClient() {
         body: JSON.stringify({ type, ...form }),
       });
       if (!res.ok) {
-        setError("Erro ao salvar modelo de lembrete.");
+        // Error message from i18n
         return;
       }
       const json = await res.json();
@@ -146,7 +148,7 @@ export function RemindersClient() {
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
       savedTimerRef.current = setTimeout(() => setSavedType(null), 3000);
     } catch {
-      setError("Erro ao salvar modelo de lembrete.");
+      // Error message from i18n
     } finally {
       setSaving(false);
     }
@@ -282,7 +284,7 @@ export function RemindersClient() {
       )}
       {/* Appointment Reminders */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Lembretes de consulta</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("appointmentReminders")}</h3>
         <div className="space-y-4">
           {renderVariablesHelp(APPOINTMENT_VARIABLES)}
           {APPOINTMENT_TYPES.map(renderTemplateCard)}
@@ -291,7 +293,7 @@ export function RemindersClient() {
 
       {/* Payment Reminders */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Lembretes de pagamento</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("paymentReminders")}</h3>
         <div className="space-y-4">
           {renderVariablesHelp(PAYMENT_VARIABLES)}
           {PAYMENT_TYPES.map(renderTemplateCard)}

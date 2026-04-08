@@ -118,6 +118,43 @@ export function paymentMethodLabel(method: string): string {
   return labels[method] ?? method;
 }
 
+// ─── i18n Key Helpers (for use in client components with useTranslations) ────
+
+export function chargeStatusKey(status: string): string {
+  const keys: Record<string, string> = {
+    PENDING: "charges.statusPending",
+    PAID: "charges.statusPaid",
+    OVERDUE: "charges.statusOverdue",
+    VOID: "charges.statusVoid",
+    REFUNDED: "charges.statusRefunded",
+    PARTIALLY_PAID: "charges.statusPartiallyPaid",
+  };
+  return keys[status] ?? status;
+}
+
+export function appointmentStatusKey(status: string): string {
+  const keys: Record<string, string> = {
+    SCHEDULED: "appointments.statusScheduled",
+    CONFIRMED: "appointments.statusConfirmed",
+    COMPLETED: "appointments.statusCompleted",
+    CANCELED: "appointments.statusCanceled",
+    NO_SHOW: "appointments.statusNoShow",
+  };
+  return keys[status] ?? status;
+}
+
+export function paymentMethodKey(method: string): string {
+  const keys: Record<string, string> = {
+    PIX: "charges.pix",
+    CASH: "charges.cash",
+    CARD: "charges.card",
+    TRANSFER: "charges.transfer",
+    INSURANCE: "charges.insurance",
+    OTHER: "charges.other",
+  };
+  return keys[method] ?? method;
+}
+
 export function roleLabel(role: string): string {
   const labels: Record<string, string> = {
     SUPERADMIN: "Super Administrador",

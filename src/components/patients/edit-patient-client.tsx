@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +49,7 @@ export function EditPatientClient({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("patients");
   const [loading, setLoading] = useState(false);
 
   const dobStr = patient.dob
@@ -117,18 +119,18 @@ export function EditPatientClient({
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        const msg = typeof body?.error === "string" ? body.error : body?.message ?? "Erro ao salvar";
+        const msg = typeof body?.error === "string" ? body.error : body?.message ?? t("saveError");
         throw new Error(msg);
       }
 
       const resData = await res.json().catch(() => null);
-      toast({ title: "Paciente atualizado!", variant: "success" });
+      toast({ title: t("patientUpdated"), variant: "success" });
 
       // If the email changed and portal invite was sent, notify the user
       if (resData?.data?.portalEmailSynced) {
         toast({
-          title: "Link do portal enviado!",
-          description: `Um novo link de acesso foi enviado para ${form.email}`,
+          title: t("portalLinkSent"),
+          description: `${t("portalLinkSentMessage")} ${form.email}`,
           variant: "success",
         });
       }
@@ -137,7 +139,7 @@ export function EditPatientClient({
       router.refresh();
     } catch (err) {
       toast({
-        title: err instanceof Error ? err.message : "Erro ao atualizar paciente",
+        title: err instanceof Error ? err.message : t("updateError"),
         variant: "destructive",
       });
     } finally {
@@ -152,7 +154,7 @@ export function EditPatientClient({
           {/* ── Personal info ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Nome completo *</Label>
+              <Label htmlFor="fullName">{t("fullName")} *</Label>
               <Input
                 id="fullName"
                 value={form.fullName}
@@ -163,7 +165,7 @@ export function EditPatientClient({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="preferredName">Nome preferido (apelido)</Label>
+              <Label htmlFor="preferredName">{t("preferredName")}</Label>
               <Input
                 id="preferredName"
                 value={form.preferredName}
@@ -175,7 +177,7 @@ export function EditPatientClient({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -184,7 +186,7 @@ export function EditPatientClient({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone / WhatsApp</Label>
+              <Label htmlFor="phone">{t("phone")}</Label>
               <Input
                 id="phone"
                 value={form.phone}
@@ -196,7 +198,7 @@ export function EditPatientClient({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="dob">Data de nascimento</Label>
+              <Label htmlFor="dob">{t("dateOfBirth")}</Label>
               <Input
                 id="dob"
                 type="date"
@@ -205,7 +207,7 @@ export function EditPatientClient({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
+              <Label htmlFor="cpf">{t("cpf")}</Label>
               <Input
                 id="cpf"
                 value={form.cpf}
@@ -217,22 +219,22 @@ export function EditPatientClient({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tags">Tags (separadas por vírgula)</Label>
+            <Label htmlFor="tags">{t("tags")}</Label>
             <Input
               id="tags"
               value={form.tags}
               onChange={(e) => set("tags", e.target.value)}
-              placeholder="ansiedade, depressão, adulto"
+              placeholder={t("placeholderTags")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Observações (não clínicas)</Label>
+            <Label htmlFor="notes">{t("notes")}</Label>
             <textarea
               id="notes"
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
-              placeholder="Preferências de horário, forma de contato, etc."
+              placeholder={t("placeholderNotes")}
               maxLength={500}
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
             />
@@ -241,14 +243,14 @@ export function EditPatientClient({
           {/* ── Provider ── */}
           {providers.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="assignedUserId">Psicólogo responsável</Label>
+              <Label htmlFor="assignedUserId">{t("assignedPsychologist")}</Label>
               <select
                 id="assignedUserId"
                 value={form.assignedUserId}
                 onChange={(e) => set("assignedUserId", e.target.value)}
                 className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <option value="">— Nenhum —</option>
+                <option value="">{t("noSelection")}</option>
                 {providers.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name ?? p.id}
@@ -268,7 +270,7 @@ export function EditPatientClient({
               className="rounded"
             />
             <Label htmlFor="consentGiven" className="font-normal cursor-pointer">
-              Consentimento para tratamento concedido
+              {t("consent")}
             </Label>
           </div>
 
@@ -276,7 +278,7 @@ export function EditPatientClient({
           {appointmentTypes.length > 0 && (
             <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
               <p className="text-sm font-medium text-gray-700">
-                Cobrança padrão
+                {t("defaultChargingSection")}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -284,7 +286,7 @@ export function EditPatientClient({
                     htmlFor="defaultAppointmentTypeId"
                     className="text-xs text-gray-600"
                   >
-                    Tipo de consulta padrão
+                    {t("defaultAppointmentType")}
                   </Label>
                   <select
                     id="defaultAppointmentTypeId"
@@ -302,7 +304,7 @@ export function EditPatientClient({
                     }}
                     className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="">— Nenhum —</option>
+                    <option value="">{t("noSelection")}</option>
                     {appointmentTypes.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name} · R${" "}
@@ -318,10 +320,10 @@ export function EditPatientClient({
                     htmlFor="defaultFeeOverrideCents"
                     className="text-xs text-gray-600"
                   >
-                    Valor por sessão (R$)
+                    {t("sessionFeeValue")}
                     {selectedType && !form.defaultFeeOverrideCents && (
                       <span className="ml-1 font-normal text-gray-400">
-                        padrão: R${" "}
+                        {t("sessionFeeDefault")} R${" "}
                         {(selectedType.defaultPriceCents / 100)
                           .toFixed(2)
                           .replace(".", ",")}
@@ -354,10 +356,10 @@ export function EditPatientClient({
               variant="outline"
               onClick={() => router.back()}
             >
-              Cancelar
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : "Salvar alterações"}
+              {loading ? t("saving") : t("saveChanges")}
             </Button>
           </div>
         </form>

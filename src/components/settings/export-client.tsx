@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Download, FileText, Users, Calendar, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,34 +15,35 @@ interface ExportOption {
   filename: string;
 }
 
-const EXPORTS: ExportOption[] = [
-  {
-    key: "patients",
-    label: "Pacientes",
-    description: "Nome, email, telefone, data de nascimento e tags",
-    icon: Users,
-    endpoint: "/api/v1/reports?type=patients",
-    filename: "pacientes.csv",
-  },
-  {
-    key: "appointments",
-    label: "Consultas",
-    description: "Todas as consultas com paciente, profissional, data e status",
-    icon: Calendar,
-    endpoint: "/api/v1/reports?type=appointments",
-    filename: "consultas.csv",
-  },
-  {
-    key: "charges",
-    label: "Cobranças",
-    description: "Cobranças e pagamentos com valores e status",
-    icon: CreditCard,
-    endpoint: "/api/v1/reports?type=charges",
-    filename: "cobrancas.csv",
-  },
-];
-
 export function ExportClient() {
+  const t = useTranslations("settings");
+
+  const EXPORTS: ExportOption[] = [
+    {
+      key: "patients",
+      label: t("exportPatients"),
+      description: t("exportPatientsDesc"),
+      icon: Users,
+      endpoint: "/api/v1/reports?type=patients",
+      filename: "pacientes.csv",
+    },
+    {
+      key: "appointments",
+      label: t("exportAppointments"),
+      description: t("exportAppointmentsDesc"),
+      icon: Calendar,
+      endpoint: "/api/v1/reports?type=appointments",
+      filename: "consultas.csv",
+    },
+    {
+      key: "charges",
+      label: t("exportCharges"),
+      description: t("exportChargesDesc"),
+      icon: CreditCard,
+      endpoint: "/api/v1/reports?type=charges",
+      filename: "cobrancas.csv",
+    },
+  ];
   const [downloading, setDownloading] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -52,7 +54,7 @@ export function ExportClient() {
       const res = await fetch(option.endpoint);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error?.message ?? "Erro ao exportar dados.");
+        setError(data?.error?.message ?? t("exportError"));
         return;
       }
       const blob = await res.blob();
@@ -65,7 +67,7 @@ export function ExportClient() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      setError("Erro de rede. Tente novamente.");
+      setError(t("exportNetworkError"));
     } finally {
       setDownloading(null);
     }
@@ -76,8 +78,7 @@ export function ExportClient() {
       <Card className="bg-amber-50 border-amber-200">
         <CardContent className="pt-4 pb-3">
           <p className="text-sm text-amber-900">
-            <strong>Atenção:</strong> Os dados exportados contêm informações dos seus pacientes.
-            Armazene os arquivos de forma segura e conforme a LGPD.
+            <strong>{t("exportWarning")}</strong> {t("exportWarningMessage")}
           </p>
         </CardContent>
       </Card>
@@ -103,7 +104,7 @@ export function ExportClient() {
                 disabled={isDownloading || downloading !== null}
               >
                 <Download className="h-4 w-4 mr-1.5" />
-                {isDownloading ? "Baixando..." : "Exportar CSV"}
+                {isDownloading ? t("downloading") : t("exportButton")}
               </Button>
             </CardContent>
           </Card>
@@ -116,9 +117,9 @@ export function ExportClient() {
         <CardContent className="pt-4 pb-4 text-center">
           <FileText className="h-8 w-8 text-gray-300 mx-auto mb-2" />
           <p className="text-sm text-gray-500">
-            Precisa de uma exportação completa ou em formato diferente?{" "}
+            {t("exportMoreData")}{" "}
             <a href="mailto:suporte@psycologger.com" className="text-brand-600 hover:underline">
-              Entre em contato
+              {t("exportContact")}
             </a>
             .
           </p>
