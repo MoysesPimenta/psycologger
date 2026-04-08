@@ -379,4 +379,57 @@ entries.
 
 **Impersonation unchanged** — signed `psycologger-impersonate` JWT cookie,
 byUserId-bound to the real SA session user, 1h TTL, re-verified on every
-request, forces `isSuperAdmin=false` on the impersonated context.
+request, forces `isSuperAdmin=false` on the impersonated context. Stopping
+impersonation redirects to `/sa/users`.
+
+## Support inbox (SA-only)
+
+Unscoped by tenant. Models: `SupportTicket`, `SupportMessage`,
+`SupportBlocklist` (+ enums `SupportTicketStatus`, `SupportMessageDirection`,
+`SupportBlocklistKind`). Migration `20260408_support_inbox`.
+
+**Inbound** — `POST /api/v1/webhooks/resend-inbound`
+- Svix signature verified against `RESEND_WEBHOOK_SECRET`, CSRF/auth exempt
+  via the `/api/v1/webhooks/*` middleware allowlist.
+- Body stored encrypted at rest via `encrypt()` from `src/lib/crypto.ts`
+  (same AES-256-GCM helper + `ENCRYPTION_KEY` used by clinical notes).
+- Blocklist (`EMAIL` exact + `DOMAIN` on the from-address) short-circuits
+  with `SUPPORT_INBOUND_BLOCKED` audit; returns 200 so Resend does not retry.
+- Rate limits: 20 messages / 10 min per fromEmail + 500 / min global circuit
+  breaker, via `src/lib/rate-limit.ts`.
+- Best-effort `tenantId`/`userId` match by case-insensitive email lookup on
+  `User` → latest `Membership`; match is optional and never required.
+- Threads by `(fromEmail + subjectNormalized)` within a rolling 14-day window;
+  otherwise creates a new ticket. `subjectNormalized` strips `Re:`/`Fwd:`.
+- Audits `SUPPORT_TICKET_CREATED` or `SUPPORT_MESSAGE_APPENDED`.
+
+**Outbound (reply)** — `POST /api/v1/sa/support/tickets/[id]/reply`
+- `requireSuperAdmin` + CSRF. Zod-validated `{body: string(1..10000)}`.
+- Rate limit 60 replies / hour per SA user.
+- Resend `emails.send` with `from: SUPPORT_EMAIL_FROM`
+  (default `Psycologger Suporte <support@psycologger.com>`), `Re:` prefix
+  added if missing, `In-Reply-To`/`References` headers derived from the
+  latest inbound `SupportMessage.emailMessageId`.
+- Encrypts body, appends OUTBOUND `SupportMessage`, flips status to
+  `PENDING`, audits `SUPPORT_TICKET_REPLIED`.
+
+**Status / Blocklist**
+- `POST /api/v1/sa/support/tickets/[id]/status` — SA-only,
+  `SUPPORT_TICKET_STATUS_CHANGED` audit with `{from,to}`.
+- `POST`/`DELETE /api/v1/sa/support/blocklist` — SA-only, upsert by
+  `(kind, pattern)`, audits `SUPPORT_BLOCKLIST_ADDED`/`_REMOVED`.
+
+**UI**
+- `/sa/support` — list with `SaLiveFilters` (status/tenantId/fromEmail/date).
+- `/sa/support/[id]` — thread detail, messages decrypted server-side,
+  rendered as plaintext. Reply composer via `fetchWithCsrf`.
+- `/sa/support/blocklist` — add/remove blocklist entries.
+- Sidebar nav entry "Suporte".
+
+**Privacy invariants**
+- Bodies never logged; audit summaries carry only metadata (fromEmail,
+  direction, resendMessageId, prev/next status).
+- All reads gated by `requireSuperAdmin()`. No tenant scoping intentionally:
+  incoming messages may not belong to any tenant, and this is an internal
+  ops surface. `SupportTicket.tenantId`/`userId` are best-effort links, not
+  authorization boundaries.

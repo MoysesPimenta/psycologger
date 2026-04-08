@@ -53,7 +53,7 @@ export default async function SAAuditPage({
           select: { id: true },
           take: 50,
         });
-        where.userId = { in: matches.length > 0 ? matches.map((u) => u.id) : ["__no_match__"] };
+        where.userId = { in: matches.length > 0 ? matches.map((u) => u.id) : ["00000000-0000-0000-0000-000000000000"] };
       } catch {
         userQWarning = "Consulta de usuário inválida — use um email, nome ou UUID.";
       }
@@ -81,10 +81,11 @@ export default async function SAAuditPage({
         });
         const ids = tenants.map((t) => t.id);
         // Combine with existing tenantId filter if present (intersection).
+        const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
         if (where.tenantId && typeof where.tenantId === "string") {
-          where.tenantId = ids.includes(where.tenantId) ? where.tenantId : "__no_match__";
+          where.tenantId = ids.includes(where.tenantId) ? where.tenantId : ZERO_UUID;
         } else {
-          where.tenantId = { in: ids.length > 0 ? ids : ["__no_match__"] };
+          where.tenantId = { in: ids.length > 0 ? ids : [ZERO_UUID] };
         }
       } catch {
         clinicQWarning = "Consulta de clínica inválida.";

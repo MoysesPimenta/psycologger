@@ -25,7 +25,7 @@ const BodySchema = z.object({
 });
 
 const SUPPORT_FROM =
-  process.env.SUPPORT_EMAIL_FROM ?? "Psycologger Suporte <suporte@psycologger.com.br>";
+  process.env.SUPPORT_EMAIL_FROM ?? "Psycologger Suporte <support@psycologger.com>";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {

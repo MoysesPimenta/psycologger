@@ -236,3 +236,30 @@ export async function POST(req: NextRequest) {
   PRO R$99 (25 pat / 1 seat), CLINIC R$199 (Infinity pat / 5 seats).
 - Unit tests: `tests/unit/billing-limits.test.ts` covers the enforcement
   invariants via a `jest.mock("@/lib/db", …)` pure-unit pattern.
+
+### April 8, 2026 — Support inbox (SA-only)
+
+- New models: `SupportTicket`, `SupportMessage`, `SupportBlocklist` +
+  enums `SupportTicketStatus` (OPEN/PENDING/CLOSED),
+  `SupportMessageDirection` (INBOUND/OUTBOUND), `SupportBlocklistKind`
+  (EMAIL/DOMAIN). Migration `20260408_support_inbox`.
+- New webhook `POST /api/v1/webhooks/resend-inbound` (Svix-verified, nodejs
+  runtime, CSRF/auth exempt via the existing `/api/v1/webhooks/*` allowlist).
+  Encrypts body with `ENCRYPTION_KEY` (clinical-note helper), enforces a
+  blocklist and rate limits (20/10min per fromEmail + 500/min global),
+  best-effort tenant/user match by email, threads by normalized subject in
+  a 14-day window.
+- New SA routes: `POST /api/v1/sa/support/tickets/[id]/reply` (Resend send
+  + threading headers + 60/hour per SA user), `POST …/status`, and
+  `POST`/`DELETE /api/v1/sa/support/blocklist`.
+- New pages: `/sa/support`, `/sa/support/[id]`, `/sa/support/blocklist`.
+  Sidebar "Suporte".
+- New audit actions: `SUPPORT_TICKET_CREATED`, `SUPPORT_MESSAGE_APPENDED`,
+  `SUPPORT_TICKET_REPLIED`, `SUPPORT_TICKET_STATUS_CHANGED`,
+  `SUPPORT_INBOUND_BLOCKED`, `SUPPORT_BLOCKLIST_ADDED`,
+  `SUPPORT_BLOCKLIST_REMOVED`.
+- Default outbound from: `Psycologger Suporte <support@psycologger.com>`,
+  overridable via `SUPPORT_EMAIL_FROM`.
+- Fix: `/sa/audit` crash on clinic/user filters with no matches (invalid
+  `__no_match__` placeholder on `@db.Uuid` columns) — now uses the zero
+  UUID. Stop-impersonation now redirects to `/sa/users`.

@@ -76,7 +76,7 @@ export default async function SuspendedPage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <a
-            href="mailto:suporte@psycologger.com.br?subject=Reativar%20acesso%20da%20cl%C3%ADnica"
+            href="mailto:support@psycologger.com?subject=Reativar%20acesso%20da%20cl%C3%ADnica"
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm"
           >
             <Mail className="h-4 w-4" />

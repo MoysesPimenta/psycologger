@@ -235,6 +235,17 @@ and reason.
 | `/api/v1/sa/tenants/[id]/reactivate` | POST | `SA_TENANT_REACTIVATE` | reverses suspend |
 | `/api/v1/sa/tenants/[id]/plan-override` | POST | `SA_PLAN_OVERRIDE` | sets `planTier`+`planSince`, does NOT touch Stripe |
 | `/api/v1/sa/tenants/[id]/notes` | GET/POST | `SA_INTERNAL_NOTE` | append-only notes stored as audit entries |
+| `/api/v1/webhooks/resend-inbound` | POST | `SUPPORT_TICKET_CREATED`/`SUPPORT_MESSAGE_APPENDED`/`SUPPORT_INBOUND_BLOCKED` | inbound email → SupportTicket (Svix-verified, no session) |
+| `/api/v1/sa/support/tickets/[id]/reply` | POST | `SUPPORT_TICKET_REPLIED` | Resend reply with threading; encrypts body; flips to PENDING |
+| `/api/v1/sa/support/tickets/[id]/status` | POST | `SUPPORT_TICKET_STATUS_CHANGED` | `{OPEN,PENDING,CLOSED}` transition |
+| `/api/v1/sa/support/blocklist` | POST/DELETE | `SUPPORT_BLOCKLIST_ADDED`/`_REMOVED` | email or domain blocklist for inbound |
+
+Support inbox is intentionally unscoped by tenant: inbound email may arrive
+from addresses that don't map to any tenant, and the feature is an internal
+ops surface. Access to `/sa/support/*` routes and pages is gated on
+`requireSuperAdmin()` only. Message bodies are encrypted at rest with
+`ENCRYPTION_KEY` (same helper as clinical notes) and never appear in logs
+or audit summaries.
 
 Plan-limit enforcement (`assertCanAddPatient`/`assertCanAddTherapist`) is now
 invoked by: `POST /api/v1/patients`, `PATCH /api/v1/patients/[id]` on

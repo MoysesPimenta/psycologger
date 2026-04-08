@@ -83,19 +83,27 @@ export default async function SASupportPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/sa/dashboard" className="text-gray-400 hover:text-white">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div className="flex items-center gap-3">
-          <Inbox className="h-6 w-6 text-brand-400" />
-          <div>
-            <h1 className="text-2xl font-bold">Suporte</h1>
-            <p className="text-gray-400 text-sm">
-              {totalCount} tickets ({openCount} abertos, {pendingCount} aguardando)
-            </p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/sa/dashboard" className="text-gray-400 hover:text-white">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="flex items-center gap-3">
+            <Inbox className="h-6 w-6 text-brand-400" />
+            <div>
+              <h1 className="text-2xl font-bold">Suporte</h1>
+              <p className="text-gray-400 text-sm">
+                {totalCount} tickets ({openCount} abertos, {pendingCount} aguardando)
+              </p>
+            </div>
           </div>
         </div>
+        <Link
+          href="/sa/support/blocklist"
+          className="px-3 py-1.5 rounded border border-gray-700 bg-gray-800 hover:bg-gray-700 text-sm text-gray-300"
+        >
+          Blocklist
+        </Link>
       </div>
 
       <SaLiveFilters
