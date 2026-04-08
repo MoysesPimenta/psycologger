@@ -11,10 +11,12 @@ import { getAuthContext } from "@/lib/tenant";
 import { db } from "@/lib/db";
 import { getPlan } from "@/lib/billing/plans";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReactivatePage() {
+  const t = await getTranslations("billing");
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
@@ -40,18 +42,17 @@ export default async function ReactivatePage() {
         <div className="text-5xl mb-4">⚠️</div>
 
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Assinatura Inativa
+          {t("inactiveSubscription")}
         </h1>
 
         <p className="text-gray-600 mb-6">
-          Sua assinatura expirou ou o pagamento não foi processado. Reative agora para continuar
-          usando o Psycologger.
+          {t("subscriptionExpired")}
         </p>
 
         {tenant.graceUntil && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-yellow-800">
-              <strong>Período de graça:</strong> Até{" "}
+              <strong>{t("graceUntil")}</strong>{" "}
               {new Date(tenant.graceUntil).toLocaleDateString("pt-BR")}
             </p>
           </div>
@@ -65,7 +66,7 @@ export default async function ReactivatePage() {
               type="submit"
               className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
             >
-              Reativar com Plano Pro
+              {t("upgradeProPlan")}
             </button>
           </form>
 
@@ -76,7 +77,7 @@ export default async function ReactivatePage() {
               type="submit"
               className="w-full px-6 py-3 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition"
             >
-              Reativar com Plano Clínica
+              {t("upgradeClinicPlan")}
             </button>
           </form>
 
@@ -84,14 +85,14 @@ export default async function ReactivatePage() {
             href="/app/billing"
             className="block px-6 py-3 text-gray-700 font-semibold border border-gray-300 rounded-lg hover:bg-gray-50 transition"
           >
-            Ver Planos
+            {t("viewPlans")}
           </Link>
         </div>
 
         <p className="text-xs text-gray-500 mt-6">
-          Precisa de ajuda?{" "}
+          {t("needHelp")}{" "}
           <a href="mailto:support@psycologger.com" className="text-blue-600 hover:underline">
-            Contate o suporte
+            {t("contactSupport")}
           </a>
         </p>
       </div>

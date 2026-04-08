@@ -14,10 +14,12 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
 import { ManageSubscriptionButton, UpgradeButton } from "@/components/billing/billing-actions";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
+  const t = await getTranslations("billing");
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
@@ -52,18 +54,18 @@ export default async function BillingPage() {
   }[state];
 
   const stateLabel = {
-    FREE: "Plano Gratuito",
-    ACTIVE: "Ativo",
-    GRACE: "Período de Graça",
-    BLOCKED: "Bloqueado",
+    FREE: t("freePlan"),
+    ACTIVE: t("active"),
+    GRACE: t("gracePeriod"),
+    BLOCKED: t("blocked"),
   }[state];
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-3xl font-bold">Plano e Assinatura</h1>
+        <h1 className="text-3xl font-bold">{t("title")}</h1>
         <p className="text-gray-600 mt-2">
-          Gerencie seu plano de serviço e informações de faturamento
+          {t("subtitle")}
         </p>
       </div>
 
@@ -83,24 +85,24 @@ export default async function BillingPage() {
         <div className="space-y-4 mb-6 pb-6 border-b border-gray-200">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Limite de Pacientes Ativos</p>
+              <p className="text-sm text-gray-600">{t("activePatients")}</p>
               <p className="text-lg font-semibold">
-                {plan.maxActivePatients === Infinity ? "Ilimitado" : plan.maxActivePatients}
+                {plan.maxActivePatients === Infinity ? t("unlimited") : plan.maxActivePatients}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Limite de Terapeutas</p>
+              <p className="text-sm text-gray-600">{t("therapists")}</p>
               <p className="text-lg font-semibold">
-                {plan.maxTherapistSeats === Infinity ? "Ilimitado" : plan.maxTherapistSeats}
+                {plan.maxTherapistSeats === Infinity ? t("unlimited") : plan.maxTherapistSeats}
               </p>
             </div>
           </div>
 
           {tenant.currentPeriodEnd && (
             <div>
-              <p className="text-sm text-gray-600">Período de Faturamento</p>
+              <p className="text-sm text-gray-600">{t("billingPeriod")}</p>
               <p className="text-sm">
-                Próxima renovação: {new Date(tenant.currentPeriodEnd).toLocaleDateString("pt-BR")}
+                {t("nextRenewal")} {new Date(tenant.currentPeriodEnd).toLocaleDateString("pt-BR")}
               </p>
             </div>
           )}
@@ -108,7 +110,7 @@ export default async function BillingPage() {
           {state === "GRACE" && tenant.graceUntil && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <p className="text-sm text-yellow-800">
-                Período de graça expira em{" "}
+                {t("graceExpires")}{" "}
                 <strong>
                   {formatDistanceToNow(new Date(tenant.graceUntil), { locale: ptBR })}
                 </strong>
@@ -142,7 +144,7 @@ export default async function BillingPage() {
 
       {/* Pricing Comparison */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Comparar Planos</h3>
+        <h3 className="text-lg font-semibold mb-4">{t("comparePlans")}</h3>
         <div className="grid grid-cols-3 gap-4">
           {["FREE", "PRO", "CLINIC"].map((tier) => {
             const p = getPlan(tier as any);
@@ -160,20 +162,20 @@ export default async function BillingPage() {
                 <p className="text-xs text-gray-600 mb-3">{p.description}</p>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-gray-600">Pacientes: </span>
+                    <span className="text-gray-600">{t("patients")} </span>
                     <span className="font-semibold">
                       {p.maxActivePatients === Infinity ? "∞" : p.maxActivePatients}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Terapeutas: </span>
+                    <span className="text-gray-600">{t("therapists")} </span>
                     <span className="font-semibold">
                       {p.maxTherapistSeats === Infinity ? "∞" : p.maxTherapistSeats}
                     </span>
                   </div>
                 </div>
                 {isCurrent && (
-                  <p className="text-xs text-blue-600 font-semibold mt-3">Plano Atual</p>
+                  <p className="text-xs text-blue-600 font-semibold mt-3">{t("currentPlan")}</p>
                 )}
               </div>
             );

@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { fetchWithCsrf } from "@/lib/csrf-client";
+import { useTranslations } from "next-intl";
 import { JournalPatientSidebar } from "./journal-patient-sidebar";
 import JournalTherapistNotes from "./journal-therapist-notes";
 
@@ -65,6 +66,8 @@ const ENTRY_TYPE_LABELS: Record<string, string> = {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function JournalInboxClient() {
+  const t = useTranslations("journal");
+
   // State
   const [tab, setTab] = useState<"unread" | "discuss" | "all">("unread");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -155,34 +158,34 @@ export function JournalInboxClient() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Diário dos Pacientes
+          {t("title")}
         </h1>
         <p className="text-sm text-gray-500">
-          Entradas compartilhadas por seus pacientes.
+          {t("subtitle")}
         </p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2">
-        {(["unread", "discuss", "all"] as const).map((t) => (
+        {(["unread", "discuss", "all"] as const).map((tabName) => (
           <button
-            key={t}
+            key={tabName}
             onClick={() => {
-              setTab(t);
+              setTab(tabName);
               setSelectedId(null);
             }}
             className={cn(
               "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-              tab === t
+              tab === tabName
                 ? "bg-brand-600 text-white"
                 : "bg-white text-gray-600 border hover:bg-gray-50",
             )}
           >
-            {t === "unread"
-              ? "Não lidos"
-              : t === "discuss"
-                ? "Próxima sessão"
-                : "Todos"}
+            {tabName === "unread"
+              ? t("unread")
+              : tabName === "discuss"
+                ? t("discussTab")
+                : t("all")}
           </button>
         ))}
       </div>
@@ -206,7 +209,7 @@ export function JournalInboxClient() {
             onChange={(e) => handleSelectPatient(e.target.value || null)}
             className="w-full border rounded-lg px-3 py-2 text-sm"
           >
-            <option value="">Todos os pacientes</option>
+            <option value="">{t("allPatients")}</option>
             {patients.map((p) => (
               <option key={p.patientId} value={p.patientId}>
                 {p.preferredName ?? p.fullName}
@@ -228,8 +231,8 @@ export function JournalInboxClient() {
             <div className="bg-white border rounded-xl p-8 text-center text-sm text-gray-400">
               <BookOpen className="h-10 w-10 mx-auto mb-3 text-gray-300" />
               {tab === "unread"
-                ? "Tudo revisado!"
-                : "Nenhuma entrada encontrada."}
+                ? t("reviewed")
+                : t("noEntries")}
             </div>
           ) : (
             entries.map((entry) => {
@@ -277,12 +280,12 @@ export function JournalInboxClient() {
                   <div className="flex items-center gap-2 mt-2">
                     {entry.flaggedForSupport && (
                       <span className="flex items-center gap-1 text-[11px] text-red-500">
-                        <AlertTriangle className="h-3 w-3" /> Alerta
+                        <AlertTriangle className="h-3 w-3" /> {t("alert")}
                       </span>
                     )}
                     {entry.discussNextSession && (
                       <span className="flex items-center gap-1 text-[11px] text-brand-500">
-                        <MessageCircle className="h-3 w-3" /> Discutir
+                        <MessageCircle className="h-3 w-3" /> {t("discuss")}
                       </span>
                     )}
                     {entry.notesCount > 0 && (
@@ -292,11 +295,11 @@ export function JournalInboxClient() {
                     )}
                     {entry.reviewedAt ? (
                       <span className="flex items-center gap-1 text-[11px] text-green-500">
-                        <Check className="h-3 w-3" /> Revisado
+                        <Check className="h-3 w-3" /> {t("reviewedLabel")}
                       </span>
                     ) : (
                       <span className="text-[11px] text-amber-500 font-medium">
-                        Não lido
+                        {t("unreadLabel")}
                       </span>
                     )}
                   </div>
@@ -329,13 +332,13 @@ export function JournalInboxClient() {
               <div className="flex gap-3 flex-wrap">
                 {selected.moodScore != null && (
                   <div className="bg-gray-50 rounded-lg px-3 py-2 text-center">
-                    <p className="text-xs text-gray-400">Humor</p>
+                    <p className="text-xs text-gray-400">{t("mood")}</p>
                     <p className="text-lg font-bold">{selected.moodScore}/10</p>
                   </div>
                 )}
                 {selected.anxietyScore != null && (
                   <div className="bg-gray-50 rounded-lg px-3 py-2 text-center">
-                    <p className="text-xs text-gray-400">Ansiedade</p>
+                    <p className="text-xs text-gray-400">{t("anxiety")}</p>
                     <p className="text-lg font-bold">
                       {selected.anxietyScore}/10
                     </p>
@@ -343,7 +346,7 @@ export function JournalInboxClient() {
                 )}
                 {selected.energyScore != null && (
                   <div className="bg-gray-50 rounded-lg px-3 py-2 text-center">
-                    <p className="text-xs text-gray-400">Energia</p>
+                    <p className="text-xs text-gray-400">{t("energy")}</p>
                     <p className="text-lg font-bold">
                       {selected.energyScore}/10
                     </p>
@@ -351,7 +354,7 @@ export function JournalInboxClient() {
                 )}
                 {selected.sleepScore != null && (
                   <div className="bg-gray-50 rounded-lg px-3 py-2 text-center">
-                    <p className="text-xs text-gray-400">Sono</p>
+                    <p className="text-xs text-gray-400">{t("sleep")}</p>
                     <p className="text-lg font-bold">
                       {selected.sleepScore}/10
                     </p>
@@ -386,18 +389,17 @@ export function JournalInboxClient() {
               {selected.flaggedForSupport && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
                   <AlertTriangle className="h-4 w-4 inline mr-1" />
-                  Esta entrada foi sinalizada automaticamente por palavras-chave
-                  de risco.
+                  {t("flaggedAuto")}
                 </div>
               )}
               {selected.discussNextSession && (
                 <div className="bg-brand-50 border border-brand-200 rounded-lg p-3 text-sm text-brand-700">
                   <MessageCircle className="h-4 w-4 inline mr-1" />
-                  O paciente quer discutir este tema na próxima sessão.
+                  {t("discussNextSession")}
                 </div>
               )}
 
-              {/* Review action */}
+              {/* Review action - note: keeping PT locale for date formatting since this is clinical notes */}
               {!selected.reviewedAt ? (
                 <Button
                   onClick={() => markReviewed(selected.id)}
