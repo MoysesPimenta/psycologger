@@ -148,7 +148,9 @@
     "chargesTitle": "Cobranças",
     "chargesDesc": "Gerencie cobranças e pagamentos",
     "reportsTitle": "Relatórios",
-    "reportsDesc": "Exportar e analisar dados"
+    "reportsDesc": "Exportar e analisar dados",
+    "newChargeTitle": "Nova Cobrança",
+    "newChargeSubtitle": "Registre uma nova cobrança para um paciente"
   },
   "reports": {
     "headerSubtitle": "Análise financeira e exportação"
@@ -216,10 +218,6 @@
     "sleep": "Sono",
     "flaggedAuto": "Esta entrada foi sinalizada automaticamente por palavras-chave de risco.",
     "discussNextSession": "O paciente quer discutir este tema na próxima sessão."
-  },
-  "financial": {
-    "newChargeTitle": "Nova Cobrança",
-    "newChargeSubtitle": "Registre uma nova cobrança para um paciente"
   },
   "settings": {
     "appointmentTypesTitle": "Tipos de Consulta",

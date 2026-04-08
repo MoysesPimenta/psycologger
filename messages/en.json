@@ -148,7 +148,9 @@
     "chargesTitle": "Charges",
     "chargesDesc": "Manage charges and payments",
     "reportsTitle": "Reports",
-    "reportsDesc": "Export and analyze data"
+    "reportsDesc": "Export and analyze data",
+    "newChargeTitle": "New Charge",
+    "newChargeSubtitle": "Record a new charge for a patient"
   },
   "reports": {
     "headerSubtitle": "Financial analysis and data export"
@@ -216,10 +218,6 @@
     "sleep": "Sleep",
     "flaggedAuto": "This entry was flagged automatically for risk keywords.",
     "discussNextSession": "Patient wants to discuss this topic in the next session."
-  },
-  "financial": {
-    "newChargeTitle": "New Charge",
-    "newChargeSubtitle": "Record a new charge for a patient"
   },
   "settings": {
     "appointmentTypesTitle": "Appointment Types",

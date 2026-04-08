@@ -12,20 +12,25 @@ export function ManageSubscriptionButton() {
     setLoading(true);
     try {
       const res = await fetchWithCsrf("/api/v1/billing/portal", { method: "POST" });
-      let data: { url?: string; error?: { message?: string } } = {};
+      let payload: {
+        data?: { url?: string };
+        url?: string;
+        error?: { message?: string };
+      } = {};
       try {
-        data = await res.json();
+        payload = await res.json();
       } catch {
         /* non-JSON body */
       }
-      if (res.ok && data?.url) {
-        window.location.href = data.url;
+      const url = payload?.data?.url ?? payload?.url;
+      if (res.ok && url) {
+        window.location.href = url;
       } else {
         const msg =
-          data?.error?.message ||
+          payload?.error?.message ||
           `Erro ao abrir portal de assinatura (HTTP ${res.status})`;
         alert(msg);
-        console.error("[billing] portal failed", res.status, data);
+        console.error("[billing] portal failed", res.status, payload);
       }
     } finally {
       setLoading(false);
@@ -63,20 +68,25 @@ export function UpgradeButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tier, currency }),
       });
-      let data: { url?: string; error?: { message?: string } } = {};
+      let payload: {
+        data?: { url?: string };
+        url?: string;
+        error?: { message?: string };
+      } = {};
       try {
-        data = await res.json();
+        payload = await res.json();
       } catch {
         /* non-JSON body */
       }
-      if (res.ok && data?.url) {
-        window.location.href = data.url;
+      const url = payload?.data?.url ?? payload?.url;
+      if (res.ok && url) {
+        window.location.href = url;
       } else {
         const msg =
-          data?.error?.message ||
+          payload?.error?.message ||
           `Erro ao iniciar checkout (HTTP ${res.status})`;
         alert(msg);
-        console.error("[billing] checkout failed", res.status, data);
+        console.error("[billing] checkout failed", res.status, payload);
       }
     } finally {
       setLoading(false);

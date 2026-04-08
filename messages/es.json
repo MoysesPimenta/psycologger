@@ -148,7 +148,9 @@
     "chargesTitle": "Cargos",
     "chargesDesc": "Administra cargos y pagos",
     "reportsTitle": "Reportes",
-    "reportsDesc": "Exporta y analiza datos"
+    "reportsDesc": "Exporta y analiza datos",
+    "newChargeTitle": "Nuevo Cargo",
+    "newChargeSubtitle": "Registra un nuevo cargo para un paciente"
   },
   "reports": {
     "headerSubtitle": "Análisis financiero y exportación de datos"
@@ -216,10 +218,6 @@
     "sleep": "Sueño",
     "flaggedAuto": "Esta entrada fue marcada automáticamente por palabras clave de riesgo.",
     "discussNextSession": "El paciente quiere discutir este tema en la próxima sesión."
-  },
-  "financial": {
-    "newChargeTitle": "Nuevo Cargo",
-    "newChargeSubtitle": "Registra un nuevo cargo para un paciente"
   },
   "settings": {
     "appointmentTypesTitle": "Tipos de Cita",
