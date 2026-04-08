@@ -3,6 +3,10 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { ArrowLeft, Inbox } from "lucide-react";
 import { SaLiveFilters } from "@/components/sa/live-filters";
+import {
+  SupportBulkActions,
+  SupportMasterCheckbox,
+} from "@/components/sa/support-bulk-actions";
 
 export const metadata = { title: "Suporte — SuperAdmin" };
 export const dynamic = "force-dynamic";
@@ -198,10 +202,15 @@ export default async function SASupportPage({
         </div>
       )}
 
+      <SupportBulkActions ticketIds={tickets.map((t) => t.id)} />
+
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-800 text-left text-xs text-gray-400">
+              <th className="p-4 w-8">
+                <SupportMasterCheckbox />
+              </th>
               <th className="p-4">Status</th>
               <th className="p-4">Assunto</th>
               <th className="p-4">De</th>
@@ -213,13 +222,22 @@ export default async function SASupportPage({
           <tbody className="divide-y divide-gray-800">
             {tickets.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-gray-500">
+                <td colSpan={7} className="p-8 text-center text-gray-500">
                   Nenhum ticket encontrado.
                 </td>
               </tr>
             ) : (
               tickets.map((t) => (
-                <tr key={t.id} className="hover:bg-gray-800/50 cursor-pointer">
+                <tr key={t.id} className="hover:bg-gray-800/50">
+                  <td className="p-4">
+                    <input
+                      type="checkbox"
+                      data-support-ticket-cb="1"
+                      value={t.id}
+                      className="accent-brand-500"
+                      aria-label={`Selecionar ticket ${t.id}`}
+                    />
+                  </td>
                   <td className="p-4">
                     <StatusPill status={t.status} />
                   </td>

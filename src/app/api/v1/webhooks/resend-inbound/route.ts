@@ -180,15 +180,56 @@ export async function POST(req: NextRequest) {
     d.content?.html ||
     ""
   ).toString();
-  if (!text && !html) {
-    console.warn(
-      "[resend-inbound] empty body — keys:",
-      Object.keys(d).join(","),
-      "contentKeys:",
-      d.content ? Object.keys(d.content).join(",") : "(none)"
-    );
+  // Resend's inbound webhook delivers metadata only — the actual body must
+  // be fetched via the Resend API using email_id. Try it once, best-effort;
+  // the ticket is still created either way.
+  let fetchedText = text;
+  let fetchedHtml = html;
+  if (!fetchedText && !fetchedHtml) {
+    const emailId: string | undefined = d.email_id || d.emailId;
+    const apiKey = process.env.RESEND_API_KEY;
+    if (emailId && apiKey) {
+      try {
+        const res = await fetch(`https://api.resend.com/emails/${emailId}`, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          // Don't hang the webhook — Resend retries on non-2xx, so keep it short.
+          signal: AbortSignal.timeout(5000),
+        });
+        if (res.ok) {
+          const body = (await res.json()) as Record<string, unknown>;
+          fetchedText =
+            (typeof body.text === "string" && body.text) ||
+            (typeof (body as { plain?: string }).plain === "string" && (body as { plain?: string }).plain) ||
+            "";
+          fetchedHtml =
+            (typeof body.html === "string" && body.html) ||
+            (typeof (body as { body_html?: string }).body_html === "string" && (body as { body_html?: string }).body_html) ||
+            "";
+          if (!fetchedText && !fetchedHtml) {
+            console.warn(
+              "[resend-inbound] API fetch returned no body — keys:",
+              Object.keys(body).join(",")
+            );
+          }
+        } else {
+          console.warn(
+            "[resend-inbound] API fetch failed:",
+            res.status,
+            res.statusText
+          );
+        }
+      } catch (err) {
+        console.warn("[resend-inbound] API fetch error:", (err as Error).message);
+      }
+    } else {
+      console.warn(
+        "[resend-inbound] empty body — keys:",
+        Object.keys(d).join(","),
+        "no emailId or RESEND_API_KEY"
+      );
+    }
   }
-  const bodyWrapper = JSON.stringify({ v: 1, text, html });
+  const bodyWrapper = JSON.stringify({ v: 1, text: fetchedText, html: fetchedHtml });
   const messageId =
     event.data.messageId ||
     event.data.message_id ||
