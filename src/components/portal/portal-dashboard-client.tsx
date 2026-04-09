@@ -47,9 +47,6 @@ function formatCurrency(cents: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
 
-// TODO(i18n): entry type labels moved to i18n: portal.journal.entryTypes.*
-// Future extraction: move ENTRY_TYPE_LABELS to message JSON for full i18n support
-
 export function PortalDashboardClient() {
   const t = useTranslations();
   const [data, setData] = useState<DashboardData | null>(null);
@@ -99,15 +96,10 @@ export function PortalDashboardClient() {
     return t("portal.dashboard.greeting.evening");
   }
 
-  // TODO(i18n): Extract remaining entry type labels
-  const ENTRY_TYPE_LABELS: Record<string, string> = {
-    MOOD_CHECKIN: "Humor",
-    REFLECTION: "Reflexão",
-    SESSION_PREP: "Próxima sessão",
-    QUESTION: "Pergunta",
-    IMPORTANT_EVENT: "Evento",
-    GRATITUDE: "Gratidão",
-  };
+  function getEntryTypeLabel(entryType: string): string {
+    const key = `portal.dashboard.entryTypes.${entryType}` as const;
+    return t(key);
+  }
 
   return (
     <div className="space-y-4">
@@ -198,7 +190,7 @@ export function PortalDashboardClient() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900">
-                  {data.payments.pendingCount} pendente{data.payments.pendingCount > 1 ? "s" : ""}
+                  {data.payments.pendingCount} {data.payments.pendingCount > 1 ? t("portal.dashboard.pendings") : t("portal.dashboard.pending")}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {formatCurrency(data.payments.pendingTotalCents)}
@@ -229,7 +221,7 @@ export function PortalDashboardClient() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-semibold text-gray-700">
-                      {ENTRY_TYPE_LABELS[entry.entryType] ?? entry.entryType}
+                      {getEntryTypeLabel(entry.entryType)}
                     </span>
                     {entry.moodScore && (
                       <span className="text-xs text-gray-500">· {entry.moodScore}/10</span>
@@ -252,11 +244,10 @@ export function PortalDashboardClient() {
       {data.lastLogin.at && (
         <div className="border-t border-gray-200/50 pt-4 mt-6">
           <p className="text-xs text-gray-500 text-center">
-            {/* TODO(i18n): Extract "Last login" label and IP address display */}
-            Último acesso: {format(new Date(data.lastLogin.at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+            {t("portal.dashboard.lastLogin")}: {format(new Date(data.lastLogin.at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
             {data.lastLogin.ip && (
               <>
-                {" "}de <span className="font-mono">{data.lastLogin.ip}</span></>
+                {" "}{t("portal.dashboard.at")} <span className="font-mono">{data.lastLogin.ip}</span></>
             )}
           </p>
         </div>

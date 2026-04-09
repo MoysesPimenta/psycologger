@@ -61,8 +61,7 @@ export function PortalSessionsClient() {
 
   return (
     <div className="space-y-4">
-      {/* TODO(i18n): Extract "Sessions" page title */}
-      <h1 className="text-2xl font-bold text-gray-900">Sessões</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{t("portal.dashboard.sessionsTitle")}</h1>
 
       <div className="flex gap-2 bg-gray-100/50 rounded-xl p-1">
         {(["upcoming", "past"] as const).map((tabType) => (
@@ -76,8 +75,7 @@ export function PortalSessionsClient() {
                 : "text-gray-600 hover:text-gray-900",
             )}
           >
-            {/* TODO(i18n): Extract tab labels "Upcoming" / "Past" */}
-            {tabType === "upcoming" ? "Próximas" : "Anteriores"}
+            {tabType === "upcoming" ? t("portal.dashboard.upcomingTab") : t("portal.dashboard.pastTab")}
           </button>
         ))}
       </div>
@@ -96,8 +94,7 @@ export function PortalSessionsClient() {
         <div className="bg-white rounded-2xl border border-gray-200/50 p-8 text-center">
           <Calendar className="h-10 w-10 mx-auto mb-3 text-gray-300" />
           <p className="text-sm text-gray-500">
-            {/* TODO(i18n): Extract empty state messages for upcoming and past sessions */}
-            {tab === "upcoming" ? "Nenhuma sessão agendada" : "Nenhuma sessão anterior"}
+            {tab === "upcoming" ? t("portal.dashboard.noUpcomingAppointments") : t("portal.dashboard.noPastAppointments")}
           </p>
         </div>
       ) : (
@@ -121,7 +118,6 @@ export function PortalSessionsClient() {
                   </p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <span className={cn("text-xs px-2.5 py-1 rounded-full font-semibold", STATUS_COLORS[appt.status] ?? "bg-gray-100 text-gray-600")}>
-                      {/* TODO(i18n): Extract appointment status labels from enums.appointmentStatus */}
                       {appt.status === "SCHEDULED" && t("enums.appointmentStatus.SCHEDULED")}
                       {appt.status === "CONFIRMED" && t("enums.appointmentStatus.CONFIRMED")}
                       {appt.status === "COMPLETED" && t("enums.appointmentStatus.COMPLETED")}

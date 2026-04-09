@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useTranslations } from "next-intl";
 import { ChevronLeft, Calendar, Clock, MapPin, Video, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchWithCsrf } from "@/lib/csrf-client";
@@ -19,16 +20,8 @@ interface AppointmentDetail {
   provider: { name: string | null };
 }
 
-// TODO(i18n): Replace hardcoded status labels with t("enums.appointmentStatus.*")
-const STATUS_LABELS: Record<string, string> = {
-  SCHEDULED: "Agendada",
-  CONFIRMED: "Confirmada",
-  COMPLETED: "Realizada",
-  CANCELED: "Cancelada",
-  NO_SHOW: "Não compareceu",
-};
-
 export function PortalSessionDetailClient({ id }: { id: string }) {
+  const t = useTranslations();
   const [appt, setAppt] = useState<AppointmentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [canceling, setCanceling] = useState(false);
@@ -45,8 +38,13 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
       .finally(() => setLoading(false));
   }, [id]);
 
+  function getStatusLabel(status: string): string {
+    const key = `enums.appointmentStatus.${status}` as const;
+    return t(key);
+  }
+
   async function handleCancel() {
-    if (!confirm("Tem certeza que deseja cancelar esta sessão?")) return;
+    if (!confirm(t("portal.sessions.cancelConfirm"))) return;
     setCanceling(true);
     try {
       const res = await fetchWithCsrf("/api/v1/portal/appointments", {
@@ -59,10 +57,10 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
         setAppt((prev) => prev ? { ...prev, status: "CANCELED" } : null);
       } else {
         const data = await res.json().catch(() => null);
-        alert(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao cancelar.");
+        alert(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? t("portal.sessions.errorCanceling"));
       }
     } catch {
-      alert("Erro de conexão.");
+      alert(t("portal.sessions.connectionError"));
     } finally {
       setCanceling(false);
     }
@@ -76,7 +74,7 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
   }
 
   if (!appt) {
-    return <p className="text-gray-500">Sessão não encontrada.</p>;
+    return <p className="text-gray-500">{t("portal.sessions.notFound")}</p>;
   }
 
   const isOnline = appt.appointmentType.sessionType === "ONLINE";
@@ -84,10 +82,10 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 pt-2">
-        <Link href="/portal/sessions" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Voltar às sessões">
+        <Link href="/portal/sessions" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label={t("portal.sessions.backToSessions")}>
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Detalhes da Sessão</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("portal.sessions.detailsTitle")}</h1>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200/50 p-5 space-y-4">
@@ -118,7 +116,7 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
         {/* Provider */}
         <div className="flex items-center gap-3 text-sm text-gray-600">
           <User className="h-4 w-4 text-gray-400" />
-          {appt.provider.name ?? "Terapeuta"}
+          {appt.provider.name ?? t("portal.dashboard.therapist")}
         </div>
 
         {/* Location */}
@@ -126,12 +124,12 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
           {isOnline ? (
             <>
               <Video className="h-4 w-4 text-gray-400" />
-              <span>Online</span>
+              <span>{t("portal.dashboard.onlineSession")}</span>
             </>
           ) : (
             <>
               <MapPin className="h-4 w-4 text-gray-400" />
-              <span>{appt.location ?? "Presencial"}</span>
+              <span>{appt.location ?? t("portal.dashboard.inPersonSession")}</span>
             </>
           )}
         </div>
@@ -139,7 +137,7 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
         {/* Status */}
         <div className="pt-3 border-t">
           <p className="text-sm text-gray-500">
-            Status: <span className="font-medium text-gray-700">{STATUS_LABELS[appt.status] ?? appt.status}</span>
+            Status: <span className="font-medium text-gray-700">{getStatusLabel(appt.status)}</span>
           </p>
         </div>
 
@@ -152,7 +150,7 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 active:scale-95 transition-all"
           >
             <Video className="h-4 w-4" />
-            Entrar na sala
+            {t("portal.sessions.joinRoom")}
           </a>
         )}
 
@@ -166,13 +164,13 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
                 disabled={canceling}
                 className="w-full mt-4 px-4 py-2.5 text-sm font-semibold text-red-600 border border-red-200 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-50"
               >
-                {canceling ? "Cancelando..." : "Cancelar sessão"}
+                {canceling ? t("portal.sessions.cancelButtonCanceling") : t("portal.sessions.cancelButton")}
               </button>
             ) : null;
           })()
         )}
         {canceled && (
-          <p className="text-sm text-red-500 mt-3 text-center">Sessão cancelada.</p>
+          <p className="text-sm text-red-500 mt-3 text-center">{t("portal.sessions.sessionCanceled")}</p>
         )}
       </div>
 
@@ -182,7 +180,7 @@ export function PortalSessionDetailClient({ id }: { id: string }) {
         className="block bg-blue-50 border border-blue-200/50 rounded-2xl p-4 text-center hover:shadow-md active:bg-blue-100 transition-all"
       >
         <p className="text-sm font-semibold text-blue-700">
-          Preparar uma nota para esta sessão?
+          {t("portal.sessions.prepNote")}
         </p>
       </Link>
     </div>

@@ -18,14 +18,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// TODO(i18n): This component has 50+ hardcoded Portuguese strings remaining:
-// - Status action buttons: "Confirmar presença", "Marcar como realizada", "Registrar falta", "Cancelar consulta"
-// - Modal titles: "Cobrar esta sessão?", "Cancelar consulta", "Corrigir status"
-// - Form labels: "Início", "Término", "Local", "Link de videoconferência", "Observações"
-// - Clinical session labels: "Prontuário", "Ver anotação", "Criar anotação clínica"
-// - Cancel dialog messages and options (e.g., "Somente esta consulta", "Esta e todas as futuras")
-// See docs/generated/33-i18n-guide.md for extraction patterns.
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AppointmentType {
@@ -76,16 +68,6 @@ interface Props {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// TODO(i18n): Build STATUS_LABELS dynamically from t("enums.appointmentStatus.*") in component
-// Keeping constants for fallback/quick reference, but should use i18n in render
-const STATUS_LABELS_FALLBACK: Record<string, string> = {
-  SCHEDULED: "Agendada",
-  CONFIRMED: "Confirmada",
-  COMPLETED: "Realizada",
-  CANCELED:  "Cancelada",
-  NO_SHOW:   "Falta",
-};
-
 const STATUS_COLORS: Record<string, string> = {
   SCHEDULED: "bg-blue-100 text-blue-800 border-blue-200",
   CONFIRMED: "bg-green-100 text-green-800 border-green-200",
@@ -94,41 +76,34 @@ const STATUS_COLORS: Record<string, string> = {
   NO_SHOW:   "bg-orange-100 text-orange-800 border-orange-200",
 };
 
-// TODO(i18n): Build SESSION_TYPE_LABELS dynamically from t("enums.sessionType.*")
-const SESSION_TYPE_LABELS_FALLBACK: Record<string, string> = {
-  IN_PERSON: "Presencial",
-  ONLINE: "Online",
-  EVALUATION: "Avaliação",
-  GROUP: "Grupo",
+const DAYS_PT_BR: Record<string, string> = {
+  MO: "segunda", TU: "terça", WE: "quarta",
+  TH: "quinta", FR: "sexta", SA: "sábado", SU: "domingo",
 };
 
-// TODO(i18n): Pull payment method labels from t("enums.paymentMethod.*") in component
-const PAYMENT_METHODS = [
-  { value: "PIX", label: "PIX" },
-  { value: "CASH", label: "Dinheiro" },
-  { value: "CARD", label: "Cartão" },
-  { value: "TRANSFER", label: "Transferência" },
-  { value: "INSURANCE", label: "Plano de saúde" },
-  { value: "OTHER", label: "Outro" },
-];
-
-// TODO(i18n): Extract recurrence frequency labels ("Mensal", "Semanal", "Quinzenal")
-// and day labels ("segunda", "terça", etc.) to enums.recurrenceFrequency and forms
 function formatRRule(rrule: string): string {
   if (rrule.includes("FREQ=MONTHLY")) return "Mensal";
-  const days: Record<string, string> = {
-    MO: "segunda", TU: "terça", WE: "quarta",
-    TH: "quinta", FR: "sexta", SA: "sábado", SU: "domingo",
-  };
   const dayMatch = rrule.match(/BYDAY=([A-Z]+)/);
   const intervalMatch = rrule.match(/INTERVAL=(\d+)/);
   const interval = intervalMatch ? parseInt(intervalMatch[1]) : 1;
-  const day = dayMatch ? (days[dayMatch[1]] ?? dayMatch[1]) : "";
+  const day = dayMatch ? (DAYS_PT_BR[dayMatch[1]] ?? dayMatch[1]) : "";
   if (interval === 2) return `Quinzenal (${day})`;
   return `Semanal (${day})`;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Build payment method options from translations */
+function buildPaymentMethods(t: ReturnType<typeof useTranslations>) {
+  return [
+    { value: "PIX", label: t("enums.paymentMethod.PIX") },
+    { value: "CASH", label: t("enums.paymentMethod.CASH") },
+    { value: "CARD", label: t("enums.paymentMethod.CARD") },
+    { value: "TRANSFER", label: t("enums.paymentMethod.TRANSFER") },
+    { value: "INSURANCE", label: t("enums.paymentMethod.INSURANCE") },
+    { value: "OTHER", label: t("enums.paymentMethod.OTHER") },
+  ];
+}
 
 /** Normalize any date value (Date object or string) to an ISO string */
 function toISO(val: unknown): string {
@@ -279,7 +254,7 @@ function PaymentModal({
               onChange={(e) => setMethod(e.target.value)}
               className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
-              {PAYMENT_METHODS.map((m) => (
+              {buildPaymentMethods(t).map((m: any) => (
                 <option key={m.value} value={m.value}>{m.label}</option>
               ))}
             </select>
@@ -318,14 +293,14 @@ function PaymentModal({
         </div>
 
         <div className="flex gap-2 justify-end pt-1">
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>{t("common.cancel")}</Button>
           <Button
             onClick={handleSave}
             disabled={saving}
             className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
           >
             <Check className="h-4 w-4" />
-            {saving ? "Salvando..." : "Confirmar pagamento"}
+            {saving ? t("common.loading") : t("confirmPartialPayment")}
           </Button>
         </div>
       </div>
@@ -405,7 +380,7 @@ export function AppointmentDetailClient({
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao atualizar consulta.");
+      throw new Error(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? t("errorUpdating"));
     }
     return res.json();
   }
@@ -417,7 +392,7 @@ export function AppointmentDetailClient({
       await patch({ status });
       setAppt((a) => ({ ...a, status: status as Appointment["status"] }));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro desconhecido.");
+      setError(e instanceof Error ? e.message : t("unknownError"));
     } finally {
       setSaving(false);
     }
@@ -430,14 +405,14 @@ export function AppointmentDetailClient({
       effectiveFeeCents != null &&
       !hasExistingCharge
     ) {
-      const labels: Record<string, string> = {
-        COMPLETED: "Consulta realizada",
-        CANCELED: "Consulta cancelada",
-        NO_SHOW: "Falta registrada",
+      const labelKey: Record<string, string> = {
+        COMPLETED: "chargePromptCompleted",
+        CANCELED: "chargePromptCanceled",
+        NO_SHOW: "chargePromptNoShow",
       };
       setChargePrompt({
         pendingStatus: status,
-        label: labels[status],
+        label: t(labelKey[status] as any),
         editAmount: (effectiveFeeCents / 100).toFixed(2),
         editDiscount: "0,00",
         editDueDate: todayISO(),
@@ -455,11 +430,11 @@ export function AppointmentDetailClient({
       try {
         const parsedAmount = parseFloat(chargePrompt.editAmount.replace(",", "."));
         const parsedDiscount = parseFloat((chargePrompt.editDiscount || "0").replace(",", "."));
-        if (isNaN(parsedAmount) || parsedAmount <= 0) throw new Error("Valor inválido.");
-        if (isNaN(parsedDiscount) || parsedDiscount < 0) throw new Error("Desconto inválido.");
+        if (isNaN(parsedAmount) || parsedAmount <= 0) throw new Error(t("errorInvalidAmount"));
+        if (isNaN(parsedDiscount) || parsedDiscount < 0) throw new Error(t("errorInvalidDiscount"));
         const amountCents = Math.round(parsedAmount * 100);
         const discountCents = Math.round(parsedDiscount * 100);
-        if (discountCents > amountCents) throw new Error("Desconto não pode exceder o valor.");
+        if (discountCents > amountCents) throw new Error(t("errorDiscountExceeds"));
         const res = await fetchWithCsrf("/api/v1/charges", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -490,7 +465,7 @@ export function AppointmentDetailClient({
         }
       } catch (err) {
         // Charge creation failed — show feedback so user knows to create manually
-        setError(err instanceof Error ? err.message : "Erro ao criar cobrança. Crie manualmente.");
+        setError(err instanceof Error ? err.message : t("errorCreatingCharge"));
       } finally {
         setCreatingCharge(false);
       }
@@ -522,7 +497,7 @@ export function AppointmentDetailClient({
       }));
       setEditing(false);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro desconhecido.");
+      setError(e instanceof Error ? e.message : t("unknownError"));
     } finally {
       setSaving(false);
     }
@@ -542,7 +517,7 @@ export function AppointmentDetailClient({
         await handleStatusChange("CANCELED");
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Erro desconhecido.");
+      setError(e instanceof Error ? e.message : t("unknownError"));
     } finally {
       setCancelling(false);
     }
@@ -565,14 +540,12 @@ export function AppointmentDetailClient({
     <div className="max-w-3xl space-y-6">
       {/* ── Header ── */}
       <div className="flex items-center gap-3">
-        {/* TODO(i18n): Extract "Voltar" (Back) button label */}
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1.5 text-gray-500">
-          <ChevronLeft className="h-4 w-4" /> Voltar
+          <ChevronLeft className="h-4 w-4" /> {t("backButton")}
         </Button>
         <div className="flex-1" />
         <Badge className={`border text-xs font-medium ${STATUS_COLORS[appt.status]}`}>
-          {/* TODO(i18n): Replace with t(`enums.appointmentStatus.${appt.status}`) */}
-          {STATUS_LABELS_FALLBACK[appt.status]}
+          {t(`enums.appointmentStatus.${appt.status}`)}
         </Badge>
       </div>
 
@@ -595,10 +568,10 @@ export function AppointmentDetailClient({
       {/* ── Main info card ── */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-base">Detalhes da Consulta</CardTitle>
+          <CardTitle className="text-base">{t("cardTitle")}</CardTitle>
           {canEdit && !editing && (
             <Button variant="outline" size="sm" onClick={() => setEditing(true)} className="gap-1.5">
-              <Edit2 className="h-3.5 w-3.5" /> Editar
+              <Edit2 className="h-3.5 w-3.5" /> {t("editButton")}
             </Button>
           )}
         </CardHeader>
@@ -607,13 +580,13 @@ export function AppointmentDetailClient({
           {!editing ? (
             // ── View mode ──────────────────────────────────────────────────
             <div className="grid gap-4 sm:grid-cols-2">
-              <InfoRow icon={<Calendar className="h-4 w-4 text-brand-500" />} label="Data">
+              <InfoRow icon={<Calendar className="h-4 w-4 text-brand-500" />} label={t("labelDate")}>
                 <span className="capitalize">{dateLabel}</span>
               </InfoRow>
-              <InfoRow icon={<Clock className="h-4 w-4 text-brand-500" />} label="Horário">
+              <InfoRow icon={<Clock className="h-4 w-4 text-brand-500" />} label={t("labelTime")}>
                 {timeLabel} <span className="text-gray-400">({durationMin} min)</span>
               </InfoRow>
-              <InfoRow icon={<User className="h-4 w-4 text-brand-500" />} label="Paciente">
+              <InfoRow icon={<User className="h-4 w-4 text-brand-500" />} label={t("labelPatient")}>
                 <a
                   href={`/app/patients/${appt.patient.id}`}
                   className="text-brand-600 hover:underline font-medium"
@@ -624,46 +597,45 @@ export function AppointmentDetailClient({
                   <span className="block text-xs text-gray-500">{appt.patient.email}</span>
                 )}
               </InfoRow>
-              <InfoRow icon={<Stethoscope className="h-4 w-4 text-brand-500" />} label="Profissional">
+              <InfoRow icon={<Stethoscope className="h-4 w-4 text-brand-500" />} label={t("labelProvider")}>
                 {appt.provider.name}
               </InfoRow>
-              <InfoRow icon={<div className="h-3 w-3 rounded-full" style={{ backgroundColor: appt.appointmentType.color }} />} label="Tipo">
+              <InfoRow icon={<div className="h-3 w-3 rounded-full" style={{ backgroundColor: appt.appointmentType.color }} />} label={t("labelType")}>
                 {appt.appointmentType.name}
                 <span className="ml-1.5 text-xs text-gray-400">
-                  {/* TODO(i18n): Replace with t(`enums.sessionType.${appt.appointmentType.sessionType}`) */}
-                  ({SESSION_TYPE_LABELS_FALLBACK[appt.appointmentType.sessionType] ?? appt.appointmentType.sessionType})
+                  ({t(`enums.sessionType.${appt.appointmentType.sessionType}`)})
                 </span>
               </InfoRow>
               {appt.location && (
-                <InfoRow icon={<MapPin className="h-4 w-4 text-brand-500" />} label="Local">
+                <InfoRow icon={<MapPin className="h-4 w-4 text-brand-500" />} label={t("labelLocation")}>
                   {appt.location}
                 </InfoRow>
               )}
               {appt.videoLink && (
-                <InfoRow icon={<Video className="h-4 w-4 text-brand-500" />} label="Videoconferência">
+                <InfoRow icon={<Video className="h-4 w-4 text-brand-500" />} label={t("labelVideoLink")}>
                   <a
                     href={appt.videoLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-brand-600 hover:underline"
                   >
-                    Entrar na sala <ExternalLink className="h-3 w-3" />
+                    {t("joinRoom")} <ExternalLink className="h-3 w-3" />
                   </a>
                 </InfoRow>
               )}
               {appt.recurrence && (
-                <InfoRow icon={<Repeat className="h-4 w-4 text-brand-500" />} label="Recorrência">
+                <InfoRow icon={<Repeat className="h-4 w-4 text-brand-500" />} label={t("labelRecurrence")}>
                   {formatRRule(appt.recurrence.rrule)}
                   {recurrenceTotal > 0 && (
                     <span className="ml-1.5 text-xs text-gray-400">
-                      · {recurrenceTotal} sessões ativas
+                      · {recurrenceTotal} {t("detailedSessionCount")}
                     </span>
                   )}
                 </InfoRow>
               )}
               {appt.adminNotes && (
                 <div className="sm:col-span-2">
-                  <InfoRow icon={<FileText className="h-4 w-4 text-brand-500" />} label="Observações">
+                  <InfoRow icon={<FileText className="h-4 w-4 text-brand-500" />} label={t("labelNotes")}>
                     <p className="whitespace-pre-wrap text-gray-700">{appt.adminNotes}</p>
                   </InfoRow>
                 </div>
@@ -674,7 +646,7 @@ export function AppointmentDetailClient({
             <div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label>Início</Label>
+                  <Label>{t("labelDate")}</Label>
                   <Input
                     type="datetime-local"
                     value={editForm.startsAt}
@@ -682,7 +654,7 @@ export function AppointmentDetailClient({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Término</Label>
+                  <Label>{t("labelTime")}</Label>
                   <Input
                     type="datetime-local"
                     value={editForm.endsAt}
@@ -691,15 +663,15 @@ export function AppointmentDetailClient({
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Local</Label>
+                <Label>{t("labelLocation")}</Label>
                 <Input
-                  placeholder="Consultório, endereço..."
+                  placeholder={t("placeholderLocation")}
                   value={editForm.location}
                   onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Link de videoconferência</Label>
+                <Label>{t("labelVideoLink")}</Label>
                 <Input
                   placeholder="https://meet.jit.si/..."
                   value={editForm.videoLink}
@@ -707,10 +679,10 @@ export function AppointmentDetailClient({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Observações</Label>
+                <Label>{t("labelNotes")}</Label>
                 <textarea
                   rows={3}
-                  placeholder="Notas internas..."
+                  placeholder={t("placeholderNotes")}
                   value={editForm.adminNotes}
                   onChange={(e) => setEditForm((f) => ({ ...f, adminNotes: e.target.value }))}
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -723,10 +695,10 @@ export function AppointmentDetailClient({
                   className="gap-1.5 bg-brand-600 hover:bg-brand-700"
                 >
                   <Check className="h-4 w-4" />
-                  {saving ? "Salvando..." : "Salvar alterações"}
+                  {saving ? t("loadingMessage") : t("actionSaveEdit")}
                 </Button>
                 <Button variant="ghost" onClick={() => setEditing(false)} disabled={saving}>
-                  <X className="h-4 w-4 mr-1" /> Cancelar
+                  <X className="h-4 w-4 mr-1" /> {t("actionCancel")}
                 </Button>
               </div>
             </div>
@@ -738,7 +710,7 @@ export function AppointmentDetailClient({
       {isActive && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Ações</CardTitle>
+            <CardTitle className="text-base">{t("actionsTitle")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {appt.status === "SCHEDULED" && (
@@ -749,7 +721,7 @@ export function AppointmentDetailClient({
                 onClick={() => handleStatusChange("CONFIRMED")}
                 className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50"
               >
-                <Check className="h-3.5 w-3.5" /> Confirmar presença
+                <Check className="h-3.5 w-3.5" /> {t("confirmButton")}
               </Button>
             )}
             {canComplete && (
@@ -1413,7 +1385,7 @@ function ChargesCard({
                         {charge.payments.map((p) => (
                           <div key={p.id} className="flex items-center justify-between text-xs text-gray-500">
                             <span>
-                              {PAYMENT_METHODS.find((m) => m.value === p.method)?.label ?? p.method} ·{" "}
+                              {buildPaymentMethods(t).find((m: any) => m.value === p.method)?.label ?? p.method} ·{" "}
                               {new Date(p.paidAt).toLocaleDateString("pt-BR")}
                             </span>
                             <span className="font-medium text-green-700">
