@@ -130,7 +130,7 @@ const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "payments:create", "payments:view",
     "reports:view", "reports:export",
     "nfse:issue",
-    "audit:view",
+    // No audit:view — per permission matrix, ASSISTANT cannot access audit logs
   ]),
 
   READONLY: new Set<Permission>([
@@ -138,7 +138,7 @@ const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "appointments:view",
     "charges:view", "payments:view",
     "reports:view", "reports:export",
-    "audit:view",
+    // No audit:view — per permission matrix, READONLY cannot access audit logs
   ]),
 };
 

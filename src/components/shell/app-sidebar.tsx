@@ -50,7 +50,14 @@ const mobileNavItemsConfig = [
   { href: "/app/settings", label: "nav.settings", icon: Settings },
 ];
 
-export function AppSidebar() {
+// Roles allowed to see the audit log link
+const AUDIT_ALLOWED_ROLES = new Set(["SUPERADMIN", "TENANT_ADMIN", "PSYCHOLOGIST"]);
+
+interface AppSidebarProps {
+  userRole?: string;
+}
+
+export function AppSidebar({ userRole }: AppSidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -65,10 +72,18 @@ export function AppSidebar() {
     label: t(item.label),
   }));
 
-  const bottomNavItems = bottomNavItemsConfig.map((item) => ({
-    ...item,
-    label: t(item.label),
-  }));
+  // Filter bottom nav items based on role (audit requires SA/TA/PSY)
+  const bottomNavItems = bottomNavItemsConfig
+    .filter((item) => {
+      if (item.href === "/app/audit" && userRole && !AUDIT_ALLOWED_ROLES.has(userRole)) {
+        return false;
+      }
+      return true;
+    })
+    .map((item) => ({
+      ...item,
+      label: t(item.label),
+    }));
 
   const mobileNavItems = mobileNavItemsConfig.map((item) => ({
     ...item,

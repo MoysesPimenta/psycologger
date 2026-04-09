@@ -106,7 +106,18 @@ export async function GET(req: NextRequest) {
       db.auditLog.count({ where }),
     ]);
 
-    return ok(logs, buildMeta(total, pagination));
+    // Redact sensitive fields (email, IP) for non-admin roles.
+    // PSYCHOLOGIST sees only own logs (effectiveUserId filter above), but we
+    // still strip IP and other-user email as defense-in-depth.
+    const sanitized = canSeeAll
+      ? logs
+      : logs.map((l) => ({
+          ...l,
+          ipAddress: null,
+          user: l.user ? { name: l.user.name, email: null } : null,
+        }));
+
+    return ok(sanitized, buildMeta(total, pagination));
   } catch (err) {
     return handleApiError(err);
   }
