@@ -11,8 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendAppointmentReminder } from "@/lib/email";
 import { formatDatePlain } from "@/lib/utils";
-
-const CRON_SECRET = process.env.CRON_SECRET;
+import { requireCronAuth } from "@/lib/cron-auth";
 
 interface AppointmentWithRelations {
   id: string;
@@ -66,20 +65,8 @@ function formatTime(d: Date): string {
 }
 
 export async function POST(req: NextRequest) {
-  // Verify cron secret
-  const authHeader = req.headers.get("authorization");
-  if (!CRON_SECRET) {
-    console.error(
-      "[cron/appointment-reminders] CRON_SECRET env var is not set — rejecting request",
-    );
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    console.warn(
-      "[cron/appointment-reminders] Invalid authorization header — rejecting request",
-    );
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const authFail = requireCronAuth(req);
+  if (authFail) return authFail;
 
   const now = new Date();
   // UTC boundaries for "tomorrow"

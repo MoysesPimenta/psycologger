@@ -16,8 +16,7 @@ import {
 } from "@/lib/email";
 
 import { formatCurrencyPlain, formatDatePlain } from "@/lib/utils";
-
-const CRON_SECRET = process.env.CRON_SECRET;
+import { requireCronAuth } from "@/lib/cron-auth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
@@ -61,16 +60,8 @@ async function logReminder(data: {
 }
 
 export async function POST(req: NextRequest) {
-  // Verify cron secret — MUST be set in production; reject if missing or mismatched
-  const authHeader = req.headers.get("authorization");
-  if (!CRON_SECRET) {
-    console.error("[cron/payment-reminders] CRON_SECRET env var is not set — rejecting request");
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    console.warn("[cron/payment-reminders] Invalid authorization header — rejecting request");
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const authFail = requireCronAuth(req);
+  if (authFail) return authFail;
 
   const now = new Date();
   // Use UTC dates to avoid timezone ambiguity — dueDate is stored as @db.Date (UTC midnight)

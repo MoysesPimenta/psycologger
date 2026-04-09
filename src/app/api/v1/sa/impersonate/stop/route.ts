@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     response.cookies.set("psycologger-impersonate", "", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: 0,
       path: "/",
     });
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[/api/v1/sa/impersonate/stop] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

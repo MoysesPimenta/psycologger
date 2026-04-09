@@ -14,19 +14,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { SOFT_DELETE_RETENTION_MS } from "@/lib/constants";
-
-const CRON_SECRET = process.env.CRON_SECRET;
+import { requireCronAuth } from "@/lib/cron-auth";
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  if (!CRON_SECRET) {
-    console.error("[cron/soft-delete-gc] CRON_SECRET not set — rejecting");
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    console.warn("[cron/soft-delete-gc] Invalid authorization header");
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const authFail = requireCronAuth(req);
+  if (authFail) return authFail;
 
   const cutoff = new Date(Date.now() - SOFT_DELETE_RETENTION_MS);
   const results: Record<string, number> = {};

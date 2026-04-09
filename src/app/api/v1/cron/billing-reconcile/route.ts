@@ -17,8 +17,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-
-const CRON_SECRET = process.env.CRON_SECRET;
+import { requireCronAuth } from "@/lib/cron-auth";
 
 // Stripe client — initialized lazily
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,16 +47,8 @@ interface DriftRecord {
 }
 
 export async function POST(req: NextRequest) {
-  // Verify cron secret
-  const authHeader = req.headers.get("authorization");
-  if (!CRON_SECRET) {
-    console.error("[cron/billing-reconcile] CRON_SECRET env var is not set");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    console.warn("[cron/billing-reconcile] Invalid authorization header");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authFail = requireCronAuth(req);
+  if (authFail) return authFail;
 
   const now = new Date();
   const last24hMs = 24 * 60 * 60 * 1000;

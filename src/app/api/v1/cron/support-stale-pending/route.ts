@@ -17,16 +17,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encrypt } from "@/lib/crypto";
 import { auditLog } from "@/lib/audit";
+import { requireCronAuth } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const STALE_DAYS = 7;
-
-function unauthorized() {
-  return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-}
 
 async function run() {
   const cutoff = new Date(Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000);
@@ -71,19 +67,13 @@ async function run() {
   return NextResponse.json({ ok: true, scanned: stale.length, closed });
 }
 
-async function authed(req: NextRequest) {
-  if (!CRON_SECRET) {
-    console.error("[cron/support-stale-pending] CRON_SECRET unset — rejecting");
-    return false;
-  }
-  return req.headers.get("authorization") === `Bearer ${CRON_SECRET}`;
-}
-
 export async function GET(req: NextRequest) {
-  if (!(await authed(req))) return unauthorized();
+  const authFail = requireCronAuth(req);
+  if (authFail) return authFail;
   return run();
 }
 export async function POST(req: NextRequest) {
-  if (!(await authed(req))) return unauthorized();
+  const authFail = requireCronAuth(req);
+  if (authFail) return authFail;
   return run();
 }

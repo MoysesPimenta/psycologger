@@ -10,19 +10,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encryptCpf, isCpfEncrypted, decryptCpf, cpfBlindIndex } from "@/lib/cpf-crypto";
+import { requireCronAuth } from "@/lib/cron-auth";
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const BATCH_SIZE = 100;
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  if (!CRON_SECRET) {
-    console.error("[cron/encrypt-cpfs] CRON_SECRET not set");
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const authFail = requireCronAuth(req);
+  if (authFail) return authFail;
 
   let encrypted = 0;
   let blindIndexed = 0;

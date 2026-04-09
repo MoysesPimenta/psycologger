@@ -10,20 +10,13 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { requireCronAuth } from "@/lib/cron-auth";
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const STAGING_DATABASE_URL = process.env.STAGING_DATABASE_URL;
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  if (!CRON_SECRET) {
-    console.error("[cron/staging-keepalive] CRON_SECRET not set — rejecting");
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    console.warn("[cron/staging-keepalive] Invalid authorization header");
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const authFail = requireCronAuth(req);
+  if (authFail) return authFail;
   if (!STAGING_DATABASE_URL) {
     console.warn(JSON.stringify({ evt: "staging_keepalive_skipped", reason: "no_url" }));
     return NextResponse.json({ ok: true, skipped: true, reason: "STAGING_DATABASE_URL unset" });

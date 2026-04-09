@@ -24,6 +24,15 @@ export async function POST(req: NextRequest) {
     // Guard: SuperAdmin only
     const superAdminId = await requireSuperAdmin();
 
+    // Block impersonation chains: cannot start a new impersonation while
+    // an existing impersonation cookie is set on this request.
+    if (req.cookies.get("psycologger-impersonate")?.value) {
+      return NextResponse.json(
+        { error: "Stop current impersonation before starting a new one" },
+        { status: 409 }
+      );
+    }
+
     const body = await req.json();
     const { userId } = body;
 
@@ -85,7 +94,7 @@ export async function POST(req: NextRequest) {
     response.cookies.set("psycologger-impersonate", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: getImpersonationCookieMaxAge(),
       path: "/",
     });
@@ -94,7 +103,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[/api/v1/sa/impersonate] Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

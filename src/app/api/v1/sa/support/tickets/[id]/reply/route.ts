@@ -91,7 +91,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     if (error) {
       console.error("[sa-support-reply] resend error", error);
-      return apiError("EMAIL_FAILED", error.message || "Falha ao enviar email", 502);
+      return apiError("EMAIL_FAILED", "Failed to send email", 502);
     }
 
     // Store the same JSON wrapper format as inbound so the thread view can
