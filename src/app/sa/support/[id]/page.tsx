@@ -24,7 +24,9 @@ export default async function SupportTicketPage({
   const ticket = await db.supportTicket.findUnique({
     where: { id: params.id },
     include: {
-      messages: { orderBy: { createdAt: "asc" } },
+      // Newest first so the most recent activity sits at the top of the
+      // timeline directly under the composer.
+      messages: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!ticket) notFound();
@@ -80,6 +82,8 @@ export default async function SupportTicketPage({
         </div>
       </div>
 
+      <SupportTicketActions ticketId={ticket.id} currentStatus={ticket.status} />
+
       <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
         {decryptedMessages.map((m) => (
           <div
@@ -119,8 +123,6 @@ export default async function SupportTicketPage({
           </div>
         ))}
       </div>
-
-      <SupportTicketActions ticketId={ticket.id} currentStatus={ticket.status} />
     </div>
   );
 }

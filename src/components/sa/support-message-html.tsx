@@ -29,13 +29,19 @@ export function SupportMessageHtml({ html }: { html: string }) {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"/>
 <base target="_blank"/>
 <style>
-  html,body{margin:0;padding:12px;background:transparent;color:#e5e7eb;font-family:ui-sans-serif,system-ui,sans-serif;font-size:14px;line-height:1.5;word-wrap:break-word;overflow-wrap:anywhere}
-  a{color:#93c5fd;text-decoration:underline}
-  blockquote{border-left:3px solid #374151;margin:8px 0;padding-left:12px;color:#9ca3af}
-  pre,code{background:#1f2937;padding:2px 4px;border-radius:4px}
-  table{border-collapse:collapse}
-  td,th{padding:4px 8px;border:1px solid #374151}
-  img{max-width:100%}
+  /* Neutralize email-client styling: inbound HTML often ships with white
+     backgrounds, dark text, fixed widths, and Outlook MSO conditionals. We
+     force the entire subtree to inherit our dark palette so the rendered
+     email blends into the SA UI instead of looking like a pasted screenshot. */
+  html,body{margin:0;padding:12px;background:#0b1220 !important;color:#e5e7eb !important;font-family:ui-sans-serif,system-ui,sans-serif;font-size:14px;line-height:1.5;word-wrap:break-word;overflow-wrap:anywhere}
+  *,*::before,*::after{background-color:transparent !important;color:inherit !important;border-color:#374151 !important;box-shadow:none !important;max-width:100% !important}
+  a,a *{color:#93c5fd !important;text-decoration:underline}
+  blockquote{border-left:3px solid #374151 !important;margin:8px 0;padding-left:12px;color:#9ca3af !important}
+  pre,code{background:#1f2937 !important;padding:2px 4px;border-radius:4px}
+  table{border-collapse:collapse;width:auto !important}
+  td,th{padding:4px 8px;border:1px solid #374151 !important}
+  img{max-width:100% !important;height:auto !important;background:transparent !important}
+  hr{border-color:#374151 !important}
 </style>
 </head>
 <body>${html}</body>
