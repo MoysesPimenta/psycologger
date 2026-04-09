@@ -7,11 +7,12 @@
  * POST /api/v1/sa/tenants/:id/notes          — append a new note { body: string }
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requireSuperAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { ok, NotFoundError, handleApiError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -53,7 +54,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     }),
   ]);
 
-  return NextResponse.json({ data: { notes, recentSaActions } });
+  return ok({ notes, recentSaActions });
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const body = postSchema.parse(await req.json());
 
     const tenant = await db.tenant.findUnique({ where: { id: params.id }, select: { id: true } });
-    if (!tenant) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+    if (!tenant) throw new NotFoundError("Tenant");
 
     await auditLog({
       tenantId: tenant.id,
@@ -76,12 +77,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       userAgent,
     });
 
-    return NextResponse.json({ data: { ok: true } });
+    return ok({ ok: true });
   } catch (err) {
-    console.error("[sa/tenants/notes]", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }

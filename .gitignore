@@ -44,3 +44,5 @@ playwright-report/
 # Sentry
 .sentryclirc
 .env.sentry-build-plugin
+.vercel
+.env*.local

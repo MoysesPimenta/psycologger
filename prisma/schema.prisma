@@ -338,6 +338,7 @@ model Membership {
   @@unique([tenantId, userId])
   @@index([tenantId, role])
   @@index([tenantId, status])
+  @@index([userId, status])
 }
 
 model Invite {
@@ -509,6 +510,7 @@ model Appointment {
   @@index([tenantId, startsAt])
   @@index([tenantId, providerUserId, startsAt])
   @@index([tenantId, patientId])
+  @@index([tenantId, patientId, startsAt])
   @@index([tenantId, status])
   @@index([tenantId, status, startsAt])
 }
@@ -565,6 +567,7 @@ model ReminderLog {
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, appointmentId])
+  @@index([tenantId, createdAt])
 }
 
 model PaymentReminderLog {
@@ -583,6 +586,7 @@ model PaymentReminderLog {
   charge Charge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, chargeId])
+  @@index([tenantId, createdAt])
   @@index([tenantId, type, sentAt])
 }
 
@@ -652,6 +656,7 @@ model ClinicalSession {
   @@index([tenantId])
   @@index([tenantId, deletedAt])
   @@index([tenantId, patientId])
+  @@index([tenantId, patientId, sessionDate])
   @@index([tenantId, providerUserId])
   @@index([tenantId, sessionDate])
 }
@@ -795,6 +800,7 @@ model AuditLog {
   @@index([tenantId])
   @@index([tenantId, userId])
   @@index([tenantId, action])
+  @@index([tenantId, action, createdAt])
   @@index([tenantId, entity, entityId])
   @@index([tenantId, createdAt])
   @@index([createdAt])
@@ -1082,6 +1088,7 @@ model SupportTicket {
   messages       SupportMessage[]
 
   @@index([status])
+  @@index([status, lastMessageAt])
   @@index([fromEmail])
   @@index([tenantId])
   @@index([lastMessageAt])

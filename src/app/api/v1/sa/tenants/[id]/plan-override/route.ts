@@ -11,11 +11,12 @@
  * Body: { planTier: "FREE" | "PRO" | "CLINIC", reason: string }
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requireSuperAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { ok, NotFoundError, handleApiError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -36,11 +37,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       where: { id: params.id },
       select: { id: true, planTier: true, stripeSubscriptionId: true },
     });
-    if (!tenant) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+    if (!tenant) throw new NotFoundError("Tenant");
 
     const previousTier = tenant.planTier;
     if (previousTier === body.planTier) {
-      return NextResponse.json({ data: { unchanged: true, planTier: previousTier } });
+      return ok({ unchanged: true, planTier: previousTier });
     }
 
     await db.tenant.update({
@@ -64,12 +65,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       userAgent,
     });
 
-    return NextResponse.json({ data: { previousTier, newTier: body.planTier } });
+    return ok({ previousTier, newTier: body.planTier });
   } catch (err) {
-    console.error("[sa/tenants/plan-override]", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }

@@ -21,6 +21,7 @@ import { db } from "@/lib/db";
 import { decryptBuffer } from "@/lib/crypto";
 import { downloadFile, SUPPORT_ATTACHMENTS_BUCKET } from "@/lib/storage";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { apiError, NotFoundError, BadRequestError } from "@/lib/api";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ export async function GET(
   const meta = extractRequestMeta(req);
 
   if (!UUID_RE.test(params.id)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    return apiError("BAD_REQUEST", "Invalid id", 400);
   }
 
   const att = await db.supportAttachment.findUnique({
@@ -51,15 +52,12 @@ export async function GET(
     },
   });
   if (!att) {
-    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
+    return apiError("NOT_FOUND", "Attachment not found", 404);
   }
 
   const force = req.nextUrl.searchParams.get("force") === "1";
   if (att.quarantined && !force) {
-    return NextResponse.json(
-      { error: "Anexo bloqueado. Use ?force=1 para baixar." },
-      { status: 403 }
-    );
+    return apiError("FORBIDDEN", "Attachment blocked. Use ?force=1 to download.", 403);
   }
 
   let plain: Buffer;
@@ -68,7 +66,7 @@ export async function GET(
     plain = await decryptBuffer(cipher);
   } catch (err) {
     console.error("[sa/support/attachments] decrypt failed:", (err as Error).message);
-    return NextResponse.json({ error: "Falha ao recuperar anexo" }, { status: 500 });
+    return apiError("INTERNAL_ERROR", "Failed to retrieve attachment", 500);
   }
 
   await auditLog({

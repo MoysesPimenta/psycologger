@@ -7,10 +7,11 @@
  * Body: { reason?: string }
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireSuperAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { ok, NotFoundError, handleApiError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const tenant = await db.tenant.findUnique({ where: { id: params.id }, select: { id: true, name: true } });
-    if (!tenant) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+    if (!tenant) throw new NotFoundError("Tenant");
 
     const result = await db.membership.updateMany({
       where: { tenantId: tenant.id, status: "ACTIVE" },
@@ -47,12 +48,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       userAgent,
     });
 
-    return NextResponse.json({ data: { suspendedMemberships: result.count } });
+    return ok({ suspendedMemberships: result.count });
   } catch (err) {
-    console.error("[sa/tenants/suspend]", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal error" },
-      { status: 500 },
-    );
+    return handleApiError(err);
   }
 }

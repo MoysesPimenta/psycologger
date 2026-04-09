@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getPatientContext } from "@/lib/patient-auth";
 import { db } from "@/lib/db";
+import { ok, apiError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -26,11 +27,11 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "INVALID_JSON" }, { status: 400 });
+    return apiError("BAD_REQUEST", "Invalid JSON", 400);
   }
   const theme = typeof body.theme === "string" ? body.theme : "";
   if (!ALLOWED.has(theme)) {
-    return NextResponse.json({ error: "INVALID_THEME" }, { status: 400 });
+    return apiError("BAD_REQUEST", "Invalid theme", 400);
   }
 
   // Try staff session first
@@ -40,8 +41,8 @@ export async function POST(req: NextRequest) {
       where: { id: staff.user.id },
       data: { themePreference: theme },
     });
-    const res = NextResponse.json({ ok: true, theme });
-    setCookie(res, theme);
+    const res = ok({ ok: true, theme });
+    setCookie(res as NextResponse, theme);
     return res;
   }
 
@@ -53,8 +54,8 @@ export async function POST(req: NextRequest) {
         where: { id: ctx.patientId },
         data: { themePreference: theme },
       });
-      const res = NextResponse.json({ ok: true, theme });
-      setCookie(res, theme);
+      const res = ok({ ok: true, theme });
+      setCookie(res as NextResponse, theme);
       return res;
     }
   } catch {
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Anonymous (e.g. marketing pages): cookie-only persistence
-  const res = NextResponse.json({ ok: true, theme, anonymous: true });
-  setCookie(res, theme);
+  const res = ok({ ok: true, theme, anonymous: true });
+  setCookie(res as NextResponse, theme);
   return res;
 }

@@ -22,6 +22,7 @@ import { encrypt } from "@/lib/crypto";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { rateLimit } from "@/lib/rate-limit";
 import { processInboundAttachments } from "@/lib/support-attachments";
+import { ok, apiError } from "@/lib/api";
 import {
   extractFromEmail as extractFromEmailLib,
   normalizeSubject as normalizeSubjectLib,
@@ -60,44 +61,44 @@ export async function POST(req: NextRequest) {
   const meta = extractRequestMeta(req);
 
   if (!WEBHOOK_SECRET) {
-    return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
+    return apiError("SERVICE_UNAVAILABLE", "Webhook not configured", 503);
   }
 
   const svixTimestamp = req.headers.get("svix-timestamp");
   const svixSignature = req.headers.get("svix-signature");
   const svixId = req.headers.get("svix-id");
   if (!svixTimestamp || !svixSignature || !svixId) {
-    return NextResponse.json({ error: "Missing webhook headers" }, { status: 401 });
+    return apiError("UNAUTHORIZED", "Missing webhook headers", 401);
   }
 
   const payload = await req.text();
 
-  const ok = await verifySvixSignature(payload, svixTimestamp, svixSignature, WEBHOOK_SECRET, svixId);
-  if (!ok) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  const isValid = await verifySvixSignature(payload, svixTimestamp, svixSignature, WEBHOOK_SECRET, svixId);
+  if (!isValid) {
+    return apiError("UNAUTHORIZED", "Invalid signature", 401);
   }
 
   // Global circuit breaker — defends against bulk abuse even if limiter dies.
   const global = await rateLimit("support:inbound:global", 500, 60_000);
   if (!global.allowed) {
     console.warn("[resend-inbound] global rate limit exceeded");
-    return NextResponse.json({ error: "Rate limited" }, { status: 429 });
+    return apiError("RATE_LIMITED", "Too many requests", 429);
   }
 
   let event: InboundPayload;
   try {
     event = JSON.parse(payload) as InboundPayload;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return apiError("BAD_REQUEST", "Invalid JSON", 400);
   }
 
   if (!event.data) {
-    return NextResponse.json({ ok: true });
+    return ok({ ok: true });
   }
 
   const { email: fromEmail, name: fromName } = extractFromEmail(event.data.from as never);
   if (!fromEmail || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(fromEmail)) {
-    return NextResponse.json({ error: "Invalid from address" }, { status: 400 });
+    return apiError("BAD_REQUEST", "Invalid from address", 400);
   }
 
   const domain = fromEmail.split("@")[1] ?? "";
@@ -201,7 +202,7 @@ export async function POST(req: NextRequest) {
     });
     if (dup) {
       console.warn("[resend-inbound] duplicate messageId — ignoring", messageId);
-      return NextResponse.json({ ok: true, duplicate: true, ticketId: dup.ticketId });
+      return ok({ ok: true, duplicate: true, ticketId: dup.ticketId });
     }
   }
 
@@ -229,7 +230,7 @@ export async function POST(req: NextRequest) {
       userAgent: meta.userAgent,
     });
     // Return 200 so Resend does not retry — the block is intentional.
-    return NextResponse.json({ ok: true, blocked: true });
+    return ok({ ok: true, blocked: true });
   }
 
   // Per-sender rate limit: 20 messages / 10 minutes.
@@ -241,7 +242,7 @@ export async function POST(req: NextRequest) {
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
     });
-    return NextResponse.json({ ok: true, rateLimited: true });
+    return ok({ ok: true, rateLimited: true });
   }
 
   const subjectNormalized = normalizeSubject(subject);
@@ -306,7 +307,7 @@ export async function POST(req: NextRequest) {
         attachments,
       });
     }
-    return NextResponse.json({ ok: true, ticketId: existing.id });
+    return ok({ ok: true, ticketId: existing.id });
   }
 
   const ticket = await db.supportTicket.create({
@@ -347,5 +348,5 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ ok: true, ticketId: ticket.id });
+  return ok({ ok: true, ticketId: ticket.id });
 }
