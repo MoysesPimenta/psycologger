@@ -8,6 +8,7 @@ import { BillingBanner } from "@/components/billing/billing-banner";
 import ImpersonationBanner from "@/components/sa/impersonation-banner";
 import { requireActiveSubscription } from "@/lib/billing/subscription-status";
 import { db } from "@/lib/db";
+import { ThemeSync } from "@/components/theme-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -61,8 +62,19 @@ export default async function AppLayout({
     }
   }
 
+  // Cross-device theme sync: pull the user's stored preference and let
+  // the client adopt it if its cookie disagrees.
+  const me = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { themePreference: true },
+  });
+  const serverTheme = (me?.themePreference === "light" || me?.themePreference === "dark"
+    ? me.themePreference
+    : "system") as "light" | "dark" | "system";
+
   return (
     <>
+      <ThemeSync serverTheme={serverTheme} />
       <ServiceWorkerRegister />
       {ctx.impersonating && (
         <ImpersonationBanner

@@ -6,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
+import { cookies } from "next/headers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -56,8 +57,29 @@ export default async function RootLayout({
 }>) {
   const messages = await getMessages();
 
+  // Per-user theme preference is mirrored to a long-lived cookie by
+  // POST /api/v1/me/theme. Reading it here lets us SSR the correct
+  // class on <html> and avoid a flash of the wrong theme.
+  const themeCookie = cookies().get("psy-theme")?.value;
+  const theme: "light" | "dark" | "system" =
+    themeCookie === "light" || themeCookie === "dark" ? themeCookie : "system";
+  // For "system" we let the no-flash inline script below resolve it
+  // against prefers-color-scheme; for explicit values we set the class
+  // straight away.
+  const htmlClass = theme === "dark" ? "dark" : "";
+
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" className={htmlClass} suppressHydrationWarning>
+      <head>
+        {/* No-flash theme bootstrap. Runs before paint, resolves
+            "system" against the OS preference. Mirrors logic in
+            <ThemeToggle />. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=document.cookie.match(/(?:^|; )psy-theme=([^;]+)/);var t=m?m[1]:'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.classList.toggle('dark',d);r.style.colorScheme=d?'dark':'light';}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className={inter.className}>
         <NextIntlClientProvider messages={messages}>
           <Providers>{children}</Providers>

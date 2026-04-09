@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, Calendar, PenLine, CreditCard, User, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SessionTimeoutWarning } from "./session-timeout-warning";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_ITEMS = [
   { icon: Home, label: "Início", href: "/portal/dashboard" },
@@ -26,6 +27,8 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
         <Link href="/portal/dashboard" className="text-base font-bold text-gray-900 flex-shrink-0">
           Psycologger
         </Link>
+        <div className="flex items-center gap-1">
+        <ThemeToggle compact />
         <Link
           href="/portal/notifications"
           className={cn(
@@ -38,6 +41,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
         >
           <Bell className="h-5 w-5" />
         </Link>
+        </div>
       </header>
 
       {/* Main content */}

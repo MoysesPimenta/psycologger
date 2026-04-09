@@ -24,6 +24,7 @@ import { cn, initials } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitcher } from "./locale-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItemsConfig = [
   { href: "/app/today", label: "nav.today", icon: Clock },
@@ -173,6 +174,7 @@ export function AppSidebar() {
           {/* Locale Switcher */}
           <div className="px-1">
             <LocaleSwitcher />
+            <ThemeToggle compact />
           </div>
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50">
             <div className="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
