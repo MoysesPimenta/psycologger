@@ -7,6 +7,8 @@ import {
   SupportBulkActions,
   SupportMasterCheckbox,
 } from "@/components/sa/support-bulk-actions";
+import { SupportActiveChips } from "@/components/sa/support-active-chips";
+import { SupportAutoRefresh } from "@/components/sa/support-auto-refresh";
 
 export const metadata = { title: "Suporte — SuperAdmin" };
 export const dynamic = "force-dynamic";
@@ -149,6 +151,66 @@ export default async function SASupportPage({
     : [];
   const tenantMap = new Map(tenantRows.map((t) => [t.id, t.name]));
 
+  // Aggregate per-ticket message stats for badges (counts + first/last
+  // timestamps + first SA reply for the One Stop Shop calculation). One
+  // bulk query per metric, all scoped to the visible page only.
+  const ticketIds = tickets.map((t) => t.id);
+  type Stats = {
+    inbound: number;
+    outbound: number;
+    notes: number;
+    firstAt: Date | null;
+    lastInboundAt: Date | null;
+    firstOutboundAt: Date | null;
+  };
+  const stats = new Map<string, Stats>(
+    ticketIds.map((id) => [
+      id,
+      {
+        inbound: 0,
+        outbound: 0,
+        notes: 0,
+        firstAt: null,
+        lastInboundAt: null,
+        firstOutboundAt: null,
+      },
+    ])
+  );
+  if (ticketIds.length > 0) {
+    const msgs = await db.supportMessage.findMany({
+      where: { ticketId: { in: ticketIds } },
+      select: { ticketId: true, direction: true, createdAt: true },
+    });
+    for (const m of msgs) {
+      const s = stats.get(m.ticketId);
+      if (!s) continue;
+      if (!s.firstAt || m.createdAt < s.firstAt) s.firstAt = m.createdAt;
+      if (m.direction === "INBOUND") {
+        s.inbound++;
+        if (!s.lastInboundAt || m.createdAt > s.lastInboundAt)
+          s.lastInboundAt = m.createdAt;
+      } else if (m.direction === "OUTBOUND") {
+        s.outbound++;
+        if (!s.firstOutboundAt || m.createdAt < s.firstOutboundAt)
+          s.firstOutboundAt = m.createdAt;
+      } else {
+        s.notes++;
+      }
+    }
+  }
+
+  // Build a query string that preserves all current filters so pagination
+  // doesn't accidentally reset the SA's view.
+  const baseParams = new URLSearchParams();
+  for (const [k, v] of Object.entries(searchParams)) {
+    if (typeof v === "string" && v && k !== "page") baseParams.set(k, v);
+  }
+  const linkFor = (p: number) => {
+    const params = new URLSearchParams(baseParams);
+    params.set("page", String(p));
+    return `/sa/support?${params.toString()}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -195,6 +257,9 @@ export default async function SASupportPage({
           { name: "until", kind: "date" },
         ]}
       />
+
+      <SupportActiveChips />
+      <SupportAutoRefresh />
 
       {warning && (
         <div className="bg-yellow-900/30 border border-yellow-700 text-yellow-200 text-sm rounded-lg px-4 py-2">
@@ -245,6 +310,11 @@ export default async function SASupportPage({
                     <Link href={`/sa/support/${t.id}`} className="block hover:underline">
                       {t.subject || "(sem assunto)"}
                     </Link>
+                    <TicketBadges
+                      stats={stats.get(t.id)}
+                      status={t.status}
+                      lastMessageAt={t.lastMessageAt}
+                    />
                   </td>
                   <td className="p-4 text-xs text-gray-400">
                     {t.fromName ? `${t.fromName} · ` : ""}
@@ -283,7 +353,7 @@ export default async function SASupportPage({
           <div className="flex gap-2">
             {page > 1 && (
               <Link
-                href={`/sa/support?page=${page - 1}`}
+                href={linkFor(page - 1)}
                 className="px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded text-sm"
               >
                 Anterior
@@ -291,7 +361,7 @@ export default async function SASupportPage({
             )}
             {page < pageCount && (
               <Link
-                href={`/sa/support?page=${page + 1}`}
+                href={linkFor(page + 1)}
                 className="px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded text-sm"
               >
                 Próxima
@@ -299,6 +369,97 @@ export default async function SASupportPage({
             )}
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function TicketBadges({
+  stats,
+  status,
+  lastMessageAt,
+}: {
+  stats:
+    | {
+        inbound: number;
+        outbound: number;
+        notes: number;
+        firstAt: Date | null;
+        lastInboundAt: Date | null;
+        firstOutboundAt: Date | null;
+      }
+    | undefined;
+  status: "OPEN" | "PENDING" | "CLOSED";
+  lastMessageAt: Date;
+}) {
+  if (!stats) return null;
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+  // "Rotten" = days since the last inbound the customer sent us. Only
+  // surfaced when the ball is in our court (status OPEN).
+  const rottenSrc = stats.lastInboundAt ?? lastMessageAt;
+  const rottenDays = Math.floor((now - new Date(rottenSrc).getTime()) / dayMs);
+  // "Open since" = age of the very first message on the ticket.
+  const openSinceDays = stats.firstAt
+    ? Math.floor((now - new Date(stats.firstAt).getTime()) / dayMs)
+    : null;
+  // One Stop Shop = first SA reply happened within 3 days of the first
+  // inbound AND the ticket is now closed. Recognises fast resolutions.
+  const oss =
+    status === "CLOSED" &&
+    stats.firstAt &&
+    stats.firstOutboundAt &&
+    new Date(stats.firstOutboundAt).getTime() -
+      new Date(stats.firstAt).getTime() <=
+      3 * dayMs;
+
+  const totalMsgs = stats.inbound + stats.outbound;
+  return (
+    <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
+      {totalMsgs > 0 && (
+        <span
+          className="px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-300"
+          title={`${stats.inbound} recebidas · ${stats.outbound} enviadas`}
+        >
+          ✉ {totalMsgs}
+        </span>
+      )}
+      {stats.notes > 0 && (
+        <span
+          className="px-1.5 py-0.5 rounded bg-amber-900/40 border border-amber-800 text-amber-200"
+          title={`${stats.notes} nota(s) interna(s)`}
+        >
+          🔒 {stats.notes}
+        </span>
+      )}
+      {openSinceDays !== null && (
+        <span
+          className="px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-400"
+          title="Aberto há (dias desde a primeira mensagem)"
+        >
+          ⏱ {openSinceDays}d
+        </span>
+      )}
+      {status === "OPEN" && rottenDays >= 2 && (
+        <span
+          className={
+            "px-1.5 py-0.5 rounded border " +
+            (rottenDays >= 7
+              ? "bg-red-900/50 border-red-800 text-red-200"
+              : "bg-yellow-900/40 border-yellow-800 text-yellow-200")
+          }
+          title="Dias sem retorno do cliente / sem ação"
+        >
+          🥀 {rottenDays}d
+        </span>
+      )}
+      {oss && (
+        <span
+          className="px-1.5 py-0.5 rounded bg-emerald-900/40 border border-emerald-700 text-emerald-200"
+          title="Resolvido na primeira resposta em até 3 dias"
+        >
+          ⭐ One Stop Shop
+        </span>
       )}
     </div>
   );
