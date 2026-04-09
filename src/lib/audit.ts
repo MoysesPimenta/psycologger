@@ -48,6 +48,9 @@ export type AuditAction =
   | "FILE_DELETE"
   | "FILE_RESTORE"
   | "UPLOAD_URL_SIGNED"
+  // Push Notifications
+  | "PUSH_TOKEN_REGISTERED"
+  | "PUSH_TOKEN_REVOKED"
   // Financial
   | "CHARGE_CREATE"
   | "CHARGE_UPDATE"
