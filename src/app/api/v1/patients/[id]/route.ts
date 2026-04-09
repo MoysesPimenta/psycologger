@@ -14,6 +14,7 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { randomBytes, createHash } from "crypto";
 import { PORTAL_MAGIC_LINK_EXPIRY_MS, generateActivationToken } from "@/lib/patient-auth";
 import { encryptCpf, decryptPatientCpf, cpfBlindIndex } from "@/lib/cpf-crypto";
+import { encryptPatientNotes, decryptPatientNotes } from "@/lib/patient-notes";
 import { logger } from "@/lib/logger";
 import { assertCanAddPatient } from "@/lib/billing/limits";
 
@@ -42,9 +43,10 @@ export async function GET(
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
     const patient = await resolvePatient(params.id, ctx);
-    // Decrypt CPF before returning to client
+    // Decrypt CPF and notes before returning to client
     const decrypted = await decryptPatientCpf(patient);
-    return ok(decrypted);
+    const notes = await decryptPatientNotes(decrypted.notes);
+    return ok({ ...decrypted, notes });
   } catch (err) {
     return handleApiError(err);
   }
@@ -95,7 +97,7 @@ export async function PATCH(
           cpf: await encryptCpf(body.cpf),
           cpfBlindIndex: body.cpf && body.cpf.trim() !== "" ? cpfBlindIndex(body.cpf) : null,
         }),
-        ...(body.notes !== undefined && { notes: body.notes }),
+        ...(body.notes !== undefined && { notes: await encryptPatientNotes(body.notes) }),
         ...(body.tags !== undefined && { tags: body.tags }),
         ...(body.assignedUserId !== undefined && { assignedUserId: body.assignedUserId }),
         ...(body.consentGiven !== undefined && {
@@ -246,7 +248,9 @@ export async function PATCH(
       }
     }
 
-    return ok({ ...patient, portalEmailSynced });
+    // Decrypt notes before returning to client
+    const notes = await decryptPatientNotes(patient.notes);
+    return ok({ ...patient, notes, portalEmailSynced });
   } catch (err) {
     return handleApiError(err);
   }

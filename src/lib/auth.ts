@@ -150,6 +150,8 @@ export const authOptions: NextAuthOptions = {
  * Server-side guard for /sa/* pages. Reads isSuperAdmin fresh from the DB
  * because the client session intentionally does NOT expose this flag.
  * Returns the userId on success; redirects to /sa/login on failure.
+ *
+ * If MOBILE_BEARER_ENABLED is true, also accepts a valid staff bearer token.
  */
 export async function requireSuperAdmin(): Promise<string> {
   const { getServerSession } = await import("next-auth");
@@ -167,4 +169,62 @@ export async function requireSuperAdmin(): Promise<string> {
     redirect("/sa/login");
   }
   return userId as string;
+}
+
+/**
+ * Server-side guard for staff routes. Works with both NextAuth sessions
+ * and (optionally) mobile bearer tokens. Returns the user ID on success.
+ *
+ * @throws UnauthorizedError if neither session type is valid
+ */
+export async function requireUser(req?: Request): Promise<string> {
+  const { getServerSession } = await import("next-auth");
+  const session = await getServerSession(authOptions);
+  if (session?.user?.id) {
+    return session.user.id;
+  }
+
+  // If mobile bearer auth is enabled, try bearer token fallback
+  if (process.env.MOBILE_BEARER_ENABLED === "true" && req) {
+    const { verifyBearer } = await import("./bearer-auth");
+    const { NextRequest } = await import("next/server");
+    const nextReq = req instanceof NextRequest ? req : new NextRequest(req);
+    const payload = await verifyBearer(nextReq);
+    if (payload && payload.kind === "staff") {
+      return payload.userId;
+    }
+  }
+
+  const { UnauthorizedError } = await import("./rbac");
+  throw new UnauthorizedError("Staff session or valid bearer token required");
+}
+
+/**
+ * Server-side guard for patient portal routes. Works with both patient portal
+ * sessions and (optionally) mobile bearer tokens. Returns the patient auth ID.
+ *
+ * @throws UnauthorizedError if neither session type is valid
+ */
+export async function requirePatientAuth(
+  req?: Request
+): Promise<string> {
+  try {
+    const { getPatientContext } = await import("./patient-auth");
+    const ctx = await getPatientContext(req);
+    return ctx.patientAuthId;
+  } catch (err) {
+    // Portal session failed; try bearer token if enabled
+    if (process.env.MOBILE_BEARER_ENABLED === "true" && req) {
+      const { verifyBearer } = await import("./bearer-auth");
+      const { NextRequest } = await import("next/server");
+      const nextReq = req instanceof NextRequest ? req : new NextRequest(req);
+      const payload = await verifyBearer(nextReq);
+      if (payload && payload.kind === "patient") {
+        return payload.userId; // For patients, userId field holds patientAuthId
+      }
+    }
+
+    // Both failed; re-throw the original session error
+    throw err;
+  }
 }

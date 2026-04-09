@@ -37,10 +37,14 @@ export function requireCronAuth(req: NextRequest): NextResponse | null {
     );
   }
 
-  // Vercel Cron always sends this header. We do NOT *require* it
-  // because some external schedulers won't, but it's a useful signal
-  // and we log when it's absent in production for forensics.
+  // Vercel Cron always sends this header.
   const isVercelCron = req.headers.get("x-vercel-cron") === "1";
+
+  // In production, require x-vercel-cron header to prevent cron execution
+  // from outside Vercel even if CRON_SECRET is leaked.
+  if (process.env.NODE_ENV === "production" && !isVercelCron) {
+    return unauthorized(false, "missing vercel cron header");
+  }
 
   const authHeader = req.headers.get("authorization") ?? "";
   const m = authHeader.match(/^Bearer\s+(.+)$/i);

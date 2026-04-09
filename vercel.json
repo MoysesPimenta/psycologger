@@ -25,6 +25,10 @@
       "schedule": "30 4 * * *"
     },
     {
+      "path": "/api/v1/cron/encrypt-patient-notes",
+      "schedule": "35 4 * * *"
+    },
+    {
       "path": "/api/v1/cron/encrypt-cpfs",
       "schedule": "45 4 * * *"
     },

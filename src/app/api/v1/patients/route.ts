@@ -13,6 +13,7 @@ import {
 import { requirePermission, getPatientScope, ForbiddenError } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { encryptCpf, decryptPatientCpfs, cpfBlindIndex, isCpfShapedQuery } from "@/lib/cpf-crypto";
+import { encryptPatientNotes, decryptPatientNotes } from "@/lib/patient-notes";
 import { assertCanAddPatient } from "@/lib/billing/limits";
 
 const createSchema = z.object({
@@ -78,10 +79,16 @@ export async function GET(req: NextRequest) {
       db.patient.count({ where: whereClause }),
     ]);
 
-    // Decrypt CPF fields before returning to client
+    // Decrypt CPF and notes fields before returning to client
     const decryptedPatients = await decryptPatientCpfs(patients);
+    const withDecryptedNotes = await Promise.all(
+      decryptedPatients.map(async (p) => ({
+        ...p,
+        notes: await decryptPatientNotes(p.notes),
+      }))
+    );
 
-    return ok(decryptedPatients, buildMeta(total, pagination));
+    return ok(withDecryptedNotes, buildMeta(total, pagination));
   } catch (err) {
     return handleApiError(err);
   }
@@ -128,7 +135,7 @@ export async function POST(req: NextRequest) {
         cpf: (await encryptCpf(body.cpf)) ?? null,
         cpfBlindIndex: body.cpf && body.cpf.trim() !== "" ? cpfBlindIndex(body.cpf) : null,
         dob: body.dob ? new Date(body.dob) : null,
-        notes: body.notes ?? null,
+        notes: await encryptPatientNotes(body.notes ?? null),
         tags: body.tags,
         ...(body.defaultAppointmentTypeId && { defaultAppointmentTypeId: body.defaultAppointmentTypeId }),
         ...(body.defaultFeeOverrideCents !== undefined && { defaultFeeOverrideCents: body.defaultFeeOverrideCents }),
