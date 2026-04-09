@@ -13,7 +13,7 @@ Psycologger is a multi-tenant SaaS platform for Brazilian psychologists, built o
 - **Storage:** AWS S3 / Cloudflare R2
 - **Encryption:** AES-256-GCM with key rotation
 - **Deployment:** Vercel (gru1 region)
-- **UI Language:** Portuguese
+- **Internationalization:** next-intl with pt-BR (default), en, es locales
 - **Status:** Pre-beta
 
 ## Architecture
@@ -134,12 +134,13 @@ export async function POST(req: NextRequest) {
 - Email reminders (Vercel cron)
 - File upload with magic byte validation
 - Encryption and key rotation
+- Internationalization (next-intl with pt-BR, en, es locales; getTranslations() in use across dashboard pages)
+- Google Calendar sync (OAuth2 flow, token storage, event sync; endpoints at `/api/v1/calendar/callback` and `/api/v1/calendar/disconnect`)
+- NFSe integration (PlugNotas adapter with credential CRUD, issue/cancel/status-check endpoints; routes at `/api/v1/nfse/*`)
+- LGPD DSAR (patient data export, deletion, anonymization via `/api/v1/patients/[id]/dsar/*`; tenant purge automation at `/api/v1/cron/lgpd-purge`)
+- Health check endpoint (`/api/v1/health` and `/api/health`)
 
 **Stubs/Incomplete:**
-- Google Calendar sync (models exist, OAuth + sync service not implemented)
-- NFSe integration (NfseInvoice + IntegrationCredential models, RBAC + audit action exist; provider adapter and credential CRUD not implemented — target provider: PlugNotas)
-- Internationalization (Portuguese hardcoded, no i18n framework)
-- Data exporter (LGPD deletion not automated, export to CSV only)
 
 **Missing:**
 - (CPF blind-index is now LANDED — `Patient.cpfBlindIndex` HMAC-SHA256 column + `(tenantId, cpfBlindIndex)` index exist; wired into patients POST/PATCH and the GET search via `isCpfShapedQuery`. Migration: `prisma/migrations/20260407_cpf_blind_index/`. The encrypt-cpfs cron backfills both encryption and blind index in one pass.)
@@ -162,12 +163,12 @@ export async function POST(req: NextRequest) {
 
 1. ~~CPF plaintext in database~~ — RESOLVED 2026-04-07: AES-GCM ciphertext + HMAC-SHA256 blind index landed; backfill cron deployed
 2. ~~SessionRecord.notes unencrypted~~ — RESOLVED earlier: `enc:v1:` sentinel + AES-256-GCM, backfill cron at `/api/v1/cron/encrypt-clinical-notes`
-3. **No i18n framework** — Portuguese UI hardcoded; expansion to other languages blocked
-4. **Google Calendar sync stub** — appointments not synced to external calendars
-5. **NFSe integration stub** — Brazilian tax document generation not implemented
-6. **Appointment reminder cron missing** — only payment reminders; appointment reminders not queued
-7. **No staging environment** — cannot test pre-release changes safely
-8. **LGPD data deletion not automated** — consent tracking exists but no deletion workflow
+3. ~~i18n framework~~ — RESOLVED 2026-04-09: next-intl integrated with pt-BR, en, es locales; active in dashboard pages
+4. ~~Google Calendar sync stub~~ — RESOLVED 2026-04-09: OAuth2 flow, token storage, event sync implemented
+5. ~~NFSe integration stub~~ — RESOLVED 2026-04-09: PlugNotas adapter with credential CRUD and status check
+6. ~~Appointment reminder cron missing~~ — RESOLVED 2026-04-09: registered in vercel.json at `/api/v1/cron/appointment-reminders`
+7. ~~LGPD data deletion not automated~~ — RESOLVED 2026-04-09: DSAR endpoints (export, delete, anonymize) + tenant purge cron implemented
+8. **No staging environment** — cannot test pre-release changes safely
 9. **Rate limiting may be ineffective** — Upstash Redis optional; in-memory fallback not production-safe
 10. **No load testing visible** — capacity unknown; no performance baselines
 
@@ -196,12 +197,14 @@ export async function POST(req: NextRequest) {
 
 ---
 
-**Last verified against code:** 2026-04-07
-- CPF encryption with blind index now live
-- Clinical notes encryption with production rejection option live
-- Default appointment types seeding implemented
-- NextAuth events enrichment verified
-- CSRF narrowed allowlist verified
+**Last verified against code:** 2026-04-09
+- i18n (next-intl) with pt-BR, en, es locales live
+- Google Calendar sync with OAuth2 flow live
+- NFSe integration with PlugNotas adapter live
+- LGPD DSAR (export, delete, anonymize) + tenant purge cron live
+- Health check endpoints (`/api/v1/health` and `/api/health`) verified
+- CPF encryption with blind index verified
+- Clinical notes encryption with production rejection option verified
 
 ## April 2026 update — plan-limit enforcement & SA console
 

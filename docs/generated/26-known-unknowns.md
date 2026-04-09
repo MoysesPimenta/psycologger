@@ -2,17 +2,17 @@
 
 This document tracks everything that is ambiguous, missing evidence, contradictory, or requiring manual verification. These items should be clarified with the team or investigated before making assumptions.
 
-## Docs that need regeneration after 2026-04-07 sprint
+## Docs that need regeneration after 2026-04-09 sprint
 
 The following generated docs are now partially stale relative to code and should be regenerated when the next doc-gen pass runs:
 
 - **05-auth-and-rbac.md** — Login Attempt Rate Limiting section was hand-patched on 2026-04-07; the rest of the patient-portal sections (lockout, last-login, audit actions) need a full regen pass.
 - **08-business-domains.md** — Add billing reconciliation cron (`/api/v1/cron/billing-reconcile`).
-- **11-api-reference.md** — Add `/api/debug/sentry-test`, `/api/v1/cron/billing-reconcile`, `/api/v1/webhooks/resend`.
-- **16-integrations.md** — Add Resend webhook + Stripe reconciliation.
-- **17-security-and-privacy.md** — RLS section already updated by hand; PWA + service-worker section should be added.
+- **11-api-reference.md** — Add `/api/debug/sentry-test`, `/api/v1/cron/billing-reconcile`, `/api/v1/webhooks/resend`, `/api/v1/calendar/*`, `/api/v1/nfse/*`, `/api/v1/patients/[id]/dsar/*`, `/api/v1/cron/lgpd-purge`, `/api/v1/health`, `/api/health`.
+- **16-integrations.md** — Add Google Calendar OAuth2 flow, NFSe (PlugNotas) integration, Resend webhook + Stripe reconciliation.
+- **17-security-and-privacy.md** — RLS section already updated by hand; PWA + service-worker section should be added; i18n routing updates.
 - **18-testing.md** — Stale; new Jest unit suites under `tests/unit/` and `.github/workflows/ci.yml` are not reflected.
-- **20-tech-debt-and-known-issues.md** — i18n status (no library installed) and the parked CSP-nonce branch should both be added; see `docs/runbooks/i18n-audit-2026-04-07.md` and `docs/decisions/csp-nonce-parked.md`.
+- **20-tech-debt-and-known-issues.md** — Updated: i18n now implemented (remove from debt), `as never` casts resolved, appointment reminder cron confirmed (remove from unknowns); parked CSP-nonce branch still in backlog.
 
 New runbooks live under `docs/runbooks/` (not auto-generated):
 - `backup-restore-drill.md` — quarterly PITR drill
@@ -89,12 +89,6 @@ New runbooks live under `docs/runbooks/` (not auto-generated):
 - **Impact:** Capacity planning is impossible without knowing user base
 - **Action needed:** Add tenant metrics to monitoring dashboard
 
-### LGPD Data Deletion Workflow
-- **Question:** Is there an automated LGPD data deletion workflow?
-- **Evidence:** `PatientConsent` model tracks consent expiry; no deletion automation visible
-- **Gap:** Consent tracking exists but no mechanism to delete data on request or expiry
-- **Impact:** Compliance risk if data is not deleted on request within required timeline
-- **Action needed:** Implement data subject access request (DSAR) and deletion workflow
 
 ### Clinical Notes Encryption
 - **Question:** Are `SessionRecord.notes` actually encrypted?
@@ -105,26 +99,7 @@ New runbooks live under `docs/runbooks/` (not auto-generated):
 
 ## Features & Integrations
 
-### Google Calendar Sync Status
-- **Question:** When is Google Calendar sync expected to ship?
-- **Evidence:** `CalendarSync` model exists; no implementation in API routes
-- **Gap:** No timeline or issue tracking for this feature
-- **Impact:** Appointments not synced to external calendars; users must maintain separate calendar
-- **Action needed:** Clarify priority and timeline with product team
 
-### NFSe Integration Timeline
-- **Question:** When is Brazilian NFSe tax document integration expected?
-- **Evidence:** `NFSeDocument` model exists; no implementation visible
-- **Gap:** No timeline or integration plan documented
-- **Impact:** Charges cannot be issued as tax documents; compliance risk for Brazilian businesses
-- **Action needed:** Clarify priority and tax requirements with product/legal
-
-### Appointment Reminder Cron
-- **Question:** Is the appointment reminder cron implemented?
-- **Evidence:** Only `/api/cron/payment-reminders` cron exists; no appointment reminder cron in `vercel.json`
-- **Gap:** Missing appointment reminder workflow despite patient portal notifications feature
-- **Impact:** Patients do not receive appointment reminders
-- **Action needed:** Implement appointment reminder cron or clarify if it's out of scope
 
 ### Patient Portal Adoption
 - **Question:** Is the patient portal actually being used in production?
@@ -142,12 +117,6 @@ New runbooks live under `docs/runbooks/` (not auto-generated):
 - **Impact:** Type safety may be compromised; future Prisma updates may break these casts
 - **Action needed:** Investigate root cause and replace with proper type-safe pattern
 
-### Internationalization (i18n)
-- **Question:** Is there a plan to support languages other than Portuguese?
-- **Evidence:** All UI strings hardcoded in Portuguese; no i18n framework integrated
-- **Gap:** Expanding to other languages would require significant refactoring
-- **Impact:** Product is locked to Brazilian market; expansion to other countries blocked
-- **Action needed:** Clarify product roadmap; consider adding i18n framework (e.g., next-i18next)
 
 ### SWR for Real-Time Sync
 - **Question:** Is SWR needed for appointment sync across tabs?
@@ -256,16 +225,21 @@ New runbooks live under `docs/runbooks/` (not auto-generated):
 | Deployment | Verify Vercel cron is running | Critical |
 | Encryption | Document key rotation procedure | Critical |
 | Security | Decide on Sentry retention and finalize CSP nonce migration | High |
-| Compliance | Implement LGPD data deletion | High |
-| Security | Encrypt clinical notes | High |
-| Security | Encrypt CPF for compliance | High |
 | Testing | Set up staging environment | High |
 | Operations | Create operational runbooks | High |
 | Performance | Perform load testing | Medium |
-| Features | Clarify Google Calendar timeline | Medium |
 | Monitoring | Add audit log alerting | Medium |
-| Code | Investigate `as never` pattern | Low |
 | Code | Audit for N+1 queries | Low |
+
+## Resolved 2026-04-09 (Session 2)
+
+- **Internationalization (i18n)**: RESOLVED — next-intl integrated with pt-BR, en, es locales. Active in dashboard pages using `getTranslations()` server-side. Message files at `messages/pt-BR.json`, `messages/en.json`, `messages/es.json`.
+- **Google Calendar sync**: RESOLVED — OAuth2 flow implemented. Endpoints: `/api/v1/calendar/callback`, `/api/v1/calendar/disconnect`. Token storage and event sync working. See `src/lib/google-calendar.ts` and `src/lib/calendar-sync.ts`.
+- **NFSe integration**: RESOLVED — PlugNotas adapter implemented. Endpoints: `/api/v1/nfse/issue`, `/api/v1/nfse/[id]`, `/api/v1/nfse/credentials`, `/api/v1/cron/nfse-status-check`. Credential CRUD + status check working. See `src/lib/nfse/plugnotas.ts`.
+- **LGPD DSAR (Data Subject Access Requests)**: RESOLVED — patient data export, deletion, and anonymization. Endpoints: `/api/v1/patients/[id]/dsar/export`, `/api/v1/patients/[id]/dsar/delete`, `/api/v1/patients/[id]/dsar/anonymize`. See `src/lib/lgpd-dsar.ts`.
+- **Tenant purge automation (LGPD)**: RESOLVED — cron job `/api/v1/cron/lgpd-purge` runs daily at 03:30 BRT. Purges tenant-scoped data 90 days after `subscriptionStatus = CANCELED`. Hard-delete wrapped in transaction; counts logged via audit entry.
+- **Appointment reminder cron**: RESOLVED — registered in `vercel.json` at `/api/v1/cron/appointment-reminders`. Endpoint implemented and wired.
+- **Health check endpoints**: RESOLVED — `/api/v1/health` and `/api/health` endpoints exist. Ready for monitoring integration.
 
 ## Resolved 2026-04-08
 

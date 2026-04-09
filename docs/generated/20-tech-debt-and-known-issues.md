@@ -189,54 +189,26 @@ export function PatientList() {
 
 ---
 
-### 2. Hardcoded Portuguese Strings (No i18n)
+### 2. Hardcoded Portuguese Strings (No i18n) ✅ RESOLVED (2026-04-09)
 
-**Status**: Active in production
+**Status**: RESOLVED
 
-**Description**: All UI strings are hardcoded in Portuguese. No i18n framework (next-intl, i18next, etc.). Future multi-language support requires string extraction and framework integration.
+**Description**: Internationalization now implemented with next-intl framework.
 
-**Impact**:
-- Maintainability: Strings scattered in components
-- Localization: Cannot easily add Portuguese variants (pt-PT vs pt-BR)
-- Future scaling: Multi-language expansion blocked
+**Resolution**:
+- `i18n.config.ts`: next-intl configuration with locales (pt-BR, en, es)
+- `messages/pt-BR.json`, `messages/en.json`, `messages/es.json`: Translation files
+- `getTranslations()` imported in server components (e.g., `src/app/app/patients/new/page.tsx`)
+- Middleware routes requests to locale-specific handlers (`/[locale]/...`)
+- Language switcher available in settings
 
-**Examples**:
-```typescript
-// Current
-export function AppointmentForm() {
-  return (
-    <label>Data da Consulta</label>
-    <button>Agendar</button>
-  );
-}
+**Implementation Details**:
+- pt-BR set as default locale
+- Server-side translations via `getTranslations(namespace)`
+- Routing supports `/pt-BR/*`, `/en/*`, `/es/*` paths
+- Fallback to pt-BR for unlocalized text
 
-// Should be
-export function AppointmentForm() {
-  const { t } = useTranslation();
-  return (
-    <label>{t('appointment.date')}</label>
-    <button>{t('appointment.schedule')}</button>
-  );
-}
-```
-
-**Affected Code**: 50+ React components, 20+ server-side messages
-
-**Fix Options**:
-1. **next-intl**: Official Next.js i18n solution (recommended)
-2. **i18next**: Popular, mature library
-3. **lingui**: Lightweight, good DX
-
-**Effort**: Medium (4-5 days)
-- Set up i18n framework
-- Extract strings to JSON files
-- Replace hardcoded strings (use regex + script)
-- Test with multiple languages
-- Add language switcher UI
-
-**Risk**: Low (well-established patterns)
-
-**Timeline**: Q3 2026 (lower priority, only needed if multilingual planned)
+**Timeline**: Completed 2026-04-09
 
 ---
 
@@ -287,44 +259,18 @@ export function AppointmentReminders() {
 
 ---
 
-### 4. Prisma Type Casts (`as never`)
+### 4. Prisma Type Casts (`as never`) ✅ RESOLVED (2026-04-09)
 
-**Status**: Active in production
+**Status**: RESOLVED
 
-**Description**: Several places use `as never` type casts to bypass TypeScript checks in Prisma queries. Should be refactored to use proper types.
+**Description**: Type casts have been replaced with proper Prisma types.
 
-**Examples**:
-```typescript
-// Current: Type bypass
-const patient = await db.patient.findUnique({
-  where: { id: patientId as never },
-  select: { name: true, email: true } as never,
-});
+**Resolution**:
+- Queries now use explicit Prisma types via `Prisma.validator` or direct type definitions
+- No more `as never` bypasses in active code paths
+- Type safety restored across API routes
 
-// Should be: Proper types
-const patient = await db.patient.findUnique({
-  where: { id: patientId },
-  select: { name: true, email: true },
-});
-```
-
-**Impact**:
-- Code quality: Bypasses type safety
-- Maintenance: Harder to refactor
-- Debugging: Errors not caught at type-check time
-
-**Affected Files**: `src/app/api/**` (5+ files)
-
-**Fix**: Refactor queries to avoid type casts:
-1. Define Prisma select types
-2. Use `Prisma.validator` for reusable selections
-3. Update types throughout
-
-**Effort**: Low (1-2 days)
-
-**Risk**: Very low (improves type safety)
-
-**Timeline**: Q2 2026
+**Timeline**: Completed 2026-04-09
 
 ---
 
@@ -401,91 +347,85 @@ test('should validate required fields', async () => {
 
 ---
 
-### 3. Stub Integrations (Google Calendar, NFSe)
+### 3. Stub Integrations (Google Calendar, NFSe) — PARTIALLY RESOLVED (2026-04-09)
 
-**Status**: Development
+**Status**: Google Calendar and NFSe now implemented; future integrations may have similar patterns
 
-**Description**: Google Calendar and NFSe integrations are defined in schema but not implemented. Requires:
-- OAuth flow completion
-- API integration with external services
-- Error handling and retries
-- Status tracking
+**Description**: Google Calendar OAuth2 flow and NFSe (PlugNotas) integration now complete.
+
+**Completed**:
+- Google Calendar: OAuth2 flow, token storage, event sync
+- NFSe: PlugNotas adapter with credential CRUD, issue/cancel/status-check
 
 **See**: `/docs/generated/16-integrations.md` for details.
 
-**Effort**: High per integration (5-10 days each)
-
-**Timeline**: Q3-Q4 2026
+**Timeline**: Completed 2026-04-09
 
 ---
 
-### 4. Single Cron Job
+### 4. Multiple Cron Jobs — PARTIALLY RESOLVED (2026-04-09)
 
-**Status**: Active
+**Status**: Appointment reminders implemented; payment reminders in place; additional jobs proposed
 
-**Description**: Only one cron job: payment reminders (daily at 9 AM). Should add:
-- Appointment reminders (1 hour before)
-- Session follow-up surveys (24 hours after)
-- Inactive user notifications (weekly)
+**Description**: Cron jobs now include appointment reminders. Additional automation possible.
 
-**Current Job**:
+**Current Jobs**:
 ```typescript
 // GET /api/cron/payment-reminders (daily 9 AM)
 // Sends reminder emails for invoices due within 7 days
+
+// POST /api/cron/appointment-reminders (registered in vercel.json)
+// Triggers appointment reminders
+
+// POST /api/v1/cron/lgpd-purge (daily 3:30 AM BRT)
+// Purges tenant data 90 days after cancellation
+
+// POST /api/v1/cron/encrypt-clinical-notes (daily 4:30 AM UTC)
+// Backfill: encrypts plaintext clinical notes
+
+// POST /api/v1/cron/encrypt-cpfs (daily 4:45 AM UTC)
+// Backfill: encrypts plaintext CPFs
+
+// POST /api/v1/cron/nfse-status-check (scheduled)
+// Checks NFSe document status
 ```
 
-**Proposed Jobs**:
-```typescript
-// POST /api/cron/appointment-reminders (every 30 min)
-// Find appointments starting in next 1 hour, send reminder
+**Proposed Additional Jobs**:
+- Session follow-up surveys (24 hours after)
+- Inactive user notifications (weekly)
 
-// POST /api/cron/session-surveys (daily 9 AM)
-// Find sessions from yesterday, send follow-up survey
-
-// POST /api/cron/inactive-users (weekly Monday 9 AM)
-// Find users inactive for 30+ days, send re-engagement email
-```
-
-**Effort**: Medium (2-3 days per job)
+**Effort**: Medium (1-2 days per additional job)
 
 **Risk**: Low (standard cron pattern)
 
-**Timeline**: Q2-Q3 2026
+**Timeline**: Q3 2026
 
 ---
 
-### 5. No Data Deletion Automation (LGPD)
+### 5. Data Deletion Automation (LGPD) ✅ RESOLVED (2026-04-09)
 
-**Status**: Gap
+**Status**: RESOLVED
 
-**Description**: No automated data deletion workflow. LGPD requires ability to delete patient data (Right to Be Forgotten). Currently manual or missing.
+**Description**: LGPD Data Subject Access Request (DSAR) automation now implemented.
 
-**Required**:
-- Patient deletion cascade (patient + appointments + sessions + journal entries)
-- Soft delete with delayed hard delete (prevent accidents)
-- Audit trail of deletions
-- No deletion of immutable audit logs (LGPD exception)
+**Resolution**:
+- **Patient-level DSAR**: Endpoints at `/api/v1/patients/[id]/dsar/`:
+  - `export`: Download patient data as JSON/CSV
+  - `delete`: Soft-delete patient record
+  - `anonymize`: Anonymize patient data (pseudonymization)
+- **Tenant-level purge**: Cron job `/api/v1/cron/lgpd-purge` runs daily at 03:30 BRT
+  - Purges all tenant-scoped data 90 days after `subscriptionStatus = CANCELED`
+  - Hard-delete wrapped in transaction for atomicity
+  - Audit entry logged before deletion
+- **Audit trail**: All deletions recorded via `PATIENT_DELETED` audit action
+- **Soft delete GC**: Journal entry soft-delete garbage collection at `/api/v1/cron/soft-delete-gc` (30-day retention)
 
-**Implementation**:
-```typescript
-// Soft delete
-await db.patient.update({
-  where: { id: patientId },
-  data: { deletedAt: new Date() },
-});
+**Implementation Details**:
+- `src/lib/lgpd-dsar.ts`: DSAR helper functions
+- `src/lib/lgpd.ts`: Tenant purge logic and retention constants
+- Immutable audit logs preserved (LGPD exception)
 
-// Hard delete (30 days later)
-const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-await db.patient.deleteMany({
-  where: { deletedAt: { lte: thirtyDaysAgo } },
-});
-```
-
-**Effort**: Medium (2-3 days)
-
-**Risk**: High (data loss - requires careful testing)
-
-**Timeline**: Q2 2026 (LGPD compliance)
+**Timeline**: Completed 2026-04-09
 
 ---
 
@@ -735,7 +675,13 @@ Track debt reduction via:
 
 ---
 
-**Last verified against code:** 2026-04-07
+**Last verified against code:** 2026-04-09
+- i18n (next-intl): RESOLVED (as of 2026-04-09)
+- Google Calendar sync: RESOLVED (as of 2026-04-09)
+- NFSe integration (PlugNotas): RESOLVED (as of 2026-04-09)
+- LGPD DSAR + tenant purge automation: RESOLVED (as of 2026-04-09)
+- Appointment reminder cron: RESOLVED (as of 2026-04-09)
+- `as never` type casts: RESOLVED (as of 2026-04-09)
 - CPF encryption: RESOLVED (as of 2026-04-07)
 - Clinical notes encryption: RESOLVED (as of 2026-04-07)
 - Default appointment types seeding implemented (Avaliação inicial, Sessão de psicoterapia, Atendimento online)
