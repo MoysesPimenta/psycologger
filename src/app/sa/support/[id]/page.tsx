@@ -7,6 +7,7 @@ import { decrypt } from "@/lib/crypto";
 import { parseBodyWrapper, sanitizeSupportHtml } from "@/lib/support-sanitize";
 import { SupportTicketActions } from "@/components/sa/support-ticket-actions";
 import { SupportMessageHtml } from "@/components/sa/support-message-html";
+import { SupportAttachments } from "@/components/sa/support-attachments";
 
 export const metadata = { title: "Ticket — Suporte" };
 export const dynamic = "force-dynamic";
@@ -26,7 +27,20 @@ export default async function SupportTicketPage({
     include: {
       // Newest first so the most recent activity sits at the top of the
       // timeline directly under the composer.
-      messages: { orderBy: { createdAt: "desc" } },
+      messages: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          attachments: {
+            select: {
+              id: true,
+              filename: true,
+              mimeType: true,
+              sizeBytes: true,
+              quarantined: true,
+            },
+          },
+        },
+      },
     },
   });
   if (!ticket) notFound();
@@ -47,12 +61,13 @@ export default async function SupportTicketPage({
         const { text, html } = parseBodyWrapper(raw);
         // Sanitize HTML server-side BEFORE shipping to the client iframe.
         const safeHtml = html ? sanitizeSupportHtml(html) : "";
-        return { ...m, text, safeHtml, error: false };
+        return { ...m, text, safeHtml, attachments: m.attachments, error: false };
       } catch {
         return {
           ...m,
           text: "[não foi possível descriptografar esta mensagem]",
           safeHtml: "",
+          attachments: m.attachments,
           error: true,
         };
       }
@@ -119,6 +134,9 @@ export default async function SupportTicketPage({
               <pre className="whitespace-pre-wrap text-sm text-gray-200 font-sans">
                 {m.text}
               </pre>
+            )}
+            {m.attachments && m.attachments.length > 0 && (
+              <SupportAttachments items={m.attachments} />
             )}
           </div>
         ))}

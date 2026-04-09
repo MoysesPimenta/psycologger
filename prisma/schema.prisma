@@ -1096,9 +1096,30 @@ model SupportMessage {
   // SA user id for OUTBOUND messages.
   senderUserId     String?                 @db.Uuid
   createdAt        DateTime                @default(now())
+  attachments      SupportAttachment[]
 
   @@index([ticketId])
   @@index([createdAt])
+}
+
+model SupportAttachment {
+  id          String         @id @default(uuid()) @db.Uuid
+  messageId   String         @db.Uuid
+  message     SupportMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  filename    String
+  mimeType    String
+  sizeBytes   Int
+  sha256      String
+  // Storage key inside the "support-attachments" private bucket. The bytes
+  // at this key are AES-256-GCM ciphertext (encryptBuffer), not the raw file.
+  storageKey  String
+  // True iff the MIME type is outside the inline-render allowlist; the SA
+  // must click "Baixar anexo bloqueado" (audited) to retrieve it.
+  quarantined Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+
+  @@index([messageId])
+  @@index([sha256])
 }
 
 model SupportBlocklist {

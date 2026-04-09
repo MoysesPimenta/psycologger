@@ -11,6 +11,10 @@
 const SUPABASE_URL       = process.env.SUPABASE_URL ?? "";
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
 const BUCKET             = "session-files";
+// Private bucket for support inbox attachments — files are stored encrypted
+// at rest using ENCRYPTION_KEY, the same key as clinical notes. Bucket must
+// be created in Supabase Dashboard → Storage → New bucket → "support-attachments" → Private.
+export const SUPPORT_ATTACHMENTS_BUCKET = "support-attachments";
 
 function storageBase() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
@@ -34,6 +38,7 @@ export async function uploadFile(opts: {
   fileName: string;
   mimeType: string;
   storageKey: string; // e.g. "tenant-id/session-id/uuid-filename.pdf"
+  bucket?: string;
 }): Promise<string> {
   // Validate storage key to prevent path traversal
   if (
@@ -53,7 +58,8 @@ export async function uploadFile(opts: {
   }
 
   const base = storageBase();
-  const res = await fetch(`${base}/object/${BUCKET}/${opts.storageKey}`, {
+  const bucket = opts.bucket ?? BUCKET;
+  const res = await fetch(`${base}/object/${bucket}/${opts.storageKey}`, {
     method: "POST",
     headers: {
       ...authHeaders(),
@@ -72,13 +78,35 @@ export async function uploadFile(opts: {
   return opts.storageKey;
 }
 
-/** Generate a signed URL for downloading a private file (valid 1 hour). */
-export async function signedDownloadUrl(storageKey: string): Promise<string> {
+/** Fetch a file's raw bytes from a private bucket via the service key. */
+export async function downloadFile(
+  storageKey: string,
+  bucket: string = BUCKET
+): Promise<Buffer> {
   if (storageKey.includes("..") || storageKey.startsWith("/")) {
     throw new Error("Invalid storage key: path traversal detected");
   }
   const base = storageBase();
-  const res = await fetch(`${base}/object/sign/${BUCKET}/${storageKey}`, {
+  const res = await fetch(`${base}/object/${bucket}/${storageKey}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(`Storage download failed: ${res.status}`);
+  }
+  const ab = await res.arrayBuffer();
+  return Buffer.from(ab);
+}
+
+/** Generate a signed URL for downloading a private file (valid 1 hour). */
+export async function signedDownloadUrl(
+  storageKey: string,
+  bucket: string = BUCKET
+): Promise<string> {
+  if (storageKey.includes("..") || storageKey.startsWith("/")) {
+    throw new Error("Invalid storage key: path traversal detected");
+  }
+  const base = storageBase();
+  const res = await fetch(`${base}/object/sign/${bucket}/${storageKey}`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ expiresIn: 3600 }),

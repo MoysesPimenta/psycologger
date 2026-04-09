@@ -195,6 +195,61 @@ export async function reEncrypt(encryptedBase64: string): Promise<string> {
 }
 
 /**
+ * Encrypt arbitrary binary data with the current ENCRYPTION_KEY.
+ * Returns the same on-the-wire format as encrypt(): version + IV + tag + ct.
+ * Use this for attachments and other non-string payloads.
+ */
+export async function encryptBuffer(plaintext: Buffer): Promise<Buffer> {
+  const key = getEncryptionKey();
+  const iv = randomBytes(IV_LENGTH);
+  const cipher = createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+  const ct = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return Buffer.concat([Buffer.from([VERSION_BYTE]), iv, authTag, ct]);
+}
+
+/**
+ * Decrypt a buffer previously encrypted with encryptBuffer(). Supports the
+ * same key-rotation fallback chain as decrypt().
+ */
+export async function decryptBuffer(combined: Buffer): Promise<Buffer> {
+  const tryWith = (key: Buffer, hasVersion: boolean): Buffer => {
+    const offset = hasVersion ? 1 : 0;
+    const minLength = offset + IV_LENGTH + AUTH_TAG_LENGTH;
+    if (combined.length < minLength) throw new Error("ciphertext too short");
+    const iv = combined.subarray(offset, offset + IV_LENGTH);
+    const authTag = combined.subarray(
+      offset + IV_LENGTH,
+      offset + IV_LENGTH + AUTH_TAG_LENGTH
+    );
+    const ciphertext = combined.subarray(offset + IV_LENGTH + AUTH_TAG_LENGTH);
+    const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+    decipher.setAuthTag(authTag);
+    return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  };
+  const versioned = isVersionedPayload(combined);
+  const currentKey = getEncryptionKey();
+  try {
+    return tryWith(currentKey, versioned);
+  } catch {}
+  if (versioned) {
+    try {
+      return tryWith(currentKey, false);
+    } catch {}
+  }
+  const prev = getPreviousEncryptionKey();
+  if (prev) {
+    try {
+      return tryWith(prev, versioned);
+    } catch {}
+    try {
+      return tryWith(prev, false);
+    } catch {}
+  }
+  throw new Error("Decryption failed — unable to decrypt buffer with any available key");
+}
+
+/**
  * Encrypt a JSON-serializable object.
  */
 export async function encryptJson(obj: unknown): Promise<string> {

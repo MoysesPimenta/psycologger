@@ -21,6 +21,7 @@ import { db } from "@/lib/db";
 import { encrypt } from "@/lib/crypto";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { rateLimit } from "@/lib/rate-limit";
+import { processInboundAttachments } from "@/lib/support-attachments";
 import {
   extractFromEmail as extractFromEmailLib,
   normalizeSubject as normalizeSubjectLib,
@@ -127,6 +128,10 @@ export async function POST(req: NextRequest) {
   // the ticket is still created either way.
   let fetchedText = text;
   let fetchedHtml = html;
+  // Attachments may arrive on the webhook payload directly OR only via the
+  // /emails/receiving fetch — capture from both sources, fetch wins.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let attachments: any = Array.isArray(d.attachments) ? d.attachments : null;
   if (!fetchedText && !fetchedHtml) {
     const emailId: string | undefined = d.email_id || d.emailId;
     const apiKey = process.env.RESEND_API_KEY;
@@ -150,6 +155,9 @@ export async function POST(req: NextRequest) {
             (typeof body.html === "string" && body.html) ||
             (typeof (body as { body_html?: string }).body_html === "string" && (body as { body_html?: string }).body_html) ||
             "";
+          if (Array.isArray((body as { attachments?: unknown }).attachments)) {
+            attachments = (body as { attachments?: unknown }).attachments;
+          }
           if (!fetchedText && !fetchedHtml) {
             console.warn(
               "[resend-inbound] API fetch returned no body — keys:",
@@ -270,13 +278,14 @@ export async function POST(req: NextRequest) {
   const bodyEncrypted = await encrypt(bodyWrapper);
 
   if (existing) {
-    await db.supportMessage.create({
+    const newMsg = await db.supportMessage.create({
       data: {
         ticketId: existing.id,
         direction: "INBOUND",
         bodyEncrypted,
         emailMessageId: messageId,
       },
+      select: { id: true },
     });
     await db.supportTicket.update({
       where: { id: existing.id },
@@ -290,6 +299,13 @@ export async function POST(req: NextRequest) {
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
     });
+    if (attachments) {
+      await processInboundAttachments({
+        messageId: newMsg.id,
+        ticketId: existing.id,
+        attachments,
+      });
+    }
     return NextResponse.json({ ok: true, ticketId: existing.id });
   }
 
@@ -311,7 +327,7 @@ export async function POST(req: NextRequest) {
         },
       },
     },
-    select: { id: true },
+    select: { id: true, messages: { select: { id: true } } },
   });
 
   await auditLog({
@@ -322,6 +338,14 @@ export async function POST(req: NextRequest) {
     ipAddress: meta.ipAddress,
     userAgent: meta.userAgent,
   });
+
+  if (attachments && ticket.messages[0]) {
+    await processInboundAttachments({
+      messageId: ticket.messages[0].id,
+      ticketId: ticket.id,
+      attachments,
+    });
+  }
 
   return NextResponse.json({ ok: true, ticketId: ticket.id });
 }
