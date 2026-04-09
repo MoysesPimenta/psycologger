@@ -47,6 +47,7 @@ export type AuditAction =
   | "FILE_DOWNLOAD"
   | "FILE_DELETE"
   | "FILE_RESTORE"
+  | "UPLOAD_URL_SIGNED"
   // Financial
   | "CHARGE_CREATE"
   | "CHARGE_UPDATE"
