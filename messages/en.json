@@ -439,5 +439,118 @@
     "sleep": "Sleep",
     "flaggedAuto": "This entry was flagged automatically for risk keywords.",
     "discussNextSession": "Patient wants to discuss this topic in the next session."
+  },
+  "enums": {
+    "appointmentStatus": {
+      "SCHEDULED": "Scheduled",
+      "CONFIRMED": "Confirmed",
+      "COMPLETED": "Completed",
+      "CANCELED": "Canceled",
+      "NO_SHOW": "No-show"
+    },
+    "sessionType": {
+      "IN_PERSON": "In-person",
+      "ONLINE": "Online",
+      "EVALUATION": "Evaluation",
+      "GROUP": "Group"
+    },
+    "paymentMethod": {
+      "PIX": "PIX",
+      "CASH": "Cash",
+      "CARD": "Card",
+      "TRANSFER": "Bank transfer",
+      "INSURANCE": "Health plan",
+      "OTHER": "Other"
+    },
+    "recurrenceFrequency": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "biweekly": "Biweekly",
+      "monthly": "Monthly"
+    }
+  },
+  "portal": {
+    "dashboard": {
+      "greeting": {
+        "morning": "Good morning",
+        "afternoon": "Good afternoon",
+        "evening": "Good evening"
+      },
+      "nextSession": "Next session",
+      "onlineSession": "Online",
+      "inPersonSession": "In-person",
+      "therapist": "Therapist",
+      "errorLoading": "Error loading data.",
+      "noUpcomingSessions": "No upcoming sessions scheduled"
+    },
+    "payments": {
+      "title": "Payments",
+      "pendingCharges": "Pending charges",
+      "noPendingCharges": "No pending charges",
+      "paymentsMade": "Payments made",
+      "noPaymentsMade": "No payments made",
+      "errorLoading": "Error loading payments."
+    },
+    "journal": {
+      "newEntry": "New entry",
+      "savedSuccess": "Entry saved successfully!",
+      "deleteSuccess": "Entry deleted!",
+      "errorSaving": "Error saving entry",
+      "errorDeleting": "Error deleting entry"
+    }
+  },
+  "forms": {
+    "placeholders": {
+      "nameSample": "Dr. John Smith",
+      "clinicNameSample": "Smith Clinic",
+      "personNameSample": "John Smith",
+      "preferredNameSample": "John",
+      "searchPatient": "Search patient...",
+      "privateNote": "Add private note...",
+      "searchDoctor": "Search provider...",
+      "editNote": "Edit note..."
+    },
+    "validation": {
+      "requiredField": "This field is required",
+      "invalidEmail": "Invalid email",
+      "invalidPhone": "Invalid phone",
+      "invalidDate": "Invalid date"
+    }
+  },
+  "errors": {
+    "loadFailed": "Error loading data. Try again.",
+    "connectionError": "Connection error. Try again.",
+    "saveFailed": "Error saving changes",
+    "deleteFailed": "Error deleting item",
+    "notFound": "Item not found",
+    "unauthorized": "Unauthorized",
+    "unknownError": "Unknown error",
+    "tryAgain": "Try again"
+  },
+  "emails": {
+    "magicLinkSubject": "Your Psycologger access link",
+    "magicLinkGreeting": "Click the button below to access your account.",
+    "magicLinkButton": "Access my account",
+    "magicLinkExpiry": "This link expires in 24 hours and can only be used once.",
+    "magicLinkNoBreach": "If you did not request access, you can ignore this email.",
+    "inviteSubject": "Invitation to {tenantName} on Psycologger",
+    "inviteGreeting": "You have been invited",
+    "inviteAs": "as",
+    "inviteButton": "Accept invitation",
+    "inviteExpiry": "This invitation expires in 7 days.",
+    "inviteNoBreach": "If you do not recognize this invitation, ignore this email.",
+    "appointmentConfirmationSubject": "Appointment confirmation",
+    "appointmentReminderSubject": "Appointment reminder",
+    "appointmentDetails": "Appointment details",
+    "date": "Date",
+    "time": "Time",
+    "location": "Location",
+    "provider": "Provider",
+    "paymentCreatedSubject": "New charge recorded",
+    "paymentDueReminderSubject": "Payment due reminder",
+    "paymentOverdueSubject": "Payment overdue",
+    "chargeAmount": "Amount",
+    "chargeDueDate": "Due date",
+    "paymentLink": "Make payment"
   }
 }

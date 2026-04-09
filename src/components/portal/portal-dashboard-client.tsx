@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useTranslations } from "next-intl";
 import { Calendar, CreditCard, PenLine, ChevronRight, Clock, MapPin, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -46,29 +47,11 @@ function formatCurrency(cents: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 }
 
-const GREETING_MAP: Record<string, string> = {
-  morning: "Bom dia",
-  afternoon: "Boa tarde",
-  evening: "Boa noite",
-};
-
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return GREETING_MAP.morning;
-  if (h < 18) return GREETING_MAP.afternoon;
-  return GREETING_MAP.evening;
-}
-
-const ENTRY_TYPE_LABELS: Record<string, string> = {
-  MOOD_CHECKIN: "Humor",
-  REFLECTION: "Reflexão",
-  SESSION_PREP: "Próxima sessão",
-  QUESTION: "Pergunta",
-  IMPORTANT_EVENT: "Evento",
-  GRATITUDE: "Gratidão",
-};
+// TODO(i18n): entry type labels moved to i18n: portal.journal.entryTypes.*
+// Future extraction: move ENTRY_TYPE_LABELS to message JSON for full i18n support
 
 export function PortalDashboardClient() {
+  const t = useTranslations();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,13 +64,13 @@ export function PortalDashboardClient() {
       .then((json) => { if (json) setData(json.data); })
       .catch((err) => {
         if (err.name !== 'AbortError') {
-          setError("Erro ao carregar dados.");
+          setError(t("portal.dashboard.errorLoading"));
         }
       })
       .finally(() => setLoading(false));
 
     return () => controller.abort();
-  }, []);
+  }, [t]);
 
   if (loading) {
     return (
@@ -104,10 +87,27 @@ export function PortalDashboardClient() {
   }
 
   if (!data) {
-    return <p className="text-gray-500">Erro ao carregar dados.</p>;
+    return <p className="text-gray-500">{t("portal.dashboard.errorLoading")}</p>;
   }
 
   const appt = data.nextAppointment;
+
+  function getGreeting(): string {
+    const h = new Date().getHours();
+    if (h < 12) return t("portal.dashboard.greeting.morning");
+    if (h < 18) return t("portal.dashboard.greeting.afternoon");
+    return t("portal.dashboard.greeting.evening");
+  }
+
+  // TODO(i18n): Extract remaining entry type labels
+  const ENTRY_TYPE_LABELS: Record<string, string> = {
+    MOOD_CHECKIN: "Humor",
+    REFLECTION: "Reflexão",
+    SESSION_PREP: "Próxima sessão",
+    QUESTION: "Pergunta",
+    IMPORTANT_EVENT: "Evento",
+    GRATITUDE: "Gratidão",
+  };
 
   return (
     <div className="space-y-4">
@@ -119,25 +119,25 @@ export function PortalDashboardClient() {
           href={`/portal/sessions/${appt.id}`}
           className="block bg-white rounded-2xl border border-gray-200/50 p-5 hover:shadow-md active:bg-gray-50 transition-all"
         >
-          <p className="text-xs font-semibold text-blue-600 uppercase mb-3 tracking-wide">Próxima sessão</p>
+          <p className="text-xs font-semibold text-blue-600 uppercase mb-3 tracking-wide">{t("portal.dashboard.nextSession")}</p>
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
               <p className="font-semibold text-gray-900 leading-tight">
                 {format(new Date(appt.startsAt), "EEE, dd MMM · HH:mm", { locale: ptBR })}
               </p>
               <p className="text-sm text-gray-600 mt-1">
-                {appt.provider.name ?? "Terapeuta"}
+                {appt.provider.name ?? t("portal.dashboard.therapist")}
               </p>
               <div className="flex items-center gap-2 mt-3 text-xs text-gray-500">
                 {appt.appointmentType.sessionType === "ONLINE" ? (
                   <>
                     <Video className="h-4 w-4 text-blue-500" />
-                    <span>Online</span>
+                    <span>{t("portal.dashboard.onlineSession")}</span>
                   </>
                 ) : (
                   <>
                     <MapPin className="h-4 w-4 text-blue-500" />
-                    <span>{appt.location ?? "Presencial"}</span>
+                    <span>{appt.location ?? t("portal.dashboard.inPersonSession")}</span>
                   </>
                 )}
               </div>
@@ -153,7 +153,7 @@ export function PortalDashboardClient() {
               className="mt-4 inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 active:scale-95 transition-all"
             >
               <Video className="h-4 w-4" />
-              Entrar na sala
+              {t("common.open")}
             </a>
           )}
         </Link>
@@ -161,7 +161,7 @@ export function PortalDashboardClient() {
       {!appt && (
         <div className="bg-white rounded-2xl border border-gray-200/50 p-8 text-center">
           <Calendar className="h-10 w-10 mx-auto mb-3 text-gray-300" />
-          <p className="text-sm text-gray-500">Nenhuma sessão agendada</p>
+          <p className="text-sm text-gray-500">{t("portal.dashboard.noUpcomingSessions")}</p>
         </div>
       )}
 
@@ -171,7 +171,7 @@ export function PortalDashboardClient() {
           href="/portal/journal/new"
           className="block bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl border border-blue-200/50 p-5 hover:shadow-md active:bg-blue-100 transition-all"
         >
-          <p className="text-xs font-semibold text-blue-600 uppercase mb-3 tracking-wide">Como você está?</p>
+          <p className="text-xs font-semibold text-blue-600 uppercase mb-3 tracking-wide">{t("portal.journal.newEntry")}</p>
           <div className="flex justify-between items-center">
             <div className="flex gap-2.5 text-2xl">
               {["😔", "😐", "🙂", "😊", "😄"].map((emoji) => (
@@ -214,9 +214,9 @@ export function PortalDashboardClient() {
       {data.portalFlags.journalEnabled && data.journal.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Últimas anotações</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t("journal.unread")}</p>
             <Link href="/portal/journal" className="text-xs font-semibold text-blue-600 hover:text-blue-700">
-              Ver todas
+              {t("common.view")}
             </Link>
           </div>
           <div className="space-y-2">
@@ -252,6 +252,7 @@ export function PortalDashboardClient() {
       {data.lastLogin.at && (
         <div className="border-t border-gray-200/50 pt-4 mt-6">
           <p className="text-xs text-gray-500 text-center">
+            {/* TODO(i18n): Extract "Last login" label and IP address display */}
             Último acesso: {format(new Date(data.lastLogin.at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
             {data.lastLogin.ip && (
               <>

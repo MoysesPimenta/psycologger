@@ -19,6 +19,7 @@ interface AppointmentDetail {
   provider: { name: string | null };
 }
 
+// TODO(i18n): Replace hardcoded status labels with t("enums.appointmentStatus.*")
 const STATUS_LABELS: Record<string, string> = {
   SCHEDULED: "Agendada",
   CONFIRMED: "Confirmada",

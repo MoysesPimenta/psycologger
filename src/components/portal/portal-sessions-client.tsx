@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useTranslations } from "next-intl";
 import { Calendar, Clock, MapPin, Video, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,14 +19,6 @@ interface Appointment {
   provider: { name: string | null };
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  SCHEDULED: "Agendada",
-  CONFIRMED: "Confirmada",
-  COMPLETED: "Realizada",
-  CANCELED: "Cancelada",
-  NO_SHOW: "Não compareceu",
-};
-
 const STATUS_COLORS: Record<string, string> = {
   SCHEDULED: "bg-blue-100 text-blue-700",
   CONFIRMED: "bg-green-100 text-green-700",
@@ -35,6 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function PortalSessionsClient() {
+  const t = useTranslations();
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,15 +43,15 @@ export function PortalSessionsClient() {
         const json = await res.json();
         setAppointments(json.data);
       } else {
-        setError("Erro ao carregar sessões.");
+        setError(t("errors.loadFailed"));
       }
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        setError("Erro ao carregar sessões.");
+        setError(t("errors.loadFailed"));
       }
     }
     setLoading(false);
-  }, [tab]);
+  }, [tab, t]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -67,21 +61,23 @@ export function PortalSessionsClient() {
 
   return (
     <div className="space-y-4">
+      {/* TODO(i18n): Extract "Sessions" page title */}
       <h1 className="text-2xl font-bold text-gray-900">Sessões</h1>
 
       <div className="flex gap-2 bg-gray-100/50 rounded-xl p-1">
-        {(["upcoming", "past"] as const).map((t) => (
+        {(["upcoming", "past"] as const).map((tabType) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabType}
+            onClick={() => setTab(tabType)}
             className={cn(
               "flex-1 px-4 py-2 text-xs font-semibold rounded-lg transition-all active:scale-95",
-              tab === t
+              tab === tabType
                 ? "bg-white text-blue-600 shadow-sm"
                 : "text-gray-600 hover:text-gray-900",
             )}
           >
-            {t === "upcoming" ? "Próximas" : "Anteriores"}
+            {/* TODO(i18n): Extract tab labels "Upcoming" / "Past" */}
+            {tabType === "upcoming" ? "Próximas" : "Anteriores"}
           </button>
         ))}
       </div>
@@ -100,6 +96,7 @@ export function PortalSessionsClient() {
         <div className="bg-white rounded-2xl border border-gray-200/50 p-8 text-center">
           <Calendar className="h-10 w-10 mx-auto mb-3 text-gray-300" />
           <p className="text-sm text-gray-500">
+            {/* TODO(i18n): Extract empty state messages for upcoming and past sessions */}
             {tab === "upcoming" ? "Nenhuma sessão agendada" : "Nenhuma sessão anterior"}
           </p>
         </div>
@@ -120,19 +117,25 @@ export function PortalSessionsClient() {
                     {format(new Date(appt.startsAt), "HH:mm")} – {format(new Date(appt.endsAt), "HH:mm")}
                   </p>
                   <p className="text-xs text-gray-600 mt-1.5 font-medium">
-                    {appt.provider.name ?? "Terapeuta"}
+                    {appt.provider.name ?? t("portal.dashboard.therapist")}
                   </p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <span className={cn("text-xs px-2.5 py-1 rounded-full font-semibold", STATUS_COLORS[appt.status] ?? "bg-gray-100 text-gray-600")}>
-                      {STATUS_LABELS[appt.status] ?? appt.status}
+                      {/* TODO(i18n): Extract appointment status labels from enums.appointmentStatus */}
+                      {appt.status === "SCHEDULED" && t("enums.appointmentStatus.SCHEDULED")}
+                      {appt.status === "CONFIRMED" && t("enums.appointmentStatus.CONFIRMED")}
+                      {appt.status === "COMPLETED" && t("enums.appointmentStatus.COMPLETED")}
+                      {appt.status === "CANCELED" && t("enums.appointmentStatus.CANCELED")}
+                      {appt.status === "NO_SHOW" && t("enums.appointmentStatus.NO_SHOW")}
+                      {!["SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELED", "NO_SHOW"].includes(appt.status) && appt.status}
                     </span>
                     {appt.appointmentType.sessionType === "ONLINE" ? (
                       <span className="flex items-center gap-1 text-xs text-gray-500">
-                        <Video className="h-3 w-3" /> Online
+                        <Video className="h-3 w-3" /> {t("enums.sessionType.ONLINE")}
                       </span>
                     ) : (
                       <span className="flex items-center gap-1 text-xs text-gray-500">
-                        <MapPin className="h-3 w-3" /> Presencial
+                        <MapPin className="h-3 w-3" /> {t("enums.sessionType.IN_PERSON")}
                       </span>
                     )}
                   </div>

@@ -439,5 +439,118 @@
     "sleep": "Sono",
     "flaggedAuto": "Esta entrada foi sinalizada automaticamente por palavras-chave de risco.",
     "discussNextSession": "O paciente quer discutir este tema na próxima sessão."
+  },
+  "enums": {
+    "appointmentStatus": {
+      "SCHEDULED": "Agendada",
+      "CONFIRMED": "Confirmada",
+      "COMPLETED": "Realizada",
+      "CANCELED": "Cancelada",
+      "NO_SHOW": "Falta"
+    },
+    "sessionType": {
+      "IN_PERSON": "Presencial",
+      "ONLINE": "Online",
+      "EVALUATION": "Avaliação",
+      "GROUP": "Grupo"
+    },
+    "paymentMethod": {
+      "PIX": "PIX",
+      "CASH": "Dinheiro",
+      "CARD": "Cartão",
+      "TRANSFER": "Transferência",
+      "INSURANCE": "Plano de saúde",
+      "OTHER": "Outro"
+    },
+    "recurrenceFrequency": {
+      "daily": "Diária",
+      "weekly": "Semanal",
+      "biweekly": "Quinzenal",
+      "monthly": "Mensal"
+    }
+  },
+  "portal": {
+    "dashboard": {
+      "greeting": {
+        "morning": "Bom dia",
+        "afternoon": "Boa tarde",
+        "evening": "Boa noite"
+      },
+      "nextSession": "Próxima sessão",
+      "onlineSession": "Online",
+      "inPersonSession": "Presencial",
+      "therapist": "Terapeuta",
+      "errorLoading": "Erro ao carregar dados.",
+      "noUpcomingSessions": "Nenhuma próxima sessão agendada"
+    },
+    "payments": {
+      "title": "Pagamentos",
+      "pendingCharges": "Cobranças pendentes",
+      "noPendingCharges": "Nenhuma cobrança pendente",
+      "paymentsMade": "Pagamentos realizados",
+      "noPaymentsMade": "Nenhum pagamento realizado",
+      "errorLoading": "Erro ao carregar pagamentos."
+    },
+    "journal": {
+      "newEntry": "Nova entrada",
+      "savedSuccess": "Entrada salva com sucesso!",
+      "deleteSuccess": "Entrada deletada!",
+      "errorSaving": "Erro ao salvar entrada",
+      "errorDeleting": "Erro ao deletar entrada"
+    }
+  },
+  "forms": {
+    "placeholders": {
+      "nameSample": "Dra. Ana Silva",
+      "clinicNameSample": "Clínica Ana Silva",
+      "personNameSample": "João Silva",
+      "preferredNameSample": "João",
+      "searchPatient": "Buscar paciente...",
+      "privateNote": "Adicionar nota privada...",
+      "searchDoctor": "Buscar profissional...",
+      "editNote": "Editar nota..."
+    },
+    "validation": {
+      "requiredField": "Este campo é obrigatório",
+      "invalidEmail": "Email inválido",
+      "invalidPhone": "Telefone inválido",
+      "invalidDate": "Data inválida"
+    }
+  },
+  "errors": {
+    "loadFailed": "Erro ao carregar dados. Tente novamente.",
+    "connectionError": "Erro de conexão. Tente novamente.",
+    "saveFailed": "Erro ao salvar alterações",
+    "deleteFailed": "Erro ao deletar item",
+    "notFound": "Item não encontrado",
+    "unauthorized": "Não autorizado",
+    "unknownError": "Erro desconhecido",
+    "tryAgain": "Tentar novamente"
+  },
+  "emails": {
+    "magicLinkSubject": "Seu link de acesso ao Psycologger",
+    "magicLinkGreeting": "Clique no botão abaixo para entrar na sua conta.",
+    "magicLinkButton": "Entrar na minha conta",
+    "magicLinkExpiry": "Este link expira em 24 horas e só pode ser usado uma vez.",
+    "magicLinkNoBreach": "Se você não solicitou o acesso, pode ignorar este email.",
+    "inviteSubject": "Convite para {tenantName} no Psycologger",
+    "inviteGreeting": "Você foi convidado",
+    "inviteAs": "como",
+    "inviteButton": "Aceitar convite",
+    "inviteExpiry": "Este convite expira em 7 dias.",
+    "inviteNoBreach": "Caso não reconheça este convite, ignore este email.",
+    "appointmentConfirmationSubject": "Confirmação de consulta",
+    "appointmentReminderSubject": "Lembrete de consulta",
+    "appointmentDetails": "Detalhes da consulta",
+    "date": "Data",
+    "time": "Horário",
+    "location": "Local",
+    "provider": "Profissional",
+    "paymentCreatedSubject": "Nova cobrança registrada",
+    "paymentDueReminderSubject": "Lembrete de vencimento",
+    "paymentOverdueSubject": "Cobrança vencida",
+    "chargeAmount": "Valor",
+    "chargeDueDate": "Vencimento",
+    "paymentLink": "Realizar pagamento"
   }
 }
