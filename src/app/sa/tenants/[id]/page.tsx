@@ -91,11 +91,11 @@ export default async function SATenantDetailPage({ params }: { params: { id: str
 
       {/* Quota usage */}
       {(quota.patients.overQuota || quota.therapists.overQuota) && (
-        <div className="bg-red-950/30 border border-red-900 rounded-xl p-4 flex items-start gap-3">
-          <ShieldAlert className="h-5 w-5 text-red-400 mt-0.5" />
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-4 flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 text-red-500 dark:text-red-400 mt-0.5" />
           <div className="text-sm">
-            <p className="font-semibold text-red-300">{t("tenantDetail.overLimit")}</p>
-            <p className="text-red-200/80 mt-1">
+            <p className="font-semibold text-red-700 dark:text-red-300">{t("tenantDetail.overLimit")}</p>
+            <p className="text-red-600 dark:text-red-200/80 mt-1">
               {t("tenantDetail.patients")}: {quota.patients.current}/{String(quota.patients.limit)}
               {quota.patients.overQuota ? ` ${t("tenantDetail.exceeded")}` : ""} · {t("tenantDetail.therapists")}: {quota.therapists.current}/
               {String(quota.therapists.limit)}
