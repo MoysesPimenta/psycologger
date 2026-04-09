@@ -21,6 +21,11 @@ import { db } from "@/lib/db";
 import { encrypt } from "@/lib/crypto";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { rateLimit } from "@/lib/rate-limit";
+import {
+  extractFromEmail as extractFromEmailLib,
+  normalizeSubject as normalizeSubjectLib,
+  verifySvixSignature as verifySvixSignatureLib,
+} from "@/lib/support-inbound";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,73 +50,10 @@ interface InboundPayload {
   };
 }
 
-async function verifySvixSignature(
-  payload: string,
-  timestamp: string,
-  signature: string,
-  secret: string,
-  svixId: string
-): Promise<boolean> {
-  try {
-    const { createHmac } = await import("crypto");
-    // Svix secrets are prefixed with "whsec_" and the portion after is the
-    // base64-encoded HMAC key. HMAC-ing with the raw string will always fail
-    // signature verification against Svix's signer.
-    const base64Key = secret.startsWith("whsec_") ? secret.slice(6) : secret;
-    let keyBytes: Buffer;
-    try {
-      keyBytes = Buffer.from(base64Key, "base64");
-    } catch {
-      keyBytes = Buffer.from(base64Key, "utf8");
-    }
-    // Svix signs "<svix-id>.<svix-timestamp>.<payload>"
-    const signedContent = `${svixId}.${timestamp}.${payload}`;
-    const hmac = createHmac("sha256", keyBytes);
-    hmac.update(signedContent);
-    const computed = Buffer.from(hmac.digest()).toString("base64");
-    // Svix signatures can come as "v1,<sig> v1,<sig2>" — compare any.
-    return signature
-      .split(" ")
-      .map((s) => s.replace(/^v1,/, ""))
-      .some((s) => s === computed);
-  } catch (err) {
-    console.error("[resend-inbound] Signature verify error:", err);
-    return false;
-  }
-}
-
-function extractFromEmail(from: InboundPayload["data"] extends infer D ? (D extends { from?: infer F } ? F : never) : never): {
-  email: string;
-  name: string | null;
-} {
-  if (!from) return { email: "", name: null };
-  if (typeof from === "string") {
-    const raw = from.trim();
-    // Only try to split "Name <email@x>" if angle brackets are actually present.
-    // Without this guard a greedy name capture mangles plain addresses like
-    // "moyses@konektera.com" into name="moyse" + email="s@konektera.com".
-    const angle = raw.match(/^\s*"?([^"<]*?)"?\s*<([^<>\s]+@[^<>\s]+)>\s*$/);
-    if (angle) {
-      return {
-        email: angle[2].trim().toLowerCase(),
-        name: angle[1]?.trim() || null,
-      };
-    }
-    // Plain address — strip any stray quotes/whitespace and lowercase.
-    const plain = raw.replace(/^["'\s]+|["'\s]+$/g, "");
-    return { email: plain.toLowerCase(), name: null };
-  }
-  return { email: (from.email ?? "").trim().toLowerCase(), name: from.name?.trim() || null };
-}
-
-function normalizeSubject(subject: string): string {
-  return subject
-    .replace(/^(\s*(re|fwd?|enc)\s*:\s*)+/i, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase()
-    .slice(0, 200);
-}
+// Pure helpers live in src/lib/support-inbound.ts so they can be unit-tested.
+const verifySvixSignature = verifySvixSignatureLib;
+const extractFromEmail = extractFromEmailLib;
+const normalizeSubject = normalizeSubjectLib;
 
 export async function POST(req: NextRequest) {
   const meta = extractRequestMeta(req);
@@ -239,6 +181,21 @@ export async function POST(req: NextRequest) {
     event.data.headers?.["message-id"] ||
     event.data.headers?.["Message-ID"] ||
     null;
+
+  // Idempotency: Resend retries on any non-2xx response, and Svix can also
+  // re-deliver on transient network failures. Without a guard, retries would
+  // double-insert messages and reopen closed tickets twice. We dedupe on the
+  // RFC822 Message-ID, which is unique per email.
+  if (messageId) {
+    const dup = await db.supportMessage.findFirst({
+      where: { emailMessageId: messageId },
+      select: { id: true, ticketId: true },
+    });
+    if (dup) {
+      console.warn("[resend-inbound] duplicate messageId — ignoring", messageId);
+      return NextResponse.json({ ok: true, duplicate: true, ticketId: dup.ticketId });
+    }
+  }
 
   // Blocklist check — case-insensitive equals on email and domain.
   // Stored patterns may have been entered with stray casing/whitespace; the
