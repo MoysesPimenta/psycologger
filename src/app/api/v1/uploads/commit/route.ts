@@ -32,11 +32,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentUser, ensurePermission } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { handleApiError, created, apiError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
-import { downloadFile } from "@/lib/storage";
 
 const schema = z.object({
   storagePath: z.string(),
@@ -50,10 +49,13 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) return apiError("UNAUTHORIZED", "Staff session required", 401);
-
-    await ensurePermission(user, "files:upload");
+    const userId = await requireUser(req);
+    const membership = await db.membership.findFirst({
+      where: { userId },
+      include: { tenant: true },
+    });
+    if (!membership) return apiError("UNAUTHORIZED", "User not found", 401);
+    const user = { id: userId, role: membership.role, tenantId: membership.tenantId };
 
     const body = await req.json();
     const {
@@ -86,17 +88,17 @@ export async function POST(req: NextRequest) {
 
       // Role-based scoping for psychologists
       if (user.role === "PSYCHOLOGIST") {
-        const isAssigned = await db.patient
+        const hasAppointment = await db.appointment
           .findFirst({
             where: {
-              id: patientId,
+              patientId,
+              providerUserId: user.id,
               tenantId: user.tenantId,
-              psychologists: { some: { id: user.id } },
             },
           })
-          .then((p) => !!p);
+          .then((a) => !!a);
 
-        if (!isAssigned) {
+        if (!hasAppointment) {
           return apiError(
             "FORBIDDEN",
             "Not assigned to this patient",
@@ -130,13 +132,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Verify file exists in storage by trying to download headers/metadata
-    // For now, we'll trust the client and create the record. In production,
-    // you might want to call HEAD or a metadata endpoint to verify.
-    // Supabase doesn't expose a simple HEAD via REST, so we skip this check
-    // to avoid downloading the full file. The file's presence will be
-    // implicitly verified when the client tries to download it.
-
     // Create FileObject record
     const fileObject = await db.fileObject.create({
       data: {
@@ -157,13 +152,13 @@ export async function POST(req: NextRequest) {
     await auditLog({
       tenantId: user.tenantId,
       userId: user.id,
-      action: "FILE_UPLOADED",
+      action: "FILE_UPLOAD",
       entity: "FileObject",
       entityId: fileObject.id,
       summary: {
         sizeBytes,
         storagePath,
-        isClinical,
+        isClinical: isClinical || false,
       },
       ipAddress,
       userAgent,

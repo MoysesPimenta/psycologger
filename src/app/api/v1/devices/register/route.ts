@@ -22,7 +22,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { registerDeviceToken } from "@/lib/push";
 import { handleApiError, created, apiError } from "@/lib/api";
 
@@ -36,8 +37,11 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) return apiError("UNAUTHORIZED", "Staff session required", 401);
+    const userId = await requireUser(req);
+    const membership = await db.membership.findFirst({
+      where: { userId },
+    });
+    if (!membership) return apiError("UNAUTHORIZED", "User not found", 401);
 
     const body = await req.json();
     const { platform, token, pushProvider, appVersion, locale } =
@@ -45,8 +49,8 @@ export async function POST(req: NextRequest) {
 
     const deviceId = await registerDeviceToken({
       kind: "staff",
-      actorId: user.id,
-      tenantId: user.tenantId,
+      actorId: userId,
+      tenantId: membership.tenantId,
       platform: platform as "IOS" | "ANDROID" | "WEB",
       token,
       pushProvider: pushProvider as "APNS" | "FCM" | "WEBPUSH",

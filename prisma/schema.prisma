@@ -1178,8 +1178,8 @@ model DeviceToken {
 
   // Relations
   tenant Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User?    @relation("DeviceTokens", fields: [userId], references: [id], onDelete: Cascade)
-  patient Patient? @relation("DeviceTokens", fields: [patientId], references: [id], onDelete: Cascade)
+  user   User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patient Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   // Indexes for efficient filtering by user/patient + revocation status
   @@index([userId, revokedAt])

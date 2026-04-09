@@ -66,9 +66,9 @@ export async function registerDeviceToken(opts: {
         locale: opts.locale,
       },
       create: {
-        userId: opts.kind === "staff" ? opts.actorId : null,
-        patientId: opts.kind === "patient" ? opts.actorId : null,
-        tenantId: opts.tenantId ?? null,
+        userId: opts.kind === "staff" ? opts.actorId : undefined,
+        patientId: opts.kind === "patient" ? opts.actorId : undefined,
+        tenantId: opts.tenantId,
         platform: opts.platform,
         token: opts.token,
         pushProvider: opts.pushProvider,
@@ -80,7 +80,7 @@ export async function registerDeviceToken(opts: {
     // Audit
     await auditLog({
       tenantId: opts.tenantId,
-      userId: opts.kind === "staff" ? opts.actorId : null,
+      userId: opts.kind === "staff" ? opts.actorId : undefined,
       action: "PUSH_TOKEN_REGISTERED",
       entity: "DeviceToken",
       entityId: deviceToken.id,
@@ -125,8 +125,8 @@ export async function revokeDeviceToken(opts: {
     });
 
     await auditLog({
-      tenantId: deviceToken.tenantId,
-      userId: deviceToken.userId,
+      tenantId: deviceToken.tenantId ?? undefined,
+      userId: deviceToken.userId ?? undefined,
       action: "PUSH_TOKEN_REVOKED",
       entity: "DeviceToken",
       entityId: deviceToken.id,

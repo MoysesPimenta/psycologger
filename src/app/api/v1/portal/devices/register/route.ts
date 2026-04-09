@@ -22,7 +22,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentPatient } from "@/lib/patient-auth";
+import { getPatientContext } from "@/lib/patient-auth";
 import { db } from "@/lib/db";
 import { registerDeviceToken } from "@/lib/push";
 import { handleApiError, created, apiError } from "@/lib/api";
@@ -37,19 +37,9 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const patient = await getCurrentPatient();
-    if (!patient) {
+    const patientCtx = await getPatientContext(req);
+    if (!patientCtx) {
       return apiError("UNAUTHORIZED", "Patient session required", 401);
-    }
-
-    // Infer tenant from patient
-    const patientWithTenant = await db.patient.findUnique({
-      where: { id: patient.id },
-      select: { tenantId: true },
-    });
-
-    if (!patientWithTenant) {
-      return apiError("NOT_FOUND", "Patient not found", 404);
     }
 
     const body = await req.json();
@@ -58,8 +48,8 @@ export async function POST(req: NextRequest) {
 
     const deviceId = await registerDeviceToken({
       kind: "patient",
-      actorId: patient.id,
-      tenantId: patientWithTenant.tenantId,
+      actorId: patientCtx.patientId,
+      tenantId: patientCtx.tenantId,
       platform: platform as "IOS" | "ANDROID" | "WEB",
       token,
       pushProvider: pushProvider as "APNS" | "FCM" | "WEBPUSH",

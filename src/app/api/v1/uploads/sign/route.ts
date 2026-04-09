@@ -36,7 +36,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { getCurrentUser, ensurePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { handleApiError, created, apiError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -72,11 +71,13 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) return apiError("UNAUTHORIZED", "Staff session required", 401);
-
-    // Ensure user has file upload permission
-    await ensurePermission(user, "files:upload");
+    const userId = await requireUser(req);
+    const membership = await db.membership.findFirst({
+      where: { userId },
+      include: { tenant: true },
+    });
+    if (!membership) return apiError("UNAUTHORIZED", "User not found", 401);
+    const user = { id: userId, role: membership.role, tenantId: membership.tenantId };
 
     const body = await req.json();
     const { purpose, filename, contentType, sizeBytes, patientId } =
@@ -116,15 +117,15 @@ export async function POST(req: NextRequest) {
 
       // Additional role-based check for psychologist scope
       if (user.role === "PSYCHOLOGIST") {
-        const isAssigned = await db.patient
+        const isAssigned = await db.appointment
           .findFirst({
             where: {
-              id: patientId,
+              patientId,
+              providerUserId: user.id,
               tenantId: user.tenantId,
-              psychologists: { some: { id: user.id } },
             },
           })
-          .then((p) => !!p);
+          .then((a) => !!a);
 
         if (!isAssigned) {
           return apiError(

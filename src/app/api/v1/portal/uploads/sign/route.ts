@@ -29,7 +29,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentPatient } from "@/lib/patient-auth";
+import { getPatientContext } from "@/lib/patient-auth";
 import { db } from "@/lib/db";
 import { handleApiError, created, apiError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -60,16 +60,15 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const patient = await getCurrentPatient();
-    if (!patient) {
+    const patientCtx = await getPatientContext(req);
+    if (!patientCtx) {
       return apiError("UNAUTHORIZED", "Patient session required", 401);
     }
 
     // Verify portal access consent
     const consent = await db.consentRecord.findFirst({
       where: {
-        patientId: patient.id,
-        type: "TERMS_OF_USE", // or PORTAL_ACCESS if available
+        patientId: patientCtx.patientId,
         revokedAt: null,
       },
     });
@@ -109,18 +108,8 @@ export async function POST(req: NextRequest) {
     const ext = filename.split(".").pop() || "bin";
     const sanitizedFilename = `${fileId}.${ext}`;
 
-    const tenant = await db.tenant.findFirst({
-      where: {
-        patients: { some: { id: patient.id } },
-      },
-      select: { id: true },
-    });
-
-    if (!tenant) {
-      return apiError("NOT_FOUND", "Tenant not found", 404);
-    }
-
-    const storagePath = `${tenant.id}/patients/${patient.id}/${purpose}/${sanitizedFilename}`;
+    // Use patient context tenantId directly
+    const storagePath = `${patientCtx.tenantId}/patients/${patientCtx.patientId}/${purpose}/${sanitizedFilename}`;
 
     // Generate signed URL via Supabase REST API
     const supabaseUrl = process.env.SUPABASE_URL ?? "";
@@ -162,8 +151,8 @@ export async function POST(req: NextRequest) {
     // Audit log via patient
     const { ipAddress, userAgent } = extractRequestMeta(req);
     await auditLog({
-      tenantId: tenant.id,
-      userId: null, // Patient portal, no staff user
+      tenantId: patientCtx.tenantId,
+      userId: undefined, // Patient portal, no staff user
       action: "UPLOAD_URL_SIGNED",
       entity: "FileObject",
       summary: {

@@ -11,7 +11,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { revokeDeviceToken } from "@/lib/push";
 import { handleApiError, noContent, apiError } from "@/lib/api";
 
@@ -20,8 +21,11 @@ export async function DELETE(
   { params }: { params: { token: string } }
 ) {
   try {
-    const user = await getCurrentUser();
-    if (!user) return apiError("UNAUTHORIZED", "Staff session required", 401);
+    const userId = await requireUser(req);
+    const membership = await db.membership.findFirst({
+      where: { userId },
+    });
+    if (!membership) return apiError("UNAUTHORIZED", "User not found", 401);
 
     const { token } = params;
 

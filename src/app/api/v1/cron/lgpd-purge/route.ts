@@ -102,11 +102,12 @@ export async function POST(req: NextRequest) {
               action: "TENANT_LGPD_PURGED",
               entity: "Tenant",
               entityId: tenant.id,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               summaryJson: {
                 tenantSlug: tenant.slug,
                 retentionDays: LGPD_TENANT_RETENTION_DAYS,
                 ...counts,
-              } as unknown,
+              } as any,
             },
           });
 

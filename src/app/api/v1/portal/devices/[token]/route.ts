@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentPatient } from "@/lib/patient-auth";
+import { getPatientContext } from "@/lib/patient-auth";
 import { revokeDeviceToken } from "@/lib/push";
 import { handleApiError, noContent, apiError } from "@/lib/api";
 
@@ -18,8 +18,8 @@ export async function DELETE(
   { params }: { params: { token: string } }
 ) {
   try {
-    const patient = await getCurrentPatient();
-    if (!patient) {
+    const patientCtx = await getPatientContext(req);
+    if (!patientCtx) {
       return apiError("UNAUTHORIZED", "Patient session required", 401);
     }
 
