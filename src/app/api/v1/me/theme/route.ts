@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const ALLOWED = new Set(["light", "dark", "system"]);
-export const THEME_COOKIE_NAME = "psy-theme";
+const THEME_COOKIE_NAME = "psy-theme";
 const ONE_YEAR_S = 60 * 60 * 24 * 365;
 
 function setCookie(res: NextResponse, theme: string) {
