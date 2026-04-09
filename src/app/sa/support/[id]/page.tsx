@@ -82,16 +82,30 @@ export default async function SupportTicketPage({
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
         {decryptedMessages.map((m) => (
-          <div key={m.id} className="p-4">
+          <div
+            key={m.id}
+            className={
+              "p-4 " +
+              (m.direction === "INTERNAL"
+                ? "bg-amber-950/30 border-l-4 border-amber-600"
+                : "")
+            }
+          >
             <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
               <span
                 className={
                   m.direction === "INBOUND"
                     ? "text-blue-300 font-medium"
-                    : "text-green-300 font-medium"
+                    : m.direction === "OUTBOUND"
+                    ? "text-green-300 font-medium"
+                    : "text-amber-300 font-medium"
                 }
               >
-                {m.direction === "INBOUND" ? "↓ Recebido" : "↑ Enviado"}
+                {m.direction === "INBOUND"
+                  ? "↓ Recebido"
+                  : m.direction === "OUTBOUND"
+                  ? "↑ Enviado"
+                  : "🔒 Nota interna (staff apenas)"}
               </span>
               <span>{new Date(m.createdAt).toLocaleString("pt-BR")}</span>
             </div>

@@ -1052,6 +1052,9 @@ enum SupportTicketStatus {
 enum SupportMessageDirection {
   INBOUND
   OUTBOUND
+  // Private note authored by a SuperAdmin. Never sent to the customer.
+  // Visible only in the SA ticket view.
+  INTERNAL
 }
 
 enum SupportBlocklistKind {
