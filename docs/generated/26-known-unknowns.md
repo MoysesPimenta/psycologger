@@ -297,6 +297,15 @@ New runbooks live under `docs/runbooks/` (not auto-generated):
 - **Error & loading boundaries**: Deployed across `/app/*`, `/sa/*`, `/portal/*`, `/login/*` segments with minimal skeletons and error recovery.
 - **Mobile readiness guide**: Complete — covers API envelope, token lifecycle, mobile-ready endpoints, recommended Expo stack, what's still needed (signed URLs, push notifications).
 
+## LGPD Tenant Purge Automation (2026-04-09)
+
+- **Cron job**: `/api/v1/cron/lgpd-purge` runs daily at `30 3 * * *` (03:30 BRT)
+- **Retention period**: 90 days after tenant `subscriptionStatus = "CANCELED"`
+- **Scope**: Hard-deletes all tenant-scoped data (AuditLog, ReminderLog, PaymentReminderLog, JournalNote, JournalEntry, ClinicalSession, Appointment, Payment, Charge, FileObject, Membership, Patient, then Tenant)
+- **Safety**: Each tenant deletion wrapped in `db.$transaction()` for atomicity; counts logged via `TENANT_LGPD_PURGED` audit entry written BEFORE deletion
+- **Helper**: `src/lib/lgpd.ts` exports `LGPD_TENANT_RETENTION_DAYS = 90` and `computeTenantPurgeCutoff()`
+- **No patient-level retention automation yet** — JournalEntry soft-delete GC is already handled by `/api/v1/cron/soft-delete-gc` (30-day retention); future: could add 2-year journal retention per spec
+
 ## Known operational requirement
 
 - The private bucket `support-attachments` **must exist** in every

@@ -18,6 +18,7 @@ export type AuditAction =
   | "TENANT_CREATE"
   | "TENANT_UPDATE"
   | "TENANT_SETTINGS_UPDATE"
+  | "TENANT_LGPD_PURGED"
   // Users
   | "USER_INVITE"
   | "USER_INVITE_ACCEPT"
