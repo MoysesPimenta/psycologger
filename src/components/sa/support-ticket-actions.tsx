@@ -20,11 +20,47 @@ export function SupportTicketActions({
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
 
+  /**
+   * Persist any unsaved private note before another action runs. Returns
+   * true on success (or if there was nothing to save), false if the note
+   * save failed — in which case the caller MUST abort its own action so
+   * the SA can see the error instead of silently losing context.
+   */
+  const persistNoteIfAny = async (): Promise<boolean> => {
+    if (!note.trim()) return true;
+    setIsSavingNote(true);
+    setNoteError(null);
+    try {
+      const res = await fetchWithCsrf(`/api/v1/sa/support/tickets/${ticketId}/note`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: note }),
+      });
+      if (!res.ok) {
+        const p = await res.json().catch(() => ({}));
+        setNoteError(p?.error?.message || `HTTP ${res.status}`);
+        return false;
+      }
+      setNote("");
+      return true;
+    } catch (err) {
+      setNoteError(err instanceof Error ? err.message : "Erro desconhecido");
+      return false;
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
   const send = async (afterStatus: "PENDING" | "CLOSED") => {
     if (!body.trim()) return;
     setIsSending(true);
     setError(null);
     try {
+      // Flush any in-progress private note first so staff context is never
+      // dropped when the SA hits a reply button with unsaved scratch text.
+      const noteOk = await persistNoteIfAny();
+      if (!noteOk) return;
+
       const res = await fetchWithCsrf(`/api/v1/sa/support/tickets/${ticketId}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -53,6 +89,10 @@ export function SupportTicketActions({
   ) => {
     setError(null);
     try {
+      // Same rule as send(): persist any unsaved internal note first.
+      const noteOk = await persistNoteIfAny();
+      if (!noteOk) return;
+
       const res = await fetchWithCsrf(`/api/v1/sa/support/tickets/${ticketId}/status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -113,39 +153,7 @@ export function SupportTicketActions({
         ))}
         <button
           type="button"
-          onClick={async () => {
-            // Save any unsaved private note first so staff context isn't
-            // lost, then close the ticket and return to the inbox.
-            if (note.trim()) {
-              setIsSavingNote(true);
-              setNoteError(null);
-              try {
-                const res = await fetchWithCsrf(
-                  `/api/v1/sa/support/tickets/${ticketId}/note`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ body: note }),
-                  }
-                );
-                if (!res.ok) {
-                  const p = await res.json().catch(() => ({}));
-                  setNoteError(p?.error?.message || `HTTP ${res.status}`);
-                  setIsSavingNote(false);
-                  return; // abort close so the SA can see the error
-                }
-                setNote("");
-              } catch (err) {
-                setNoteError(
-                  err instanceof Error ? err.message : "Erro desconhecido"
-                );
-                setIsSavingNote(false);
-                return;
-              }
-              setIsSavingNote(false);
-            }
-            await setStatus("CLOSED", { redirectToInbox: true });
-          }}
+          onClick={() => setStatus("CLOSED", { redirectToInbox: true })}
           className="px-3 py-1 rounded border border-gray-700 bg-gray-800 text-xs text-gray-200 hover:bg-gray-700"
           title="Salva a nota interna (se houver), fecha o ticket e retorna à caixa de entrada."
         >
