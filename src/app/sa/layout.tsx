@@ -18,6 +18,8 @@ import {
   AlertTriangle,
   Inbox,
 } from "lucide-react";
+import { LocaleSwitcher } from "@/components/shell/locale-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // NOTE: the /sa/login page intentionally renders a `fixed inset-0` backdrop so
 // it covers this sidebar — we cannot conditionally opt out of a server layout
@@ -47,9 +49,15 @@ export default async function SALayout({ children }: { children: ReactNode }) {
               <NavItem href="/sa/impersonate" icon={Shield} label={t("nav.impersonate")} />
             )}
           </nav>
-          <div className="p-4 text-[10px] text-gray-600 dark:text-gray-600 border-t border-gray-800 dark:border-gray-800">
-            <p>{t("nav.auditWarning")}</p>
-            <p className="mt-1">{t("nav.privacyWarning")}</p>
+          <div className="p-4 space-y-3 border-t border-gray-800 dark:border-gray-800">
+            <div className="flex items-center gap-2">
+              <LocaleSwitcher />
+              <ThemeToggle compact />
+            </div>
+            <div className="text-[10px] text-gray-600 dark:text-gray-600">
+              <p>{t("nav.auditWarning")}</p>
+              <p className="mt-1">{t("nav.privacyWarning")}</p>
+            </div>
           </div>
         </aside>
 

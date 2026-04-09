@@ -75,14 +75,14 @@
     "chargeThisSession": "Cobrar esta sessão?",
     "amount": "Valor (R$)",
     "discount": "Desconto (R$)",
-    "dueDate": "Vencimento",
+    "dueDate": "Vencimento:",
     "netAmount": "Valor líquido:",
     "creating": "Criando...",
     "create": "Criar cobrança",
     "skipNow": "Não cobrar agora",
     "createError": "Erro ao criar cobrança.",
     "description": "Consulta",
-    "paymentMethod": "Método de pagamento",
+    "paymentMethod": "Forma de pagamento",
     "pix": "PIX",
     "cash": "Dinheiro",
     "card": "Cartão",
@@ -115,12 +115,10 @@
     "summaryToReceive": "A receber",
     "chargeCount": "cobrança",
     "chargeCounts": "cobranças",
-    "dueDate": "Vencimento:",
     "partiallyPaid": "Pago parcialmente",
     "markPaid": "Marcar pago",
     "payRemainder": "Pagar resto",
     "paid": "Pago",
-    "paymentMethod": "Forma de pagamento",
     "markPaidSuccess": "Pagamento registrado!",
     "markPaidError": "Erro ao registrar pagamento",
     "loadError": "Erro ao carregar cobranças. Tente novamente.",
@@ -620,43 +618,43 @@
   },
   "sa": {
     "nav": {
-      "superAdminConsole": "Console SuperAdmin",
+      "console": "Console SuperAdmin",
       "dashboard": "Dashboard",
-      "saasMetrics": "Métricas SaaS",
+      "metrics": "Métricas SaaS",
       "clinics": "Clínicas",
       "users": "Usuários",
       "overQuota": "Over-quota",
       "support": "Suporte",
       "audit": "Auditoria",
       "impersonate": "Impersonar",
-      "auditedAction": "Toda ação é auditada.",
-      "respectPrivacy": "Respeite a privacidade dos pacientes."
+      "auditWarning": "Toda ação é auditada.",
+      "privacyWarning": "Respeite a privacidade dos pacientes."
     },
     "dashboard": {
-      "superAdmin": "SuperAdmin",
-      "platformConsole": "Psycologger Platform Console",
+      "title": "Console da Plataforma Psycologger",
+      "subtitle": "Psycologger Platform Console",
       "systemHealth": "Saúde do Sistema",
       "clinics": "Clínicas",
       "users": "Usuários",
-      "patients": "Pacientes",
+      "patients": "pacientes",
       "mrr": "MRR",
       "activeSubscribers": "Assinantes ativos",
-      "webhookErrors24h": "Webhook errors (24h)",
+      "webhookErrors": "Webhook errors (24h)",
       "recentClinics": "Clínicas recentes",
       "viewAll": "Ver todas",
       "members": "membros",
-      "patients": "pacientes",
       "shortcuts": "Atalhos",
-      "metrics": "Métricas"
+      "metricsLink": "Métricas",
+      "audit": "Auditoria"
     },
     "login": {
       "linkSent": "Link enviado!",
       "checkEmail": "Verifique seu email ({email}) para acessar o painel.",
-      "email": "Email",
+      "emailLabel": "Email",
       "emailPlaceholder": "admin@psycologger.com",
-      "errorSending": "Erro ao enviar link de acesso.",
-      "networkError": "Erro de rede.",
-      "sendLink": "Enviar link de acesso"
+      "sendButton": "Enviar link de acesso",
+      "sendError": "Erro ao enviar link de acesso.",
+      "networkError": "Erro de rede."
     },
     "metrics": {
       "title": "Métricas SaaS",
@@ -749,7 +747,13 @@
       "saActivity": "Atividade SA / billing",
       "noEventsRecorded": "Sem eventos registrados.",
       "internalNotes": "Notas internas ({count})",
-      "noNotes": "Sem notas ainda."
+      "noNotes": "Sem notas ainda.",
+      "adminViewsClinical": "Admin vê clínico",
+      "metaTitle": "Detalhes da Clínica",
+      "notFound": "Clínica não encontrada",
+      "noEvents": "Sem eventos registrados.",
+      "periodEnd": "Fim do período atual",
+      "saBadge": "SA"
     },
     "users": {
       "title": "Usuários",
@@ -774,22 +778,21 @@
       "actions": "Ações",
       "none": "Nenhuma",
       "never": "Nunca",
-      "saBadge": "SA"
+      "saBadge": "SA",
+      "superAdmin": "SUPERADMIN"
     },
     "audit": {
       "title": "Auditoria",
       "records": "{count} registros",
-      "tenantIdLabel": "Tenant ID (UUID)",
-      "clinicLabel": "Clínica — nome ou slug",
-      "userLabel": "Usuário — email, nome ou UUID",
-      "actionLabel": "Ação contém… (ex: sa, billing, login)",
+      "tenantIdPlaceholder": "Tenant ID (UUID)",
+      "clinicPlaceholder": "Clínica — nome ou slug",
+      "userPlaceholder": "Usuário — email, nome ou UUID",
+      "actionPlaceholder": "Ação contém… (ex: sa, billing, login)",
       "invalidUserQuery": "Consulta de usuário inválida — use um email, nome ou UUID.",
       "invalidClinicQuery": "Consulta de clínica inválida.",
-      "timestamp": "Timestamp",
       "action": "Ação",
       "clinic": "Clínica",
       "user": "Usuário",
-      "tenantId": "Tenant ID",
       "summary": "Resumo",
       "viewDetails": "Ver detalhes"
     },
@@ -928,13 +931,13 @@
       "clinic": "Clínica",
       "user": "Usuário",
       "email": "Email",
-      "from": "Desde",
-      "to": "Até",
       "open": "Abertos",
       "pending": "Aguardando",
       "closed": "Fechados",
       "all": "Todos",
-      "clearAll": "Limpar tudo"
+      "clearAll": "Limpar tudo",
+      "since": "De",
+      "until": "Até"
     }
   }
 }

@@ -75,7 +75,7 @@
     "chargeThisSession": "Charge for this session?",
     "amount": "Amount (R$)",
     "discount": "Discount (R$)",
-    "dueDate": "Due date",
+    "dueDate": "Due date:",
     "netAmount": "Net amount:",
     "creating": "Creating...",
     "create": "Create charge",
@@ -115,12 +115,10 @@
     "summaryToReceive": "To receive",
     "chargeCount": "charge",
     "chargeCounts": "charges",
-    "dueDate": "Due date:",
     "partiallyPaid": "Partially paid",
     "markPaid": "Mark paid",
     "payRemainder": "Pay remainder",
     "paid": "Paid",
-    "paymentMethod": "Payment method",
     "markPaidSuccess": "Payment recorded!",
     "markPaidError": "Error recording payment",
     "loadError": "Error loading charges. Try again.",
@@ -620,43 +618,43 @@
   },
   "sa": {
     "nav": {
-      "superAdminConsole": "SuperAdmin Console",
+      "console": "SuperAdmin Console",
       "dashboard": "Dashboard",
-      "saasMetrics": "SaaS Metrics",
+      "metrics": "SaaS Metrics",
       "clinics": "Clinics",
       "users": "Users",
       "overQuota": "Over-quota",
       "support": "Support",
       "audit": "Audit",
       "impersonate": "Impersonate",
-      "auditedAction": "Every action is audited.",
-      "respectPrivacy": "Respect patient privacy."
+      "auditWarning": "Every action is audited.",
+      "privacyWarning": "Respect patient privacy."
     },
     "dashboard": {
-      "superAdmin": "SuperAdmin",
-      "platformConsole": "Psycologger Platform Console",
+      "title": "Psycologger Platform Console",
+      "subtitle": "Psycologger Platform Console",
       "systemHealth": "System Health",
       "clinics": "Clinics",
       "users": "Users",
-      "patients": "Patients",
+      "patients": "patients",
       "mrr": "MRR",
       "activeSubscribers": "Active subscribers",
-      "webhookErrors24h": "Webhook errors (24h)",
+      "webhookErrors": "Webhook errors (24h)",
       "recentClinics": "Recent clinics",
       "viewAll": "View all",
       "members": "members",
-      "patients": "patients",
       "shortcuts": "Shortcuts",
-      "metrics": "Metrics"
+      "metricsLink": "Metrics",
+      "audit": "Audit"
     },
     "login": {
       "linkSent": "Link sent!",
       "checkEmail": "Check your email ({email}) to access the panel.",
-      "email": "Email",
+      "emailLabel": "Email",
       "emailPlaceholder": "admin@psycologger.com",
-      "errorSending": "Error sending access link.",
-      "networkError": "Network error.",
-      "sendLink": "Send access link"
+      "sendButton": "Send access link",
+      "sendError": "Error sending access link.",
+      "networkError": "Network error."
     },
     "metrics": {
       "title": "SaaS Metrics",
@@ -749,7 +747,13 @@
       "saActivity": "SA / billing activity",
       "noEventsRecorded": "No events recorded.",
       "internalNotes": "Internal notes ({count})",
-      "noNotes": "No notes yet."
+      "noNotes": "No notes yet.",
+      "adminViewsClinical": "Admin can view clinical",
+      "metaTitle": "Clinic Details",
+      "notFound": "Clinic not found",
+      "noEvents": "No events recorded.",
+      "periodEnd": "Current period end",
+      "saBadge": "SA"
     },
     "users": {
       "title": "Users",
@@ -774,22 +778,21 @@
       "actions": "Actions",
       "none": "None",
       "never": "Never",
-      "saBadge": "SA"
+      "saBadge": "SA",
+      "superAdmin": "SUPERADMIN"
     },
     "audit": {
       "title": "Audit",
       "records": "{count} records",
-      "tenantIdLabel": "Tenant ID (UUID)",
-      "clinicLabel": "Clinic — name or slug",
-      "userLabel": "User — email, name or UUID",
-      "actionLabel": "Action contains… (e.g., sa, billing, login)",
+      "tenantIdPlaceholder": "Tenant ID (UUID)",
+      "clinicPlaceholder": "Clinic — name or slug",
+      "userPlaceholder": "User — email, name or UUID",
+      "actionPlaceholder": "Action contains… (e.g., sa, billing, login)",
       "invalidUserQuery": "Invalid user query — use email, name or UUID.",
       "invalidClinicQuery": "Invalid clinic query.",
-      "timestamp": "Timestamp",
       "action": "Action",
       "clinic": "Clinic",
       "user": "User",
-      "tenantId": "Tenant ID",
       "summary": "Summary",
       "viewDetails": "View details"
     },
@@ -928,13 +931,13 @@
       "clinic": "Clinic",
       "user": "User",
       "email": "Email",
-      "from": "From",
-      "to": "To",
       "open": "Open",
       "pending": "Pending",
       "closed": "Closed",
       "all": "All",
-      "clearAll": "Clear all"
+      "clearAll": "Clear all",
+      "since": "From",
+      "until": "Until"
     }
   }
 }
