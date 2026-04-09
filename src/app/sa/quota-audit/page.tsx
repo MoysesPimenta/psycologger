@@ -1,43 +1,45 @@
 import { requireSuperAdmin } from "@/lib/auth";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { listOverQuotaTenants } from "@/lib/sa-metrics";
 
-export const metadata = { title: "Over-quota — SuperAdmin" };
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  const t = await getTranslations("sa");
+  return { title: `${t("quotaAudit.title")} — SuperAdmin` };
+}
 
 export default async function SAQuotaAuditPage() {
   await requireSuperAdmin();
+  const t = await getTranslations("sa");
 
   const rows = await listOverQuotaTenants(500);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Clínicas sobre o limite</h1>
-        <p className="text-gray-400 text-sm mt-1">
-          Tenants cujo estado atual excede os limites do plano — resultado da
-          enforcement que foi historicamente burlada antes do fix de abril/26.
-          Use para decidir grandfathering, forçar upgrade ou suspender.
-        </p>
+        <h1 className="text-3xl font-bold">{t("quotaAudit.title")}</h1>
+        <p className="text-gray-400 text-sm mt-1">{t("quotaAudit.description")}</p>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-800/50 text-gray-400 text-xs uppercase tracking-wide">
             <tr>
-              <th className="text-left p-3">Clínica</th>
-              <th className="text-left p-3">Plano</th>
-              <th className="text-left p-3">Pacientes (atual / limite)</th>
-              <th className="text-left p-3">Terapeutas (atual / limite)</th>
-              <th className="text-left p-3">Ação</th>
+              <th className="text-left p-3">{t("quotaAudit.clinic")}</th>
+              <th className="text-left p-3">{t("quotaAudit.plan")}</th>
+              <th className="text-left p-3">{t("quotaAudit.patients")}</th>
+              <th className="text-left p-3">{t("quotaAudit.therapists")}</th>
+              <th className="text-left p-3">{t("quotaAudit.action")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-gray-500">
-                  Nenhuma clínica sobre o limite 🎉
+                  {t("quotaAudit.noClinics")} 🎉
                 </td>
               </tr>
             ) : (
@@ -67,7 +69,7 @@ export default async function SAQuotaAuditPage() {
                       href={`/sa/tenants/${r.id}`}
                       className="text-xs px-2 py-1 bg-gray-800 border border-gray-700 rounded hover:bg-gray-700"
                     >
-                      Revisar
+                      {t("quotaAudit.review")}
                     </Link>
                   </td>
                 </tr>

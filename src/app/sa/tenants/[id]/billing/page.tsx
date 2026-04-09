@@ -4,6 +4,7 @@
  */
 
 import { getServerSession } from "next-auth";
+import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -24,6 +25,7 @@ export default async function TenantBillingPage({
 }: PageProps) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/sa/login");
+  const t = await getTranslations("sa");
 
   // Verify SUPERADMIN
   const user = await db.user.findUnique({
@@ -52,7 +54,7 @@ export default async function TenantBillingPage({
   });
 
   if (!tenant) {
-    return <div>Tenant not found</div>;
+    return <div>{t("tenantDetail.notFound")}</div>;
   }
 
   const plan = getPlan(tenant.planTier);
@@ -85,32 +87,34 @@ export default async function TenantBillingPage({
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-3xl font-bold">{tenant.name} — Billing</h1>
-        <p className="text-gray-600 mt-2">SuperAdmin override console</p>
+        <h1 className="text-3xl font-bold">
+          {tenant.name} — {t("billing.title")}
+        </h1>
+        <p className="text-gray-600 mt-2">{t("billing.subtitle")}</p>
       </div>
 
       {/* Current Status */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="text-xl font-bold mb-4">Current Status</h2>
+        <h2 className="text-xl font-bold mb-4">{t("billing.currentStatus")}</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-gray-600">Plan Tier</p>
+            <p className="text-sm text-gray-600">{t("billing.planTier")}</p>
             <p className="text-lg font-semibold">{tenant.planTier}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Billing State</p>
+            <p className="text-sm text-gray-600">{t("billing.billingState")}</p>
             <p className="text-lg font-semibold">{state}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Subscription Status</p>
+            <p className="text-sm text-gray-600">{t("billing.subscriptionStatus")}</p>
             <p className="text-sm font-mono">{tenant.subscriptionStatus || "—"}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Currency</p>
+            <p className="text-sm text-gray-600">{t("billing.currency")}</p>
             <p className="text-sm font-mono">{tenant.billingCurrency}</p>
           </div>
           <div className="col-span-2">
-            <p className="text-sm text-gray-600">Current Period End</p>
+            <p className="text-sm text-gray-600">{t("billing.currentPeriodEnd")}</p>
             <p className="text-sm font-mono">
               {tenant.currentPeriodEnd
                 ? new Date(tenant.currentPeriodEnd).toISOString().split("T")[0]
@@ -119,7 +123,7 @@ export default async function TenantBillingPage({
           </div>
           {tenant.graceUntil && (
             <div className="col-span-2">
-              <p className="text-sm text-gray-600">Grace Until</p>
+              <p className="text-sm text-gray-600">{t("billing.graceUntil")}</p>
               <p className="text-sm font-mono bg-yellow-50 p-2 rounded">
                 {new Date(tenant.graceUntil).toISOString()}
               </p>
@@ -130,16 +134,16 @@ export default async function TenantBillingPage({
 
       {/* Stripe Integration */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="text-xl font-bold mb-4">Stripe Integration</h2>
+        <h2 className="text-xl font-bold mb-4">{t("billing.stripeIntegration")}</h2>
         <div className="space-y-3 font-mono text-sm">
           <div>
-            <p className="text-gray-600">Customer ID</p>
+            <p className="text-gray-600">{t("billing.customerId")}</p>
             <p className="bg-gray-100 p-2 rounded break-all">
               {tenant.stripeCustomerId || "—"}
             </p>
           </div>
           <div>
-            <p className="text-gray-600">Subscription ID</p>
+            <p className="text-gray-600">{t("billing.subscriptionId")}</p>
             <p className="bg-gray-100 p-2 rounded break-all">
               {tenant.stripeSubscriptionId || "—"}
             </p>
@@ -149,56 +153,58 @@ export default async function TenantBillingPage({
 
       {/* Force Tier Override */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="text-xl font-bold mb-4">Force Tier (Override)</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          This bypasses Stripe and sets the plan tier directly. Use only for testing or
-          compensation.
-        </p>
+        <h2 className="text-xl font-bold mb-4">{t("billing.forceTier")}</h2>
+        <p className="text-sm text-gray-600 mb-4">{t("billing.forceTierNote")}</p>
         <div className="flex gap-2">
-          {(["FREE", "PRO", "CLINIC"] as const).map((tier) => (
-            <a
-              key={tier}
-              href={`/sa/tenants/${tenantId}/billing?action=force-tier&tier=${tier}`}
-              className={`px-4 py-2 rounded font-semibold transition ${
-                tenant.planTier === tier
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-              }`}
-            >
-              Force {tier}
-            </a>
-          ))}
+          {(["FREE", "PRO", "CLINIC"] as const).map((tier) => {
+            const tierKey =
+              tier === "FREE"
+                ? "forceFree"
+                : tier === "PRO"
+                  ? "forcePro"
+                  : "forceClinic";
+            return (
+              <a
+                key={tier}
+                href={`/sa/tenants/${tenantId}/billing?action=force-tier&tier=${tier}`}
+                className={`px-4 py-2 rounded font-semibold transition ${
+                  tenant.planTier === tier
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                }`}
+              >
+                {t(`billing.${tierKey}`)}
+              </a>
+            );
+          })}
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          Prefer using the Ops panel on the tenant detail page — it uses the
-          audited <code>/api/v1/sa/tenants/[id]/plan-override</code> route.
-        </p>
+        <p className="text-xs text-gray-500 mt-2">{t("billing.opsNote")}</p>
       </div>
 
       {/* Plan Details */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="text-xl font-bold mb-4">Plan Details</h2>
+        <h2 className="text-xl font-bold mb-4">{t("billing.planDetails")}</h2>
         <div className="space-y-2 text-sm">
           <div>
-            <span className="text-gray-600">Max Active Patients: </span>
+            <span className="text-gray-600">{t("billing.maxPatients")}: </span>
             <span className="font-semibold">
               {plan.maxActivePatients === Infinity ? "∞" : plan.maxActivePatients}
             </span>
           </div>
           <div>
-            <span className="text-gray-600">Max Therapist Seats: </span>
+            <span className="text-gray-600">{t("billing.maxTherapists")}: </span>
             <span className="font-semibold">
               {plan.maxTherapistSeats === Infinity ? "∞" : plan.maxTherapistSeats}
             </span>
           </div>
           <div>
-            <span className="text-gray-600">BRL Price: </span>
+            <span className="text-gray-600">{t("billing.brlPrice")}: </span>
             <span className="font-semibold">
               {plan.monthlyPriceCents.BRL / 100} BRL/month
             </span>
           </div>
           <div>
-            <span className="text-gray-600">USD Price: </span>
+            <span className="text-gray-600">{t("billing.usdPrice")}: </span>
             <span className="font-semibold">
               ${plan.monthlyPriceCents.USD / 100}/month
             </span>

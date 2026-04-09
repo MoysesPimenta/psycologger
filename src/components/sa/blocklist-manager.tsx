@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 import { Trash2, Plus } from "lucide-react";
 
@@ -15,6 +16,7 @@ export interface BlocklistEntry {
 
 export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
   const router = useRouter();
+  const t = useTranslations("sa");
   const [kind, setKind] = useState<"EMAIL" | "DOMAIN">("EMAIL");
   const [pattern, setPattern] = useState("");
   const [reason, setReason] = useState("");
@@ -41,14 +43,14 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
         setError(p?.error?.message || `HTTP ${res.status}`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      setError(err instanceof Error ? err.message : t("supportBlocklist.unknownError"));
     } finally {
       setBusy(false);
     }
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Remover esta entrada do blocklist?")) return;
+    if (!confirm(t("supportBlocklist.removeConfirm"))) return;
     setError(null);
     try {
       const res = await fetchWithCsrf(`/api/v1/sa/support/blocklist?id=${id}`, {
@@ -60,7 +62,7 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
         setError(p?.error?.message || `HTTP ${res.status}`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro desconhecido");
+      setError(err instanceof Error ? err.message : t("supportBlocklist.unknownError"));
     }
   };
 
@@ -70,28 +72,32 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
         onSubmit={add}
         className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3"
       >
-        <p className="text-sm font-medium text-gray-200">Adicionar entrada</p>
+        <p className="text-sm font-medium text-gray-200">{t("supportBlocklist.addEntry")}</p>
         <div className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-3">
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value as "EMAIL" | "DOMAIN")}
             className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white"
           >
-            <option value="EMAIL">Email</option>
-            <option value="DOMAIN">Domínio</option>
+            <option value="EMAIL">{t("supportBlocklist.email")}</option>
+            <option value="DOMAIN">{t("supportBlocklist.domain")}</option>
           </select>
           <input
             type="text"
             value={pattern}
             onChange={(e) => setPattern(e.target.value)}
-            placeholder={kind === "EMAIL" ? "spam@exemplo.com" : "exemplo.com"}
+            placeholder={
+              kind === "EMAIL"
+                ? t("supportBlocklist.emailPlaceholder")
+                : t("supportBlocklist.domainPlaceholder")
+            }
             className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
           />
           <input
             type="text"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Motivo (opcional)"
+            placeholder={t("supportBlocklist.reason")}
             className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
           />
           <button
@@ -100,7 +106,7 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
             className="inline-flex items-center gap-1 px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
           >
             <Plus className="h-4 w-4" />
-            Bloquear
+            {t("supportBlocklist.block")}
           </button>
         </div>
         {error && <p className="text-sm text-red-400">{error}</p>}
@@ -110,10 +116,10 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-800 text-left text-xs text-gray-400">
-              <th className="p-3">Tipo</th>
-              <th className="p-3">Padrão</th>
-              <th className="p-3">Motivo</th>
-              <th className="p-3">Criado</th>
+              <th className="p-3">{t("supportBlocklist.type")}</th>
+              <th className="p-3">{t("supportBlocklist.pattern")}</th>
+              <th className="p-3">{t("supportBlocklist.reasonHeader")}</th>
+              <th className="p-3">{t("supportBlocklist.created")}</th>
               <th className="p-3 w-12"></th>
             </tr>
           </thead>
@@ -121,7 +127,7 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
             {entries.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-6 text-center text-gray-500">
-                  Nenhuma entrada no blocklist.
+                  {t("supportBlocklist.noEntries")}
                 </td>
               </tr>
             ) : (
@@ -142,7 +148,7 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
                       type="button"
                       onClick={() => remove(e.id)}
                       className="text-red-400 hover:text-red-300"
-                      title="Remover"
+                      title={t("supportBlocklist.remove")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

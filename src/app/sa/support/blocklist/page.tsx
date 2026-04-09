@@ -1,14 +1,20 @@
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { ArrowLeft, Shield } from "lucide-react";
 import { requireSuperAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { BlocklistManager } from "@/components/sa/blocklist-manager";
 
-export const metadata = { title: "Blocklist — Suporte" };
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata() {
+  const t = await getTranslations("sa");
+  return { title: t("supportBlocklist.title") };
+}
 
 export default async function BlocklistPage() {
   await requireSuperAdmin();
+  const t = await getTranslations("sa");
 
   const entries = await db.supportBlocklist.findMany({
     orderBy: { createdAt: "desc" },
@@ -31,10 +37,8 @@ export default async function BlocklistPage() {
         <div className="flex items-center gap-3">
           <Shield className="h-6 w-6 text-brand-400" />
           <div>
-            <h1 className="text-2xl font-bold">Blocklist de suporte</h1>
-            <p className="text-gray-400 text-sm">
-              Endereços e domínios bloqueados no webhook de entrada.
-            </p>
+            <h1 className="text-2xl font-bold">{t("supportBlocklist.heading")}</h1>
+            <p className="text-gray-400 text-sm">{t("supportBlocklist.description")}</p>
           </div>
         </div>
       </div>

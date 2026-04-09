@@ -7,29 +7,31 @@
  */
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
-
-const LABELS: Record<string, string> = {
-  status: "Status",
-  tenantId: "Tenant",
-  clinicQ: "Clínica",
-  userQ: "Usuário",
-  fromEmail: "Email",
-  since: "Desde",
-  until: "Até",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  OPEN: "Abertos",
-  PENDING: "Aguardando",
-  CLOSED: "Fechados",
-  ALL: "Todos",
-};
 
 export function SupportActiveChips() {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
+  const t = useTranslations("sa");
+
+  const LABELS: Record<string, string> = {
+    status: t("chips.status"),
+    tenantId: t("chips.tenant"),
+    clinicQ: t("chips.clinic"),
+    userQ: t("chips.user"),
+    fromEmail: t("chips.email"),
+    since: t("chips.since"),
+    until: t("chips.until"),
+  };
+
+  const STATUS_LABELS: Record<string, string> = {
+    OPEN: t("support.open"),
+    PENDING: t("support.pendingUser"),
+    CLOSED: t("support.closed"),
+    ALL: t("support.allStatuses"),
+  };
 
   const entries = Array.from(sp.entries()).filter(
     ([k, v]) => v && k !== "page" && LABELS[k]
@@ -48,7 +50,7 @@ export function SupportActiveChips() {
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
-      <span className="text-gray-500">Filtros ativos:</span>
+      <span className="text-gray-500">{t("chips.activeFilters")}:</span>
       {entries.map(([k, v]) => {
         const display = k === "status" ? STATUS_LABELS[v] ?? v : v;
         return (
@@ -70,7 +72,7 @@ export function SupportActiveChips() {
         onClick={clearAll}
         className="px-2 py-1 rounded border border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700"
       >
-        Limpar tudo
+        {t("chips.clearAll")}
       </button>
     </div>
   );

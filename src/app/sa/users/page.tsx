@@ -5,8 +5,12 @@ import { ArrowLeft, LogIn } from "lucide-react";
 import { searchUsers } from "@/lib/sa-search";
 import { ImpersonateButton } from "@/components/sa/impersonate-button";
 import { SaLiveFilters } from "@/components/sa/live-filters";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = { title: "Usuários — SuperAdmin" };
+export async function generateMetadata() {
+  const t = await getTranslations("sa");
+  return { title: `${t("users.title")} — SuperAdmin` };
+}
 export const dynamic = "force-dynamic";
 
 export default async function SAUsersPage({
@@ -15,6 +19,7 @@ export default async function SAUsersPage({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   await requireSuperAdmin();
+  const t = await getTranslations("sa");
 
   const page = parseInt((searchParams.page as string) || "1", 10);
   const q = (searchParams.q as string) || "";
@@ -42,20 +47,20 @@ export default async function SAUsersPage({
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Usuários</h1>
-            <p className="text-gray-400 text-sm">{totalCount} registrados</p>
+            <h1 className="text-2xl font-bold">{t("users.title")}</h1>
+            <p className="text-gray-400 text-sm">{t("users.registered", { count: totalCount })}</p>
           </div>
         </div>
 
         {/* Search and filters — live/debounced */}
         <SaLiveFilters
           fields={[
-            { name: "q", kind: "text", placeholder: "Buscar por email ou nome" },
+            { name: "q", kind: "text", placeholder: t("users.searchPlaceholder") },
             {
               name: "role",
               kind: "select",
               options: [
-                { value: "", label: "Todos os papéis" },
+                { value: "", label: t("users.allRoles") },
                 { value: "SUPERADMIN", label: "SUPERADMIN" },
                 { value: "TENANT_ADMIN", label: "TENANT_ADMIN" },
                 { value: "PSYCHOLOGIST", label: "PSYCHOLOGIST" },
@@ -67,19 +72,19 @@ export default async function SAUsersPage({
               name: "isSuperAdmin",
               kind: "select",
               options: [
-                { value: "", label: "Todos" },
-                { value: "true", label: "SuperAdmin" },
-                { value: "false", label: "Não SuperAdmin" },
+                { value: "", label: t("users.all") },
+                { value: "true", label: t("users.superAdmin") },
+                { value: "false", label: t("users.notSuperAdmin") },
               ],
             },
             {
               name: "lastLoginRange",
               kind: "select",
               options: [
-                { value: "", label: "Últimas atividades" },
-                { value: "7d", label: "Últimos 7 dias" },
-                { value: "30d", label: "Últimos 30 dias" },
-                { value: "never", label: "Nunca fez login" },
+                { value: "", label: t("users.recentActivity") },
+                { value: "7d", label: t("users.last7Days") },
+                { value: "30d", label: t("users.last30Days") },
+                { value: "never", label: t("users.neverLoggedIn") },
               ],
             },
           ]}
@@ -90,11 +95,11 @@ export default async function SAUsersPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 text-left text-xs text-gray-400">
-                <th className="p-4">Nome / Email</th>
-                <th className="p-4">Clínicas</th>
-                <th className="p-4">Último login</th>
-                <th className="p-4">Criado</th>
-                <th className="p-4">Ações</th>
+                <th className="p-4">{t("users.nameEmail")}</th>
+                <th className="p-4">{t("users.clinics")}</th>
+                <th className="p-4">{t("users.lastLogin")}</th>
+                <th className="p-4">{t("users.created")}</th>
+                <th className="p-4">{t("users.actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -104,7 +109,7 @@ export default async function SAUsersPage({
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{u.name ?? "—"}</p>
                       {u.isSuperAdmin && (
-                        <span className="px-1.5 py-0.5 rounded bg-yellow-900/50 text-yellow-400 text-xs">SA</span>
+                        <span className="px-1.5 py-0.5 rounded bg-yellow-900/50 text-yellow-400 text-xs">{t("users.saBadge")}</span>
                       )}
                     </div>
                     <p className="text-xs text-gray-400">{u.email}</p>
@@ -120,11 +125,11 @@ export default async function SAUsersPage({
                         ))}
                       </div>
                     ) : (
-                      <span className="text-gray-500 text-xs">Nenhuma</span>
+                      <span className="text-gray-500 text-xs">{t("users.none")}</span>
                     )}
                   </td>
                   <td className="p-4 text-gray-400 text-xs">
-                    {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("pt-BR") : "Nunca"}
+                    {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("pt-BR") : t("users.never")}
                   </td>
                   <td className="p-4 text-gray-400 text-xs">
                     {new Date(u.createdAt).toLocaleDateString("pt-BR")}

@@ -3,8 +3,12 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SaLiveFilters } from "@/components/sa/live-filters";
+import { getTranslations } from "next-intl/server";
 
-export const metadata = { title: "Auditoria — SuperAdmin" };
+export async function generateMetadata() {
+  const t = await getTranslations("sa");
+  return { title: `${t("audit.title")} — SuperAdmin` };
+}
 export const dynamic = "force-dynamic";
 
 export default async function SAAuditPage({
@@ -13,6 +17,7 @@ export default async function SAAuditPage({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   await requireSuperAdmin();
+  const t = await getTranslations("sa");
 
   const page = parseInt((searchParams.page as string) || "1", 10);
   const limit = 100;
@@ -40,7 +45,7 @@ export default async function SAAuditPage({
     if (UUID_RE.test(userQ)) {
       where.userId = userQ;
     } else if (!SAFE_TEXT_RE.test(userQ)) {
-      userQWarning = "Consulta de usuário inválida — use um email, nome ou UUID.";
+      userQWarning = t("audit.invalidUserQuery");
     } else {
       try {
         const matches = await db.user.findMany({
@@ -55,7 +60,7 @@ export default async function SAAuditPage({
         });
         where.userId = { in: matches.length > 0 ? matches.map((u) => u.id) : ["00000000-0000-0000-0000-000000000000"] };
       } catch {
-        userQWarning = "Consulta de usuário inválida — use um email, nome ou UUID.";
+        userQWarning = t("audit.invalidUserQuery");
       }
     }
   }
@@ -66,7 +71,7 @@ export default async function SAAuditPage({
   let clinicQWarning: string | null = null;
   if (clinicQ) {
     if (!SAFE_TEXT_RE.test(clinicQ)) {
-      clinicQWarning = "Consulta de clínica inválida.";
+      clinicQWarning = t("audit.invalidClinicQuery");
     } else {
       try {
         const tenants = await db.tenant.findMany({
@@ -88,7 +93,7 @@ export default async function SAAuditPage({
           where.tenantId = { in: ids.length > 0 ? ids : [ZERO_UUID] };
         }
       } catch {
-        clinicQWarning = "Consulta de clínica inválida.";
+        clinicQWarning = t("audit.invalidClinicQuery");
       }
     }
   }
@@ -142,18 +147,18 @@ export default async function SAAuditPage({
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">Auditoria</h1>
-            <p className="text-gray-400 text-sm">{totalCount} registros</p>
+            <h1 className="text-2xl font-bold">{t("audit.title")}</h1>
+            <p className="text-gray-400 text-sm">{t("audit.records", { count: totalCount })}</p>
           </div>
         </div>
 
         {/* Filters — live/debounced */}
         <SaLiveFilters
           fields={[
-            { name: "tenantId", kind: "text", placeholder: "Tenant ID (UUID)" },
-            { name: "clinicQ", kind: "text", placeholder: "Clínica — nome ou slug" },
-            { name: "userQ", kind: "text", placeholder: "Usuário — email, nome ou UUID" },
-            { name: "action", kind: "text", placeholder: "Ação contém… (ex: sa, billing, login)" },
+            { name: "tenantId", kind: "text", placeholder: t("audit.tenantIdPlaceholder") },
+            { name: "clinicQ", kind: "text", placeholder: t("audit.clinicPlaceholder") },
+            { name: "userQ", kind: "text", placeholder: t("audit.userPlaceholder") },
+            { name: "action", kind: "text", placeholder: t("audit.actionPlaceholder") },
             { name: "since", kind: "date" },
             { name: "until", kind: "date" },
           ]}
@@ -171,11 +176,11 @@ export default async function SAAuditPage({
             <thead>
               <tr className="border-b border-gray-800 text-left text-xs text-gray-400">
                 <th className="p-4">Timestamp</th>
-                <th className="p-4">Ação</th>
-                <th className="p-4">Clínica</th>
-                <th className="p-4">Usuário</th>
+                <th className="p-4">{t("audit.action")}</th>
+                <th className="p-4">{t("audit.clinic")}</th>
+                <th className="p-4">{t("audit.user")}</th>
                 <th className="p-4">Tenant ID</th>
-                <th className="p-4">Resumo</th>
+                <th className="p-4">{t("audit.summary")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
@@ -213,7 +218,7 @@ export default async function SAAuditPage({
                   <td className="p-4 text-xs text-gray-400">
                     {log.summaryJson ? (
                       <details className="cursor-pointer">
-                        <summary>Ver detalhes</summary>
+                        <summary>{t("audit.viewDetails")}</summary>
                         <pre className="text-xs bg-gray-950 p-2 rounded mt-1 overflow-auto max-w-sm">
                           {JSON.stringify(log.summaryJson, null, 2)}
                         </pre>

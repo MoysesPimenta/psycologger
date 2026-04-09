@@ -14,6 +14,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 function getCsrfToken(): string {
   if (typeof document === "undefined") return "";
@@ -23,6 +24,7 @@ function getCsrfToken(): string {
 
 export function SupportBulkActions({ ticketIds }: { ticketIds: string[] }) {
   const router = useRouter();
+  const t = useTranslations("sa");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +88,7 @@ export function SupportBulkActions({ ticketIds }: { ticketIds: string[] }) {
   if (selected.size === 0) {
     return (
       <div className="text-xs text-gray-500">
-        Selecione tickets para aplicar ações em massa.
+        {t("support.selectTickets")}
       </div>
     );
   }
@@ -94,7 +96,9 @@ export function SupportBulkActions({ ticketIds }: { ticketIds: string[] }) {
   return (
     <div className="sticky top-0 z-10 bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 flex flex-wrap items-center gap-3">
       <span className="text-sm font-medium text-white">
-        {selected.size} selecionado{selected.size > 1 ? "s" : ""}
+        {t(selected.size > 1 ? "support.selectedPlural" : "support.selected", {
+          count: selected.size,
+        })}
       </span>
       <div className="flex flex-wrap gap-2">
         <button
@@ -103,7 +107,7 @@ export function SupportBulkActions({ ticketIds }: { ticketIds: string[] }) {
           onClick={() => runAction({ action: "SET_STATUS", status: "OPEN" })}
           className="px-3 py-1.5 text-xs rounded border border-red-800 bg-red-900/40 hover:bg-red-900/60 text-red-200 disabled:opacity-50"
         >
-          Marcar Aberto
+          {t("support.markOpen")}
         </button>
         <button
           type="button"
@@ -111,7 +115,7 @@ export function SupportBulkActions({ ticketIds }: { ticketIds: string[] }) {
           onClick={() => runAction({ action: "SET_STATUS", status: "PENDING" })}
           className="px-3 py-1.5 text-xs rounded border border-yellow-800 bg-yellow-900/40 hover:bg-yellow-900/60 text-yellow-200 disabled:opacity-50"
         >
-          Aguardando
+          {t("support.pending")}
         </button>
         <button
           type="button"
@@ -119,7 +123,7 @@ export function SupportBulkActions({ ticketIds }: { ticketIds: string[] }) {
           onClick={() => runAction({ action: "SET_STATUS", status: "CLOSED" })}
           className="px-3 py-1.5 text-xs rounded border border-gray-700 bg-gray-800 hover:bg-gray-700 text-gray-200 disabled:opacity-50"
         >
-          Fechar
+          {t("support.close")}
         </button>
         <button
           type="button"
@@ -127,12 +131,12 @@ export function SupportBulkActions({ ticketIds }: { ticketIds: string[] }) {
           onClick={() =>
             runAction(
               { action: "BLOCK_SENDERS" },
-              `Bloquear o email dos remetentes dos ${selected.size} ticket(s)?`
+              t("support.blockConfirm", { count: selected.size })
             )
           }
           className="px-3 py-1.5 text-xs rounded border border-orange-800 bg-orange-900/40 hover:bg-orange-900/60 text-orange-200 disabled:opacity-50"
         >
-          Bloquear remetentes
+          {t("support.blockSenders")}
         </button>
         <button
           type="button"
@@ -140,12 +144,12 @@ export function SupportBulkActions({ ticketIds }: { ticketIds: string[] }) {
           onClick={() =>
             runAction(
               { action: "DELETE" },
-              `Excluir permanentemente ${selected.size} ticket(s) e todas as mensagens? Esta ação não pode ser desfeita.`
+              t("support.deleteConfirm", { count: selected.size })
             )
           }
           className="px-3 py-1.5 text-xs rounded border border-red-900 bg-red-950 hover:bg-red-900 text-red-300 disabled:opacity-50"
         >
-          Excluir
+          {t("support.delete")}
         </button>
         <button
           type="button"
@@ -153,7 +157,7 @@ export function SupportBulkActions({ ticketIds }: { ticketIds: string[] }) {
           onClick={clearAll}
           className="px-3 py-1.5 text-xs rounded border border-gray-700 text-gray-400 hover:text-white"
         >
-          Limpar
+          {t("support.clear")}
         </button>
       </div>
       {error && <span className="text-xs text-red-400">{error}</span>}
@@ -162,11 +166,12 @@ export function SupportBulkActions({ ticketIds }: { ticketIds: string[] }) {
 }
 
 export function SupportMasterCheckbox() {
+  const t = useTranslations("sa");
   return (
     <input
       type="checkbox"
       data-support-ticket-master="1"
-      aria-label="Selecionar todos"
+      aria-label={t("support.selectTickets")}
       className="accent-brand-500"
       onChange={(e) => {
         const checked = e.currentTarget.checked;

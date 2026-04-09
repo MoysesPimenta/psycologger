@@ -1,4 +1,5 @@
 import { requireSuperAdmin } from "@/lib/auth";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { TrendingUp, AlertTriangle } from "lucide-react";
 import {
@@ -29,6 +30,7 @@ const fmtUsdCents = (cents: number) =>
 
 export default async function SAMetricsPage() {
   await requireSuperAdmin();
+  const t = await getTranslations("sa");
 
   // Call each metric query in isolation so one failure surfaces with a
   // pinpoint log entry instead of bubbling a generic server-components error.
@@ -75,28 +77,28 @@ export default async function SAMetricsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Métricas SaaS</h1>
-        <p className="text-gray-400 text-sm mt-1">
-          Receita, retenção e saúde da plataforma — atualizado a cada request.
+        <h1 className="text-3xl font-bold">{t("metrics.title")}</h1>
+        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
+          {t("metrics.description")}
         </p>
       </div>
 
       {/* Top KPI row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Kpi label="MRR" value={fmtBrlCents(metrics.mrrCents)} footer={`≈ ${fmtUsdCents(metrics.mrrUsdCents)}`} />
-        <Kpi label="ARR" value={fmtBrlCents(metrics.arrCents)} footer="12 meses" />
-        <Kpi label="Assinantes pagos" value={String(metrics.paidSubscribers)} footer={`${metrics.activeSubscribers} incl. trials`} />
-        <Kpi label="ARPA" value={fmtBrlCents(metrics.arpaCents)} footer="por conta paga" />
+        <Kpi label={t("metrics.mrr")} value={fmtBrlCents(metrics.mrrCents)} footer={`≈ ${fmtUsdCents(metrics.mrrUsdCents)}`} />
+        <Kpi label={t("metrics.arr")} value={fmtBrlCents(metrics.arrCents)} footer="12 meses" />
+        <Kpi label={t("metrics.paidSubscribers")} value={String(metrics.paidSubscribers)} footer={`${metrics.activeSubscribers} ${t("metrics.inclTrials")}`} />
+        <Kpi label={t("metrics.arpa")} value={fmtBrlCents(metrics.arpaCents)} footer="por conta paga" />
       </div>
 
       {/* Plan mix row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Kpi label="FREE" value={String(metrics.freeCount)} />
-        <Kpi label="PRO" value={String(metrics.proCount)} />
-        <Kpi label="CLINIC" value={String(metrics.clinicCount)} />
-        <Kpi label="Trialing" value={String(metrics.trialingCount)} />
+        <Kpi label={t("metrics.free")} value={String(metrics.freeCount)} />
+        <Kpi label={t("metrics.pro")} value={String(metrics.proCount)} />
+        <Kpi label={t("metrics.clinic")} value={String(metrics.clinicCount)} />
+        <Kpi label={t("metrics.trialing")} value={String(metrics.trialingCount)} />
         <Kpi
-          label="Past-due / Grace"
+          label={t("metrics.pastDueGrace")}
           value={`${metrics.pastDueCount} / ${metrics.graceCount}`}
           tone={metrics.pastDueCount > 0 ? "warn" : "default"}
         />
@@ -105,41 +107,41 @@ export default async function SAMetricsPage() {
       {/* Retention row */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Kpi
-          label="Churn mensal"
+          label={t("metrics.monthlyChurn")}
           value={metrics.monthlyChurnRate !== null ? `${metrics.monthlyChurnRate.toFixed(1)}%` : "—"}
-          footer={metrics.monthlyChurnRate === null ? "sem base" : `${metrics.canceledPaidThisMonth} canceladas`}
+          footer={metrics.monthlyChurnRate === null ? t("metrics.noBase") : `${metrics.canceledPaidThisMonth} ${t("metrics.canceled")}`}
         />
         <Kpi
-          label="Perda bruta (mês)"
+          label={t("metrics.grossLoss")}
           value={fmtBrlCents(metrics.monthlyGrossChurnCents)}
-          footer="≈ ARPA × canceladas"
+          footer={t("metrics.grossLossFormula")}
         />
         <Kpi
-          label="LTV"
+          label={t("metrics.ltv")}
           value={metrics.ltvCents !== null ? fmtBrlCents(metrics.ltvCents) : "—"}
-          footer="ARPA / churn"
+          footer={t("metrics.ltvFormula")}
         />
         <Kpi
-          label="Novos (mês)"
+          label={t("metrics.newMonth")}
           value={String(metrics.newPaidThisMonth + metrics.reactivationsThisMonth + metrics.trialToPaidThisMonth)}
-          footer={`${metrics.newPaidThisMonth} new + ${metrics.reactivationsThisMonth} react + ${metrics.trialToPaidThisMonth} trial→paid`}
+          footer={`${metrics.newPaidThisMonth} ${t("metrics.new")} + ${metrics.reactivationsThisMonth} ${t("metrics.reactivated")} + ${metrics.trialToPaidThisMonth} ${t("metrics.trialToPaid")}`}
         />
         <Kpi
-          label="Net-new pagas"
+          label={t("metrics.netNewPaid")}
           value={String(metrics.netNewPaidThisMonth)}
-          footer="este mês"
+          footer={t("metrics.thisMonth")}
           tone={metrics.netNewPaidThisMonth < 0 ? "warn" : "default"}
         />
       </div>
 
       {/* MRR sparkline */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+      <div className="bg-gray-900 dark:bg-gray-950 border border-gray-800 dark:border-gray-700 rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-brand-400" />
-            MRR — últimos 12 meses
+            {t("metrics.mrrLast12")}
           </h2>
-          <span className="text-xs text-gray-500">reconstruído do audit log</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{t("metrics.reconstructed")}</span>
         </div>
         <svg viewBox="0 0 600 110" className="w-full h-32">
           <polyline
@@ -150,44 +152,44 @@ export default async function SAMetricsPage() {
             points={sparkPoints}
           />
         </svg>
-        <div className="mt-4 grid grid-cols-12 gap-1 text-[10px] text-gray-500">
+        <div className="mt-4 grid grid-cols-12 gap-1 text-[10px] text-gray-500 dark:text-gray-400">
           {series.map((p) => (
             <div key={p.month} className="text-center">
               <div>{p.label}</div>
-              <div className="text-gray-400">{fmtBrlCents(p.mrrCents)}</div>
+              <div className="text-gray-400 dark:text-gray-500">{fmtBrlCents(p.mrrCents)}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Delinquent */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl">
-        <div className="p-5 border-b border-gray-800 flex items-center justify-between">
+      <div className="bg-gray-900 dark:bg-gray-950 border border-gray-800 dark:border-gray-700 rounded-xl">
+        <div className="p-5 border-b border-gray-800 dark:border-gray-700 flex items-center justify-between">
           <h2 className="font-semibold flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-400" />
-            Inadimplentes ({delinquent.length})
+            {t("metrics.delinquent", { count: delinquent.length })}
           </h2>
         </div>
         {delinquent.length === 0 ? (
-          <p className="p-6 text-center text-sm text-gray-500">Nenhuma conta inadimplente 🎉</p>
+          <p className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{t("metrics.noDelinquent")} 🎉</p>
         ) : (
-          <div className="divide-y divide-gray-800">
-            {delinquent.map((t) => (
+          <div className="divide-y divide-gray-800 dark:divide-gray-700">
+            {delinquent.map((dt) => (
               <Link
-                key={t.id}
-                href={`/sa/tenants/${t.id}`}
-                className="flex items-center justify-between p-4 hover:bg-gray-800/50 text-sm"
+                key={dt.id}
+                href={`/sa/tenants/${dt.id}`}
+                className="flex items-center justify-between p-4 hover:bg-gray-800/50 dark:hover:bg-gray-800/50 text-sm"
               >
                 <div>
-                  <p className="font-medium">{t.name}</p>
-                  <p className="text-xs text-gray-400">
-                    {t.slug} · {t.planTier} · {t.subscriptionStatus}
+                  <p className="font-medium">{dt.name}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    {dt.slug} · {dt.planTier} · {dt.subscriptionStatus}
                   </p>
                 </div>
-                <div className="text-right text-xs text-gray-400">
-                  {t.graceUntil && <div>Grace até {new Date(t.graceUntil).toLocaleDateString("pt-BR")}</div>}
+                <div className="text-right text-xs text-gray-400 dark:text-gray-500">
+                  {dt.graceUntil && <div>{t("metrics.graceUntil", { date: new Date(dt.graceUntil).toLocaleDateString("pt-BR") })}</div>}
                   <div>
-                    {t._count.memberships} membros · {t._count.patients} pacientes
+                    {dt._count.memberships} {t("metrics.members")} · {dt._count.patients} {t("metrics.patients")}
                   </div>
                 </div>
               </Link>
@@ -197,28 +199,28 @@ export default async function SAMetricsPage() {
       </div>
 
       {/* Recent billing events */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl">
-        <div className="p-5 border-b border-gray-800">
-          <h2 className="font-semibold">Atividade de billing (últimos 20)</h2>
+      <div className="bg-gray-900 dark:bg-gray-950 border border-gray-800 dark:border-gray-700 rounded-xl">
+        <div className="p-5 border-b border-gray-800 dark:border-gray-700">
+          <h2 className="font-semibold">{t("metrics.billingActivity")}</h2>
         </div>
-        <div className="divide-y divide-gray-800 max-h-96 overflow-y-auto">
+        <div className="divide-y divide-gray-800 dark:divide-gray-700 max-h-96 overflow-y-auto">
           {recentBilling.length === 0 ? (
-            <p className="p-6 text-center text-gray-500 text-sm">Sem eventos recentes</p>
+            <p className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">{t("metrics.noRecentEvents")}</p>
           ) : (
             recentBilling.map((event) => (
               <div key={event.id} className="p-4 text-sm">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-medium">{event.action.replace("BILLING_", "")}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {new Date(event.createdAt).toLocaleString("pt-BR")}
                       {event.user?.email ? ` · ${event.user.email}` : ""}
                     </p>
                   </div>
                   {event.summaryJson ? (
-                    <details className="text-xs text-gray-500">
+                    <details className="text-xs text-gray-500 dark:text-gray-400">
                       <summary className="cursor-pointer">json</summary>
-                      <pre className="bg-gray-950 p-2 rounded mt-1 overflow-auto max-w-md">
+                      <pre className="bg-gray-950 dark:bg-gray-900 p-2 rounded mt-1 overflow-auto max-w-md">
                         {JSON.stringify(event.summaryJson, null, 2)}
                       </pre>
                     </details>
@@ -244,13 +246,13 @@ function Kpi({
   footer?: string;
   tone?: "default" | "warn";
 }) {
-  const borderClass = tone === "warn" ? "border-yellow-600" : "border-gray-800";
+  const borderClass = tone === "warn" ? "border-yellow-600" : "border-gray-800 dark:border-gray-700";
   const valueClass = tone === "warn" ? "text-yellow-400" : "";
   return (
-    <div className={`bg-gray-900 border ${borderClass} rounded-xl p-5`}>
-      <p className="text-gray-400 text-xs uppercase tracking-wide">{label}</p>
+    <div className={`bg-gray-900 dark:bg-gray-950 border ${borderClass} rounded-xl p-5`}>
+      <p className="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">{label}</p>
       <p className={`text-2xl font-bold mt-2 ${valueClass}`}>{value}</p>
-      {footer && <p className="text-xs text-gray-500 mt-1">{footer}</p>}
+      {footer && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{footer}</p>}
     </div>
   );
 }

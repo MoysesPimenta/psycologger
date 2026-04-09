@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requireSuperAdmin } from "@/lib/auth";
@@ -9,10 +10,14 @@ import { SupportTicketActions } from "@/components/sa/support-ticket-actions";
 import { SupportMessageHtml } from "@/components/sa/support-message-html";
 import { SupportAttachments } from "@/components/sa/support-attachments";
 
-export const metadata = { title: "Ticket — Suporte" };
 export const dynamic = "force-dynamic";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function generateMetadata() {
+  const t = await getTranslations("sa");
+  return { title: t("supportTicket.title") };
+}
 
 export default async function SupportTicketPage({
   params,
@@ -20,6 +25,7 @@ export default async function SupportTicketPage({
   params: { id: string };
 }) {
   await requireSuperAdmin();
+  const t = await getTranslations("sa");
   if (!UUID_RE.test(params.id)) notFound();
 
   const ticket = await db.supportTicket.findUnique({
@@ -65,7 +71,7 @@ export default async function SupportTicketPage({
       } catch {
         return {
           ...m,
-          text: "[não foi possível descriptografar esta mensagem]",
+          text: t("supportTicket.decryptionError"),
           safeHtml: "",
           attachments: m.attachments,
           error: true,
@@ -81,7 +87,7 @@ export default async function SupportTicketPage({
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">{ticket.subject || "(sem assunto)"}</h1>
+          <h1 className="text-2xl font-bold">{ticket.subject || t("supportTicket.noSubject")}</h1>
           <p className="text-gray-400 text-sm">
             {ticket.fromName ? `${ticket.fromName} · ` : ""}
             {ticket.fromEmail}

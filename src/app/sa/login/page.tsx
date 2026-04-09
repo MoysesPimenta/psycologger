@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { signIn } from "next-auth/react";
 
 export default function SALoginPage() {
+  const t = useTranslations("sa");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -18,50 +20,50 @@ export default function SALoginPage() {
         callbackUrl: "/sa/dashboard",
       });
       if (res?.error) {
-        setError("Erro ao enviar link de acesso.");
+        setError(t("login.sendError"));
       } else {
         setSent(true);
       }
     } catch {
-      setError("Erro de rede.");
+      setError(t("login.networkError"));
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-950 flex items-center justify-center px-4">
+    <div className="fixed inset-0 z-50 bg-gray-950 dark:bg-gray-950 flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">SuperAdmin</h1>
-          <p className="text-gray-400 text-sm mt-1">Psycologger Platform Console</p>
+          <h1 className="text-2xl font-bold text-white dark:text-white">{t("dashboard.title")}</h1>
+          <p className="text-gray-400 dark:text-gray-400 text-sm mt-1">{t("dashboard.subtitle")}</p>
         </div>
 
         {sent ? (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
-            <p className="text-green-400 font-medium">Link enviado!</p>
-            <p className="text-gray-400 text-sm mt-2">
-              Verifique seu email ({email}) para acessar o painel.
+          <div className="bg-gray-900 dark:bg-gray-900 border border-gray-800 dark:border-gray-800 rounded-xl p-6 text-center">
+            <p className="text-green-400 dark:text-green-400 font-medium">{t("login.linkSent")}</p>
+            <p className="text-gray-400 dark:text-gray-400 text-sm mt-2">
+              {t("login.checkEmail", { email })}
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="bg-gray-900 dark:bg-gray-900 border border-gray-800 dark:border-gray-800 rounded-xl p-6 space-y-4">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm text-gray-300">Email</label>
+              <label htmlFor="email" className="text-sm text-gray-300 dark:text-gray-300">{t("login.emailLabel")}</label>
               <input
                 id="email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                placeholder="admin@psycologger.com"
+                className="w-full bg-gray-800 dark:bg-gray-800 border border-gray-700 dark:border-gray-700 rounded-md px-3 py-2 text-white dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:focus:ring-brand-500"
+                placeholder={t("login.emailPlaceholder")}
               />
             </div>
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-red-400 dark:text-red-400 text-sm">{error}</p>}
             <button
               type="submit"
-              className="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium rounded-md px-4 py-2 text-sm transition-colors"
+              className="w-full bg-brand-600 dark:bg-brand-600 hover:bg-brand-500 dark:hover:bg-brand-500 text-white dark:text-white font-medium rounded-md px-4 py-2 text-sm transition-colors"
             >
-              Enviar link de acesso
+              {t("login.sendButton")}
             </button>
           </form>
         )}
