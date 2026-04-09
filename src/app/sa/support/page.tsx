@@ -161,7 +161,8 @@ export default async function SASupportPage({
     notes: number;
     firstAt: Date | null;
     lastInboundAt: Date | null;
-    firstOutboundAt: Date | null;
+    /** True iff the customer replied within 3 days of any SA outbound. */
+    customerRepliedFast: boolean;
   };
   const stats = new Map<string, Stats>(
     ticketIds.map((id) => [
@@ -172,27 +173,38 @@ export default async function SASupportPage({
         notes: 0,
         firstAt: null,
         lastInboundAt: null,
-        firstOutboundAt: null,
+        customerRepliedFast: false,
       },
     ])
   );
   if (ticketIds.length > 0) {
     const msgs = await db.supportMessage.findMany({
       where: { ticketId: { in: ticketIds } },
+      orderBy: { createdAt: "asc" },
       select: { ticketId: true, direction: true, createdAt: true },
     });
+    // Per-ticket cursor: walk in chronological order, remember the last SA
+    // outbound timestamp, and flip customerRepliedFast when an INBOUND lands
+    // within 3 days of it. This matches the spec: the customer answered
+    // quickly after our reply.
+    const lastOutbound = new Map<string, number>();
+    const dayMs = 24 * 60 * 60 * 1000;
     for (const m of msgs) {
       const s = stats.get(m.ticketId);
       if (!s) continue;
+      const t = new Date(m.createdAt).getTime();
       if (!s.firstAt || m.createdAt < s.firstAt) s.firstAt = m.createdAt;
       if (m.direction === "INBOUND") {
         s.inbound++;
         if (!s.lastInboundAt || m.createdAt > s.lastInboundAt)
           s.lastInboundAt = m.createdAt;
+        const lo = lastOutbound.get(m.ticketId);
+        if (lo !== undefined && t - lo <= 3 * dayMs) {
+          s.customerRepliedFast = true;
+        }
       } else if (m.direction === "OUTBOUND") {
         s.outbound++;
-        if (!s.firstOutboundAt || m.createdAt < s.firstOutboundAt)
-          s.firstOutboundAt = m.createdAt;
+        lastOutbound.set(m.ticketId, t);
       } else {
         s.notes++;
       }
@@ -386,7 +398,7 @@ function TicketBadges({
         notes: number;
         firstAt: Date | null;
         lastInboundAt: Date | null;
-        firstOutboundAt: Date | null;
+        customerRepliedFast: boolean;
       }
     | undefined;
   status: "OPEN" | "PENDING" | "CLOSED";
@@ -403,15 +415,9 @@ function TicketBadges({
   const openSinceDays = stats.firstAt
     ? Math.floor((now - new Date(stats.firstAt).getTime()) / dayMs)
     : null;
-  // One Stop Shop = first SA reply happened within 3 days of the first
-  // inbound AND the ticket is now closed. Recognises fast resolutions.
-  const oss =
-    status === "CLOSED" &&
-    stats.firstAt &&
-    stats.firstOutboundAt &&
-    new Date(stats.firstOutboundAt).getTime() -
-      new Date(stats.firstAt).getTime() <=
-      3 * dayMs;
+  // One Stop Shop = the customer replied to one of our outbound messages
+  // within 3 days. Recognises engaged customers / well-resolved threads.
+  const oss = stats.customerRepliedFast;
 
   const totalMsgs = stats.inbound + stats.outbound;
   return (

@@ -153,9 +153,18 @@ export function SupportTicketActions({
         ))}
         <button
           type="button"
-          onClick={() => setStatus("CLOSED", { redirectToInbox: true })}
+          onClick={() => {
+            // If the SA typed a reply, send it AND close (same as the
+            // "Salvar, enviar (Fechar)" button) so nothing is silently
+            // dropped. Otherwise just persist the note and close.
+            if (body.trim()) {
+              send("CLOSED");
+            } else {
+              setStatus("CLOSED", { redirectToInbox: true });
+            }
+          }}
           className="px-3 py-1 rounded border border-gray-700 bg-gray-800 text-xs text-gray-200 hover:bg-gray-700"
-          title="Salva a nota interna (se houver), fecha o ticket e retorna à caixa de entrada."
+          title="Salva a nota interna e a resposta (se houver), envia o email se houver corpo, fecha o ticket e retorna à caixa de entrada."
         >
           Salvar e fechar
         </button>
