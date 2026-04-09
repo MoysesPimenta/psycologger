@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     return ok({ ok: true });
   }
 
-  const { email: fromEmail, name: fromName } = extractFromEmail(event.data.from as never);
+  const { email: fromEmail, name: fromName } = extractFromEmail(event.data.from);
   if (!fromEmail || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(fromEmail)) {
     return apiError("BAD_REQUEST", "Invalid from address", 400);
   }
@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
   // can render HTML (sanitized, sandboxed) while still falling back to text.
   // Resend has shipped multiple payload shapes — try every known field and
   // log which branch was populated (keys only, never body contents → no PHI).
+  // Use any because Resend's API includes additional optional fields beyond the interface
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const d = event.data as any;
   const text = (
@@ -131,8 +132,7 @@ export async function POST(req: NextRequest) {
   let fetchedHtml = html;
   // Attachments may arrive on the webhook payload directly OR only via the
   // /emails/receiving fetch — capture from both sources, fetch wins.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let attachments: any = Array.isArray(d.attachments) ? d.attachments : null;
+  let attachments: unknown = Array.isArray(d.attachments) ? d.attachments : null;
   if (!fetchedText && !fetchedHtml) {
     const emailId: string | undefined = d.email_id || d.emailId;
     const apiKey = process.env.RESEND_API_KEY;

@@ -1,16 +1,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ExternalLink, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { ExternalLink, CheckCircle, XCircle, AlertCircle, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { fetchWithCsrf } from "@/lib/csrf-client";
+import { NfseCredentialsForm } from "./nfse-credentials-form";
 
 interface IntegrationStatus {
   type: string;
   status: string;
   providerName: string | null;
+}
+
+interface GoogleCalendar {
+  id: string;
+  summary: string;
+  primary?: boolean;
 }
 
 const INTEGRATIONS = [
@@ -30,7 +44,7 @@ const INTEGRATIONS = [
       "Emita notas fiscais automaticamente ao marcar uma cobrança como paga.",
     logo: "🧾",
     docsUrl: "https://docs.psycologger.com/integrations/nfse",
-    available: false, // coming soon
+    available: true,
   },
 ];
 
@@ -58,6 +72,11 @@ export function IntegrationsClient() {
   const [statuses, setStatuses] = useState<Record<string, IntegrationStatus>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [gcalLoading, setGcalLoading] = useState(false);
+  const [gcalCalendars, setGcalCalendars] = useState<GoogleCalendar[]>([]);
+  const [gcalSelectedId, setGcalSelectedId] = useState<string | null>(null);
+  const [gcalCalendarsLoading, setGcalCalendarsLoading] = useState(false);
+  const [nfseShowForm, setNfseShowForm] = useState(false);
 
   useEffect(() => {
     // Fetch current integration statuses
@@ -76,6 +95,138 @@ export function IntegrationsClient() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Load Google Calendar list when Google Calendar is connected
+  useEffect(() => {
+    const status = statuses["GOOGLE_CALENDAR"];
+    if (status?.status === "ACTIVE") {
+      loadGoogleCalendars();
+    }
+  }, [statuses["GOOGLE_CALENDAR"]?.status]);
+
+  const loadGoogleCalendars = async () => {
+    setGcalCalendarsLoading(true);
+    try {
+      const resp = await fetch("/api/v1/calendar/calendars");
+      if (resp.ok) {
+        const json = await resp.json();
+        setGcalCalendars(json.data.calendars || []);
+        setGcalSelectedId(json.data.selectedCalendarId || null);
+      }
+    } catch (err) {
+      console.warn("[integrations] Failed to load Google Calendars:", err);
+    } finally {
+      setGcalCalendarsLoading(false);
+    }
+  };
+
+  const handleGoogleCalendarConnect = async () => {
+    setGcalLoading(true);
+    try {
+      const resp = await fetch("/api/v1/calendar/auth");
+      if (resp.ok) {
+        const json = await resp.json();
+        window.location.href = json.data.authUrl;
+      } else {
+        setError("Erro ao iniciar conexão com Google Calendar");
+      }
+    } catch (err) {
+      console.error("[integrations] Failed to get auth URL:", err);
+      setError("Erro ao iniciar conexão com Google Calendar");
+    } finally {
+      setGcalLoading(false);
+    }
+  };
+
+  const handleGoogleCalendarDisconnect = async () => {
+    setGcalLoading(true);
+    try {
+      const resp = await fetchWithCsrf("/api/v1/calendar/disconnect", {
+        method: "POST",
+      });
+      if (resp.ok) {
+        setStatuses((prev) => ({
+          ...prev,
+          GOOGLE_CALENDAR: { ...prev.GOOGLE_CALENDAR, status: "INACTIVE" },
+        }));
+        setGcalCalendars([]);
+        setGcalSelectedId(null);
+      } else {
+        setError("Erro ao desconectar Google Calendar");
+      }
+    } catch (err) {
+      console.error("[integrations] Failed to disconnect:", err);
+      setError("Erro ao desconectar Google Calendar");
+    } finally {
+      setGcalLoading(false);
+    }
+  };
+
+  const handleGoogleCalendarSelect = async (calendarId: string) => {
+    setGcalCalendarsLoading(true);
+    try {
+      const resp = await fetchWithCsrf("/api/v1/calendar/calendars", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ calendarId }),
+      });
+      if (resp.ok) {
+        setGcalSelectedId(calendarId);
+      } else {
+        setError("Erro ao atualizar calendário selecionado");
+      }
+    } catch (err) {
+      console.error("[integrations] Failed to select calendar:", err);
+      setError("Erro ao atualizar calendário selecionado");
+    } finally {
+      setGcalCalendarsLoading(false);
+    }
+  };
+
+  const handleNfseSaved = () => {
+    setNfseShowForm(false);
+    // Reload statuses
+    fetch("/api/v1/integrations")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json?.data) {
+          const map: Record<string, IntegrationStatus> = {};
+          for (const item of json.data) map[item.type] = item;
+          setStatuses(map);
+        }
+      })
+      .catch((err) => {
+        console.warn("[integrations] Failed to reload integration statuses:", err);
+      });
+  };
+
+  const handleNfseDisconnect = async () => {
+    try {
+      const resp = await fetchWithCsrf("/api/v1/nfse/credentials", {
+        method: "DELETE",
+      });
+      if (resp.ok) {
+        setStatuses((prev) => ({
+          ...prev,
+          NFSE: { type: "NFSE", status: "INACTIVE", providerName: null },
+        }));
+      } else {
+        setError("Erro ao desconectar PlugNotas");
+      }
+    } catch (err) {
+      console.error("[integrations] Failed to disconnect NFSE:", err);
+      setError("Erro ao desconectar PlugNotas");
+    }
+  };
+
+  if (nfseShowForm) {
+    return (
+      <NfseCredentialsForm
+        onSaved={handleNfseSaved}
+        onClose={() => setNfseShowForm(false)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -112,34 +263,92 @@ export function IntegrationsClient() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                {integration.available ? (
-                  currentStatus === "ACTIVE" ? (
-                    <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/5">
-                      Desconectar
-                    </Button>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  {integration.available ? (
+                    currentStatus === "ACTIVE" ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive border-destructive/30 hover:bg-destructive/5"
+                          disabled={gcalLoading}
+                          onClick={
+                            integration.type === "GOOGLE_CALENDAR"
+                              ? handleGoogleCalendarDisconnect
+                              : integration.type === "NFSE"
+                              ? handleNfseDisconnect
+                              : undefined
+                          }
+                        >
+                          {gcalLoading && <Loader className="h-3 w-3 mr-1 animate-spin" />}
+                          Desconectar
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        size="sm"
+                        disabled={loading || gcalLoading}
+                        onClick={
+                          integration.type === "GOOGLE_CALENDAR"
+                            ? handleGoogleCalendarConnect
+                            : integration.type === "NFSE"
+                            ? () => setNfseShowForm(true)
+                            : undefined
+                        }
+                      >
+                        {gcalLoading && <Loader className="h-3 w-3 mr-1 animate-spin" />}
+                        Conectar
+                      </Button>
+                    )
                   ) : (
-                    <Button size="sm" disabled={loading}>
-                      Conectar
+                    <Button size="sm" disabled variant="outline">
+                      Em breve
                     </Button>
-                  )
-                ) : (
-                  <Button size="sm" disabled variant="outline">
-                    Em breve
+                  )}
+                  <Button variant="ghost" size="sm" asChild>
+                    <a href={integration.docsUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                      Documentação
+                    </a>
                   </Button>
+                </div>
+
+                {currentStatus === "ERROR" && status && (
+                  <p className="text-xs text-red-600">
+                    Ocorreu um erro na integração. Reconecte sua conta.
+                  </p>
                 )}
-                <Button variant="ghost" size="sm" asChild>
-                  <a href={integration.docsUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                    Documentação
-                  </a>
-                </Button>
+
+                {integration.type === "GOOGLE_CALENDAR" && currentStatus === "ACTIVE" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Calendário selecionado
+                    </label>
+                    {gcalCalendarsLoading ? (
+                      <div className="text-xs text-gray-500">Carregando calendários...</div>
+                    ) : gcalCalendars.length > 0 ? (
+                      <Select value={gcalSelectedId || ""} onValueChange={handleGoogleCalendarSelect}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Selecione um calendário" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {gcalCalendars.map((cal) => (
+                            <SelectItem key={cal.id} value={cal.id}>
+                              {cal.summary}
+                              {cal.primary && " (Principal)"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-xs text-gray-500">
+                        Nenhum calendário disponível. Reconecte sua conta.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
-              {currentStatus === "ERROR" && status && (
-                <p className="text-xs text-red-600 mt-2">
-                  Ocorreu um erro na integração. Reconecte sua conta.
-                </p>
-              )}
             </CardContent>
           </Card>
         );

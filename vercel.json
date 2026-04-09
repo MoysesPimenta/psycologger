@@ -43,6 +43,10 @@
     {
       "path": "/api/v1/cron/lgpd-purge",
       "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/v1/cron/nfse-status-check",
+      "schedule": "0 */4 * * *"
     }
   ]
 }

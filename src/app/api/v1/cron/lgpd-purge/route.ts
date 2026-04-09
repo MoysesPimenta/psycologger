@@ -24,6 +24,7 @@ import { db } from "@/lib/db";
 import { requireCronAuth } from "@/lib/cron-auth";
 import { computeTenantPurgeCutoff, LGPD_TENANT_RETENTION_DAYS } from "@/lib/lgpd";
 import { auditLog } from "@/lib/audit";
+import type { Prisma } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   const authFail = requireCronAuth(req);
@@ -102,12 +103,11 @@ export async function POST(req: NextRequest) {
               action: "TENANT_LGPD_PURGED",
               entity: "Tenant",
               entityId: tenant.id,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               summaryJson: {
                 tenantSlug: tenant.slug,
                 retentionDays: LGPD_TENANT_RETENTION_DAYS,
                 ...counts,
-              } as any,
+              } as Prisma.InputJsonValue,
             },
           });
 

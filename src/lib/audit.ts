@@ -4,6 +4,7 @@
  */
 
 import { db } from "./db";
+import type { Prisma } from "@prisma/client";
 
 export type AuditAction =
   // Auth
@@ -118,7 +119,14 @@ export type AuditAction =
   | "SUPPORT_TICKET_AUTO_CLOSED"
   | "SUPPORT_ATTACHMENT_STORED"
   | "SUPPORT_ATTACHMENT_QUARANTINED"
-  | "SUPPORT_ATTACHMENT_DOWNLOADED";
+  | "SUPPORT_ATTACHMENT_DOWNLOADED"
+  // LGPD DSAR (Data Subject Access Request)
+  | "DSAR_EXPORT_REQUESTED"
+  | "DSAR_EXPORT_COMPLETED"
+  | "DSAR_DELETION_REQUESTED"
+  | "DSAR_DELETION_COMPLETED"
+  | "DSAR_ANONYMIZATION_REQUESTED"
+  | "DSAR_ANONYMIZATION_COMPLETED";
 
 export interface AuditParams {
   tenantId?: string;
@@ -141,10 +149,8 @@ export async function auditLog(params: AuditParams): Promise<void> {
         action: params.action,
         entity: params.entity ?? null,
         entityId: params.entityId ?? null,
-        // Prisma's Json type is opaque and cannot be directly assigned from Record<string, unknown>
-        // The runtime type is correct, but TypeScript requires the cast
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        summaryJson: params.summary ? (redact(params.summary) as any) : undefined,
+        // Prisma's Json type requires InputJsonValue for create operations
+        summaryJson: params.summary ? (redact(params.summary) as Prisma.InputJsonValue) : undefined,
         ipAddress: params.ipAddress ?? null,
         userAgent: params.userAgent ?? null,
       },
