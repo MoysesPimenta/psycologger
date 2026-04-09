@@ -77,7 +77,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
       <button
         type="button"
         onClick={() => set(next)}
-        className="inline-flex items-center justify-center h-8 w-8 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition"
+        className="inline-flex items-center justify-center h-8 w-8 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition"
         aria-label={`Tema: ${theme}. Trocar para ${next}.`}
         title={`Tema: ${theme}`}
       >
@@ -88,7 +88,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
 
   return (
     <div
-      className="inline-flex items-center rounded-md border border-gray-700 bg-gray-900/50 p-0.5"
+      className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-900/50 p-0.5"
       role="radiogroup"
       aria-label="Escolher tema"
     >
@@ -104,8 +104,8 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
             className={
               "inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs transition " +
               (active
-                ? "bg-gray-700 text-white"
-                : "text-gray-400 hover:text-white hover:bg-gray-800")
+                ? "bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-800")
             }
           >
             <Icon className="h-3.5 w-3.5" />

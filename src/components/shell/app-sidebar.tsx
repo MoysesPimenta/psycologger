@@ -186,8 +186,8 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
 
         {/* User footer */}
         <div className="px-3 py-3 border-t space-y-3">
-          {/* Locale Switcher */}
-          <div className="px-1">
+          {/* Locale + Theme */}
+          <div className="flex items-center gap-2 px-1">
             <LocaleSwitcher />
             <ThemeToggle compact />
           </div>

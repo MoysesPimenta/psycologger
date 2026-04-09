@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 
 const plans = [
   {
-    name: "Beta Gratuito",
-    price: "R$ 0",
+    name: "Gratuito",
+    priceBRL: "R$ 0",
+    priceUSD: null,
     period: "/mês",
     description: "Para psicólogos que querem experimentar",
     highlight: false,
     features: [
       "1 psicólogo",
-      "Até 30 pacientes",
+      "Até 3 pacientes ativos",
       "Agenda e prontuário",
       "Financeiro básico",
       "Lembretes por email",
@@ -21,14 +22,15 @@ const plans = [
     href: "/signup",
   },
   {
-    name: "Profissional",
-    price: "R$ 79",
+    name: "Pro",
+    priceBRL: "R$ 99",
+    priceUSD: "US$ 20",
     period: "/mês",
     description: "Para profissionais em plena atividade",
     highlight: true,
     features: [
       "1 psicólogo",
-      "Pacientes ilimitados",
+      "Até 25 pacientes ativos",
       "Agenda + prontuário completo",
       "Financeiro + relatórios",
       "NFSe automática",
@@ -40,21 +42,22 @@ const plans = [
   },
   {
     name: "Clínica",
-    price: "R$ 199",
+    priceBRL: "R$ 199",
+    priceUSD: "US$ 40",
     period: "/mês",
     description: "Para clínicas com múltiplos profissionais",
     highlight: false,
     features: [
       "Até 5 psicólogos",
       "Pacientes ilimitados",
-      "Tudo do Profissional",
+      "Tudo do Pro",
       "Multi-usuário + papéis",
       "Agenda compartilhada",
       "Exportação de dados",
       "SLA de suporte",
     ],
-    cta: "Falar com vendas",
-    href: "mailto:vendas@psycologger.com",
+    cta: "Assinar agora",
+    href: "/signup?plan=clinic",
   },
 ];
 
@@ -99,8 +102,11 @@ export default function PricingPage() {
               <h2 className="text-xl font-bold text-gray-900">{plan.name}</h2>
               <p className="text-gray-500 text-sm mt-1">{plan.description}</p>
               <div className="mt-6 mb-8">
-                <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
+                <span className="text-4xl font-bold text-gray-900">{plan.priceBRL}</span>
                 <span className="text-gray-500">{plan.period}</span>
+                {plan.priceUSD && (
+                  <p className="text-sm text-gray-400 mt-1">ou {plan.priceUSD}{plan.period}</p>
+                )}
               </div>
 
               <ul className="space-y-3 flex-1 mb-8">

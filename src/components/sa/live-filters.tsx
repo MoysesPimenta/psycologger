@@ -62,12 +62,12 @@ export function SaLiveFilters({ fields, debounceMs = 300, preserve = [] }: Props
     setValues((prev) => ({ ...prev, [name]: v }));
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+    <div className="bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {fields.map((f) => {
           const v = values[f.name] ?? "";
           const base =
-            "px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500";
+            "px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500";
           if (f.kind === "select") {
             return (
               <select
