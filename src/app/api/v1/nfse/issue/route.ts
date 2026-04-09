@@ -15,8 +15,8 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { decryptJson } from "@/lib/crypto";
 import type { NfseStatus } from "@prisma/client";
 import { decryptCpf } from "@/lib/cpf-crypto";
-import { issueNfse } from "@/lib/nfse/plugnotas";
-import type { PlugNotasCredentials } from "@/lib/nfse/types";
+import { issueNfse } from "@/lib/nfse/nfse-nacional";
+import type { NfseNacionalCredentials, DpsData } from "@/lib/nfse/types";
 
 const bodySchema = z.object({
   chargeId: z.string().uuid(),
@@ -67,15 +67,15 @@ export async function POST(req: NextRequest) {
     });
 
     if (!integrationCred) {
-      throw new BadRequestError("Credenciais do PlugNotas não configuradas");
+      throw new BadRequestError("Credenciais do NFSe Nacional não configuradas");
     }
 
     if (integrationCred.status !== "ACTIVE") {
-      throw new BadRequestError("Integração PlugNotas desativada");
+      throw new BadRequestError("Integração NFSe Nacional desativada");
     }
 
     // Decrypt credentials
-    const credentials = await decryptJson<PlugNotasCredentials>(
+    const credentials = await decryptJson<NfseNacionalCredentials>(
       integrationCred.encryptedJson,
     );
 
@@ -85,13 +85,31 @@ export async function POST(req: NextRequest) {
       throw new BadRequestError("CPF do paciente não disponível");
     }
 
-    // Issue NFSe via PlugNotas
-    const issueResult = await issueNfse(credentials, {
-      cpfTomador: cpf,
-      nomeTomador: charge.patient.fullName,
-      descricao: "Serviços de Psicologia",
-      valorServico: charge.amountCents - charge.discountCents,
-    });
+    // Build DPS payload for NFSe Nacional
+    const now = new Date();
+    const competencia = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const amountBrl = (charge.amountCents - charge.discountCents) / 100;
+
+    const dpsData: DpsData = {
+      competencia,
+      servico: {
+        descricao: "Serviços de Psicologia",
+        codigoTributacaoNacional: credentials.codigoTributacaoNacional || "6319",
+        valorServicos: charge.amountCents - charge.discountCents,
+      },
+      prestador: {
+        cnpj: credentials.cnpj,
+        inscricaoMunicipal: credentials.inscricaoMunicipal,
+        codigoMunicipio: credentials.codigoMunicipio,
+      },
+      tomador: {
+        cpf,
+        razaoSocial: charge.patient.fullName,
+      },
+    };
+
+    // Issue NFSe via NFSe Nacional
+    const issueResult = await issueNfse(credentials, dpsData);
 
     if (!issueResult.success) {
       // Create FAILED invoice
@@ -100,7 +118,7 @@ export async function POST(req: NextRequest) {
           tenantId: ctx.tenantId,
           patientId: charge.patient.id,
           chargeId: charge.id,
-          provider: "PlugNotas",
+          provider: "NFSe Nacional",
           status: "FAILED",
           rawResponseRedacted: { error: issueResult.error },
         },
@@ -141,7 +159,7 @@ export async function POST(req: NextRequest) {
         tenantId: ctx.tenantId,
         patientId: charge.patient.id,
         chargeId: charge.id,
-        provider: "PlugNotas",
+        provider: "NFSe Nacional",
         status: (issueResult.status as NfseStatus) || "QUEUED",
         externalId: issueResult.externalId || undefined,
         pdfUrl: issueResult.pdfUrl || undefined,

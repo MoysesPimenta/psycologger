@@ -11,8 +11,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireCronAuth } from "@/lib/cron-auth";
 import { decryptJson } from "@/lib/crypto";
-import { checkStatus } from "@/lib/nfse/plugnotas";
-import type { PlugNotasCredentials } from "@/lib/nfse/types";
+import { checkStatus } from "@/lib/nfse/nfse-nacional";
+import type { NfseNacionalCredentials } from "@/lib/nfse/types";
 import type { NfseStatus } from "@prisma/client";
 
 const TAG = "[nfse-status-check]";
@@ -80,11 +80,11 @@ export async function GET(req: NextRequest) {
         }
 
         // Decrypt credentials
-        const credentials = await decryptJson<PlugNotasCredentials>(
+        const credentials = await decryptJson<NfseNacionalCredentials>(
           cred.encryptedJson,
         );
 
-        // Check status with PlugNotas
+        // Check status with NFSe Nacional
         const statusResult = await checkStatus(credentials, invoice.externalId);
 
         if (!statusResult.success) {

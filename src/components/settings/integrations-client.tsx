@@ -211,11 +211,11 @@ export function IntegrationsClient() {
           NFSE: { type: "NFSE", status: "INACTIVE", providerName: null },
         }));
       } else {
-        setError("Erro ao desconectar PlugNotas");
+        setError("Erro ao desconectar NFSe Nacional");
       }
     } catch (err) {
       console.error("[integrations] Failed to disconnect NFSE:", err);
-      setError("Erro ao desconectar PlugNotas");
+      setError("Erro ao desconectar NFSe Nacional");
     }
   };
 

@@ -12,13 +12,16 @@ import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { encryptJson, decryptJson } from "@/lib/crypto";
 import { maskSecret } from "@/lib/crypto";
-import type { PlugNotasCredentials } from "@/lib/nfse/types";
+import type { NfseNacionalCredentials } from "@/lib/nfse/types";
 
 const credentialsSchema = z.object({
-  apiKey: z.string().min(1),
+  certificatePfxBase64: z.string().min(1),
+  certificatePassword: z.string().min(1),
   cnpj: z.string().min(14).max(14),
   inscricaoMunicipal: z.string().min(1),
   codigoMunicipio: z.string().min(1),
+  codigoTributacaoNacional: z.string().optional().default("6319"),
+  ambiente: z.enum(["producao", "homologacao"]).default("homologacao"),
 });
 
 export async function GET(req: NextRequest) {
@@ -64,11 +67,14 @@ export async function PUT(req: NextRequest) {
     const body = credentialsSchema.parse(await req.json());
 
     // Encrypt the credentials
-    const credentials: PlugNotasCredentials = {
-      apiKey: body.apiKey,
+    const credentials: NfseNacionalCredentials = {
+      certificatePfxBase64: body.certificatePfxBase64,
+      certificatePassword: body.certificatePassword,
       cnpj: body.cnpj,
       inscricaoMunicipal: body.inscricaoMunicipal,
       codigoMunicipio: body.codigoMunicipio,
+      codigoTributacaoNacional: body.codigoTributacaoNacional || "6319",
+      ambiente: body.ambiente || "homologacao",
     };
 
     const encryptedJson = await encryptJson(credentials);
@@ -84,7 +90,7 @@ export async function PUT(req: NextRequest) {
       update: {
         encryptedJson,
         status: "ACTIVE",
-        providerName: "PlugNotas",
+        providerName: "NFSe Nacional",
         updatedAt: new Date(),
       },
       create: {
@@ -92,7 +98,7 @@ export async function PUT(req: NextRequest) {
         type: "NFSE",
         encryptedJson,
         status: "ACTIVE",
-        providerName: "PlugNotas",
+        providerName: "NFSe Nacional",
       },
       select: {
         id: true,
@@ -112,8 +118,9 @@ export async function PUT(req: NextRequest) {
       entityId: updated.id,
       summary: {
         type: "NFSE",
-        provider: "PlugNotas",
-        apiKey: maskSecret(body.apiKey),
+        provider: "NFSe Nacional",
+        certificateThumbprint: maskSecret(body.certificatePfxBase64),
+        ambiente: body.ambiente,
       },
       ipAddress,
       userAgent,

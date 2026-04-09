@@ -11,8 +11,8 @@ import { ok, handleApiError, BadRequestError, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { decryptJson } from "@/lib/crypto";
-import { checkStatus, cancelNfse } from "@/lib/nfse/plugnotas";
-import type { PlugNotasCredentials } from "@/lib/nfse/types";
+import { checkStatus, cancelNfse } from "@/lib/nfse/nfse-nacional";
+import type { NfseNacionalCredentials } from "@/lib/nfse/types";
 
 export async function GET(
   req: NextRequest,
@@ -110,15 +110,15 @@ export async function POST(
       });
 
       if (!integrationCred) {
-        throw new BadRequestError("Credenciais do PlugNotas não configuradas");
+        throw new BadRequestError("Credenciais do NFSe Nacional não configuradas");
       }
 
       // Decrypt credentials
-      const credentials = await decryptJson<PlugNotasCredentials>(
+      const credentials = await decryptJson<NfseNacionalCredentials>(
         integrationCred.encryptedJson,
       );
 
-      // Call PlugNotas to cancel
+      // Call NFSe Nacional to cancel
       const cancelResult = await cancelNfse(
         credentials,
         invoice.externalId,
