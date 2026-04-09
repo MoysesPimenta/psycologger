@@ -181,7 +181,7 @@ export function SupportTicketActions({
             title="Envia a resposta e marca o ticket como Aguardando cliente."
           >
             <Send className="h-4 w-4" />
-            {isSending ? "Enviando…" : "Enviar & Aguardando"}
+            {isSending ? "Enviando…" : "Salvar, enviar (Aguardando)"}
           </button>
           <button
             type="button"
@@ -191,7 +191,7 @@ export function SupportTicketActions({
             title="Envia a resposta e fecha o ticket."
           >
             <Send className="h-4 w-4" />
-            {isSending ? "Enviando…" : "Enviar & Fechar"}
+            {isSending ? "Enviando…" : "Salvar, enviar (Fechar)"}
           </button>
         </div>
       </div>
