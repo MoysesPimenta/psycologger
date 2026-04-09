@@ -288,6 +288,15 @@ New runbooks live under `docs/runbooks/` (not auto-generated):
   in a `psy-theme` cookie; SSR + no-flash inline script avoid theme
   flicker. `ThemeSync` reconciles cross-device.
 
+## Resolved 2026-04-09
+
+- **Clinical notes encryption**: Confirmed working — `SessionRecord.notes` encrypted with `enc:v1:` sentinel + AES-256-GCM; decrypted on read; plaintext rejection optional via `CLINICAL_NOTES_REJECT_PLAINTEXT=1` flag; backfill cron at `/api/v1/cron/encrypt-clinical-notes` deployed.
+- **CPF encryption + blind indexing**: Confirmed working — CPF stored as AES-256-GCM ciphertext + HMAC-SHA256 blind index on `(tenantId, cpfBlindIndex)`; migration `20260407_cpf_blind_index` deployed; backfill cron completed.
+- **Appointment reminder cron**: Confirmed working — registered in `vercel.json` at `/api/v1/cron/appointment-reminders`.
+- **Mobile bearer token foundation**: Implemented — JWT (HS256) tokens with 30-day TTL, feature-flagged via `MOBILE_BEARER_ENABLED=true`, fallback to NextAuth/portal sessions, `src/lib/bearer-auth.ts` + mobile token endpoints at `/api/v1/auth/mobile-token` and `/api/v1/portal/auth/mobile-token`.
+- **Error & loading boundaries**: Deployed across `/app/*`, `/sa/*`, `/portal/*`, `/login/*` segments with minimal skeletons and error recovery.
+- **Mobile readiness guide**: Complete — covers API envelope, token lifecycle, mobile-ready endpoints, recommended Expo stack, what's still needed (signed URLs, push notifications).
+
 ## Known operational requirement
 
 - The private bucket `support-attachments` **must exist** in every
