@@ -113,9 +113,41 @@ export function SupportTicketActions({
         ))}
         <button
           type="button"
-          onClick={() => setStatus("CLOSED", { redirectToInbox: true })}
+          onClick={async () => {
+            // Save any unsaved private note first so staff context isn't
+            // lost, then close the ticket and return to the inbox.
+            if (note.trim()) {
+              setIsSavingNote(true);
+              setNoteError(null);
+              try {
+                const res = await fetchWithCsrf(
+                  `/api/v1/sa/support/tickets/${ticketId}/note`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ body: note }),
+                  }
+                );
+                if (!res.ok) {
+                  const p = await res.json().catch(() => ({}));
+                  setNoteError(p?.error?.message || `HTTP ${res.status}`);
+                  setIsSavingNote(false);
+                  return; // abort close so the SA can see the error
+                }
+                setNote("");
+              } catch (err) {
+                setNoteError(
+                  err instanceof Error ? err.message : "Erro desconhecido"
+                );
+                setIsSavingNote(false);
+                return;
+              }
+              setIsSavingNote(false);
+            }
+            await setStatus("CLOSED", { redirectToInbox: true });
+          }}
           className="px-3 py-1 rounded border border-gray-700 bg-gray-800 text-xs text-gray-200 hover:bg-gray-700"
-          title="Fecha o ticket e retorna à caixa de entrada."
+          title="Salva a nota interna (se houver), fecha o ticket e retorna à caixa de entrada."
         >
           Fechar e ir ao suporte
         </button>

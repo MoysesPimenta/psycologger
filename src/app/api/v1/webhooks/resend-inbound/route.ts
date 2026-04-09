@@ -190,7 +190,10 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.RESEND_API_KEY;
     if (emailId && apiKey) {
       try {
-        const res = await fetch(`https://api.resend.com/emails/${emailId}`, {
+        // Correct endpoint for INBOUND emails is /emails/receiving/{id} —
+        // the plain /emails/{id} path is for outbound messages we sent and
+        // does not accept received-email ids.
+        const res = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
           headers: { Authorization: `Bearer ${apiKey}` },
           // Don't hang the webhook — Resend retries on non-2xx, so keep it short.
           signal: AbortSignal.timeout(5000),
