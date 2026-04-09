@@ -266,3 +266,31 @@ New runbooks live under `docs/runbooks/` (not auto-generated):
 | Monitoring | Add audit log alerting | Medium |
 | Code | Investigate `as never` pattern | Low |
 | Code | Audit for N+1 queries | Low |
+
+## Resolved 2026-04-08
+
+- **Support Inbox attachments**: was open. Now end-to-end:
+  `SupportAttachment` table, encrypted-at-rest in private
+  `support-attachments` Supabase bucket, ingest from Resend
+  `/emails/receiving/{id}`, allowlist-based quarantine, SA-only
+  decrypt endpoint with audit log. See `SUPPORT-INBOX.md`.
+- **Stale PENDING tickets** never auto-closed: now handled by
+  `/api/v1/cron/support-stale-pending` (7 days, daily at 05:00 UTC)
+  with an automatic encrypted INTERNAL note explaining the closure
+  and a `SUPPORT_TICKET_AUTO_CLOSED` audit event.
+- **One Stop Shop badge semantics**: confirmed — fires when the
+  customer replies within 3 days of an SA outbound (positive signal).
+- **"Salvar e fechar" silently dropping the typed reply**: fixed —
+  if the body is non-empty the action now dispatches as `send("CLOSED")`,
+  so the email is delivered.
+- **Per-user dark theme**: shipped for clinic + patient portal.
+  Persisted on `User.themePreference` / `Patient.themePreference` and
+  in a `psy-theme` cookie; SSR + no-flash inline script avoid theme
+  flicker. `ThemeSync` reconciles cross-device.
+
+## Known operational requirement
+
+- The private bucket `support-attachments` **must exist** in every
+  Supabase project. Created in prod (`tgkgcapoykcazkimiwzw`) and
+  staging (`kwqazxlnvbcwyabbomvc`) on 2026-04-08; any future project
+  needs this provisioned before inbound attachments work.

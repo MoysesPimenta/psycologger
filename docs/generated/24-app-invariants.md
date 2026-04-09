@@ -1005,3 +1005,32 @@ These 38 invariants form the foundation of Psycologger's security, reliability, 
 - **Performance** (37-38): DoS vulnerabilities
 
 **Every code change must preserve all invariants. When in doubt, ask: "Which invariant could this change break?"**
+
+## Support Inbox & attachments (2026-04-08)
+
+- Support message bodies are AES-256-GCM encrypted at rest with the
+  same `ENCRYPTION_KEY` chain used by clinical data, even though they
+  are not intentionally PHI.
+- Inbound webhook is **idempotent on RFC822 Message-ID** — `unique`
+  index on `SupportMessage.rfc822MessageId`. Retries are no-ops.
+- `processInboundAttachments()` enforces a 10 MB per-file and 25 MB
+  per-message cap. Anything outside the render allowlist
+  (`application/pdf`, `image/png|jpeg|gif|webp`) is stored with
+  `quarantined=true` and only downloadable via explicit `?force=1`.
+- The `support-attachments` Supabase bucket **must be private** in all
+  environments. The download endpoint is the only path that returns
+  decrypted bytes, and it requires `requireSuperAdmin()`.
+- The stale-pending cron creates an encrypted **INTERNAL** note before
+  flipping status, inside a single `db.$transaction`, so a partial
+  failure never leaves the ticket closed without an audit trail.
+
+## Per-user theme preference (2026-04-08)
+
+- `User.themePreference` and `Patient.themePreference` are `TEXT
+  DEFAULT 'system'` with allowed values `{"light","dark","system"}`.
+- The cookie `psy-theme` mirrors the DB value; SSR uses it to set
+  `<html class="dark">` and a no-flash inline script resolves
+  `"system"` against `prefers-color-scheme` before paint.
+- `ThemeSync` (rendered inside both `/app` and `/portal/(authenticated)`
+  layouts) reconciles the cookie to the DB value on every authenticated
+  navigation, providing cross-device sync without a separate login hook.

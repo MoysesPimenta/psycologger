@@ -252,3 +252,21 @@ invoked by: `POST /api/v1/patients`, `PATCH /api/v1/patients/[id]` on
 reactivation, `POST /api/v1/users` (PSYCHOLOGIST/ASSISTANT invites), and
 `POST /api/v1/invites/[token]` (invite accept, re-check in case of plan
 downgrade). Violations return HTTP 402 `QUOTA_EXCEEDED`.
+
+## SuperAdmin Support Inbox (added 2026-04-08)
+
+| Endpoint | Method | Guard | Notes |
+|---|---|---|---|
+| `/api/v1/sa/support` | GET | requireSuperAdmin | List/filter tickets |
+| `/api/v1/sa/support/[id]` | GET/PATCH | requireSuperAdmin | Detail + status change |
+| `/api/v1/sa/support/[id]/messages` | POST | requireSuperAdmin | Reply / internal note |
+| `/api/v1/sa/support/[id]/bulk` | POST | requireSuperAdmin | Bulk status change |
+| `/api/v1/sa/support/attachments/[id]` | GET | requireSuperAdmin | Decrypt+stream; `?force=1` for quarantined |
+| `/api/v1/webhooks/resend-inbound` | POST | Resend signature | No session; idempotent on RFC822 Message-ID |
+| `/api/v1/cron/support-stale-pending` | GET/POST | `Authorization: Bearer ${CRON_SECRET}` | Vercel cron `0 5 * * *` |
+
+## Per-user theme preference (added 2026-04-08)
+
+| Endpoint | Method | Guard | Notes |
+|---|---|---|---|
+| `/api/v1/me/theme` | POST | NextAuth staff session OR patient portal session OR anonymous | Updates `User.themePreference` / `Patient.themePreference` and mirrors to long-lived `psy-theme` cookie. Anonymous callers get cookie-only persistence. Validates `theme ∈ {light,dark,system}`. |
