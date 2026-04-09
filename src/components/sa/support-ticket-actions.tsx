@@ -157,7 +157,7 @@ export function SupportTicketActions({
           className="px-3 py-1 rounded border border-gray-700 bg-gray-800 text-xs text-gray-200 hover:bg-gray-700"
           title="Salva a nota interna (se houver), fecha o ticket e retorna à caixa de entrada."
         >
-          Fechar e ir ao suporte
+          Salvar e fechar
         </button>
       </div>
 
