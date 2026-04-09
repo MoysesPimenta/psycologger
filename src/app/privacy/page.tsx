@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       </nav>
       <article className="max-w-3xl mx-auto px-6 py-12 prose prose-gray">
         <h1>Política de Privacidade</h1>
-        <p className="text-sm text-gray-500">Última atualização: 31 de março de 2026</p>
+        <p className="text-sm text-gray-500">Última atualização: 9 de abril de 2026</p>
 
         <h2>1. Introdução</h2>
         <p>
@@ -47,7 +47,43 @@ export default function PrivacyPage() {
           <li>Backups regulares com retenção segura</li>
         </ul>
 
-        <h2>5. Compartilhamento de Dados</h2>
+        <h2>5. Integrações com Terceiros</h2>
+
+        <h3>5.1 Google Calendar</h3>
+        <p>
+          O Psycologger oferece integração opcional com o Google Calendar para sincronizar agendamentos.
+          Quando o profissional conecta sua conta Google, solicitamos acesso ao Google Calendar com as
+          seguintes permissões:
+        </p>
+        <ul>
+          <li><strong>Ver e editar eventos do calendário:</strong> para criar, atualizar e remover
+            eventos correspondentes aos agendamentos de pacientes</li>
+          <li><strong>Listar calendários disponíveis:</strong> para que o profissional escolha em qual
+            calendário os agendamentos serão sincronizados</li>
+        </ul>
+        <p>
+          <strong>O que acessamos:</strong> apenas a lista de calendários e os eventos que o Psycologger
+          cria. Não lemos, modificamos ou excluímos eventos que você criou fora do Psycologger.
+        </p>
+        <p>
+          <strong>Armazenamento de credenciais:</strong> os tokens de acesso ao Google são criptografados
+          com AES-256-GCM antes de serem armazenados. Você pode desconectar sua conta Google a qualquer
+          momento nas configurações, o que remove imediatamente os tokens armazenados.
+        </p>
+        <p>
+          <strong>Uso limitado:</strong> o uso e a transferência de informações recebidas das APIs do Google
+          pelo Psycologger estão em conformidade com a{" "}
+          <a
+            href="https://developers.google.com/terms/api-services-user-data-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Política de Dados de Usuário dos Serviços de API do Google
+          </a>
+          , incluindo os requisitos de Uso Limitado.
+        </p>
+
+        <h3>5.2 Compartilhamento de Dados</h3>
         <p>
           Não vendemos, alugamos ou compartilhamos dados pessoais com terceiros para fins de marketing.
           Dados podem ser compartilhados apenas com:
@@ -55,6 +91,7 @@ export default function PrivacyPage() {
         <ul>
           <li>Provedores de infraestrutura (Vercel, Supabase) sob contratos de processamento de dados</li>
           <li>Serviços de email transacional (Resend) para comunicação operacional</li>
+          <li>Google Calendar (quando integração é ativada pelo profissional)</li>
           <li>Autoridades competentes quando exigido por lei</li>
         </ul>
 
