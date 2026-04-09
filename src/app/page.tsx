@@ -52,9 +52,9 @@ const features = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
       {/* Nav */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
@@ -62,14 +62,14 @@ export default function LandingPage() {
             </div>
             <span className="font-bold text-lg">Psycologger</span>
           </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-600">
-            <Link href="/docs" className="hover:text-gray-900">
+          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
+            <Link href="/docs" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
               Documentação
             </Link>
-            <Link href="/pricing" className="hover:text-gray-900">
+            <Link href="/pricing" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
               Planos
             </Link>
-            <Link href="/login" className="hover:text-gray-900">
+            <Link href="/login" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
               Entrar
             </Link>
             <Button asChild size="sm">
@@ -89,16 +89,16 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-20 text-center">
-        <div className="inline-flex items-center gap-2 bg-brand-50 text-brand-700 px-3 py-1 rounded-full text-sm font-medium mb-6">
+        <div className="inline-flex items-center gap-2 bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300 px-3 py-1 rounded-full text-sm font-medium mb-6 border border-transparent dark:border-brand-800">
           <span className="w-2 h-2 bg-brand-500 rounded-full animate-pulse" />
           Beta disponível — acesso gratuito
         </div>
-        <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 leading-tight mb-6">
+        <h1 className="text-4xl sm:text-6xl font-bold leading-tight mb-6">
           Gestão clínica para
           <br />
-          <span className="text-brand-600">psicólogos modernos</span>
+          <span className="text-brand-600 dark:text-brand-400">psicólogos modernos</span>
         </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-10">
+        <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-10">
           Prontuário eletrônico, agenda e financeiro integrados. Simplifique sua
           prática clínica e dedique mais tempo aos seus pacientes.
         </p>
@@ -115,12 +115,12 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="bg-gray-50 py-20">
+      <section className="bg-gray-50 dark:bg-gray-900 py-20 transition-colors">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
+          <h2 className="text-3xl font-bold text-center mb-4">
             Tudo que você precisa em um só lugar
           </h2>
-          <p className="text-gray-600 text-center mb-12 max-w-xl mx-auto">
+          <p className="text-gray-600 dark:text-gray-400 text-center mb-12 max-w-xl mx-auto">
             Desenvolvido com psicólogos brasileiros para atender às exigências
             do CFP e da LGPD.
           </p>
@@ -130,13 +130,13 @@ export default function LandingPage() {
               return (
                 <div
                   key={f.title}
-                  className="bg-white rounded-xl p-6 border hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-shadow"
                 >
-                  <div className="w-10 h-10 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
-                    <Icon className="h-5 w-5 text-brand-600" />
+                  <div className="w-10 h-10 bg-brand-100 dark:bg-brand-900/50 rounded-lg flex items-center justify-center mb-4">
+                    <Icon className="h-5 w-5 text-brand-600 dark:text-brand-400" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{f.title}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  <h3 className="font-semibold mb-2">{f.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
                     {f.description}
                   </p>
                 </div>
@@ -147,12 +147,12 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-brand-700 text-white text-center">
+      <section className="py-20 bg-brand-700 dark:bg-brand-800 text-white text-center transition-colors">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <h2 className="text-3xl font-bold mb-4">
             Pronto para simplificar sua clínica?
           </h2>
-          <p className="text-brand-200 mb-8">
+          <p className="text-brand-200 dark:text-brand-300 mb-8">
             Crie sua conta em menos de 2 minutos. Sem cartão de crédito.
           </p>
           <Button asChild size="lg" variant="secondary" className="text-base">
@@ -164,12 +164,12 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 text-center text-sm text-gray-500">
+      <footer className="border-t border-gray-200 dark:border-gray-800 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <span>© 2026 Psycologger. Todos os direitos reservados.</span>
           <div className="flex gap-6">
-            <Link href="/privacy" className="hover:text-gray-700">Privacidade</Link>
-            <Link href="/terms" className="hover:text-gray-700">Termos</Link>
+            <Link href="/privacy" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">Privacidade</Link>
+            <Link href="/terms" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">Termos</Link>
           </div>
         </div>
       </footer>
