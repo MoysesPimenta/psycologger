@@ -83,12 +83,12 @@ export default async function SupportTicketPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/sa/support" className="text-gray-400 hover:text-white">
+        <Link href="/sa/support" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
           <h1 className="text-2xl font-bold">{ticket.subject || t("supportTicket.noSubject")}</h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
             {ticket.fromName ? `${ticket.fromName} · ` : ""}
             {ticket.fromEmail}
             {tenant && (
@@ -105,7 +105,7 @@ export default async function SupportTicketPage({
 
       <SupportTicketActions ticketId={ticket.id} currentStatus={ticket.status} />
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
+      <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl divide-y divide-gray-200 dark:divide-gray-800">
         {decryptedMessages.map((m) => (
           <div
             key={m.id}
@@ -116,14 +116,14 @@ export default async function SupportTicketPage({
                 : "")
             }
           >
-            <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-500 mb-2">
               <span
                 className={
                   m.direction === "INBOUND"
-                    ? "text-blue-300 font-medium"
+                    ? "text-blue-600 dark:text-blue-300 font-medium"
                     : m.direction === "OUTBOUND"
-                    ? "text-green-300 font-medium"
-                    : "text-amber-300 font-medium"
+                    ? "text-emerald-600 dark:text-green-300 font-medium"
+                    : "text-amber-600 dark:text-amber-300 font-medium"
                 }
               >
                 {m.direction === "INBOUND"
@@ -137,7 +137,7 @@ export default async function SupportTicketPage({
             {m.safeHtml ? (
               <SupportMessageHtml html={m.safeHtml} />
             ) : (
-              <pre className="whitespace-pre-wrap text-sm text-gray-200 font-sans">
+              <pre className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-200 font-sans">
                 {m.text}
               </pre>
             )}

@@ -55,7 +55,7 @@ export function ImpersonateButton({ userId, userName }: ImpersonateButtonProps) 
     <button
       onClick={handleImpersonate}
       disabled={isLoading}
-      className="flex items-center gap-1.5 px-2 py-1 bg-yellow-900/30 hover:bg-yellow-900/50 disabled:opacity-50 text-yellow-400 text-xs font-medium rounded transition-colors"
+      className="flex items-center gap-1.5 px-2 py-1 bg-amber-100 dark:bg-yellow-900/30 hover:bg-amber-200 dark:hover:bg-yellow-900/50 disabled:opacity-50 text-amber-700 dark:text-yellow-400 text-xs font-medium rounded transition-colors"
       title={`${t("impersonate.impersonate")} ${userName}`}
     >
       <LogIn className="h-3.5 w-3.5" />

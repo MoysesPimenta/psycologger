@@ -139,14 +139,14 @@ export function SupportTicketActions({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-gray-400">Mudar status:</span>
+        <span className="text-gray-700 dark:text-gray-400">Mudar status:</span>
         {(["OPEN", "PENDING", "CLOSED"] as const).map((s) => (
           <button
             key={s}
             type="button"
             onClick={() => setStatus(s)}
             disabled={s === currentStatus}
-            className="px-3 py-1 rounded border border-gray-700 bg-gray-800 text-xs text-gray-300 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1 rounded border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {s === "OPEN" ? "Abrir" : s === "PENDING" ? "Aguardando" : "Fechar"}
           </button>
@@ -163,30 +163,30 @@ export function SupportTicketActions({
               setStatus("CLOSED", { redirectToInbox: true });
             }
           }}
-          className="px-3 py-1 rounded border border-gray-700 bg-gray-800 text-xs text-gray-200 hover:bg-gray-700"
+          className="px-3 py-1 rounded border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-800 text-xs text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700"
           title="Salva a nota interna e a resposta (se houver), envia o email se houver corpo, fecha o ticket e retorna à caixa de entrada."
         >
           Salvar e fechar
         </button>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3">
-        <p className="text-sm font-medium text-gray-200">Responder</p>
+      <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-200">Responder</p>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={6}
           maxLength={10000}
           placeholder="Digite sua resposta…"
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
+          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-white placeholder-gray-500"
         />
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={() => send("PENDING")}
             disabled={isSending || !body.trim()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-yellow-700 hover:bg-yellow-600 disabled:opacity-50 text-sm font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-sm font-medium text-white"
             title="Envia a resposta e marca o ticket como Aguardando cliente."
           >
             <Send className="h-4 w-4" />
@@ -196,7 +196,7 @@ export function SupportTicketActions({
             type="button"
             onClick={() => send("CLOSED")}
             disabled={isSending || !body.trim()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-sm font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-gray-600 dark:bg-gray-700 hover:bg-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 text-sm font-medium text-white"
             title="Envia a resposta e fecha o ticket."
           >
             <Send className="h-4 w-4" />
@@ -205,14 +205,14 @@ export function SupportTicketActions({
         </div>
       </div>
 
-      <div className="bg-amber-950/20 border border-amber-900/60 rounded-xl p-4 space-y-3">
+      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <Lock className="h-4 w-4 text-amber-400" />
-          <p className="text-sm font-medium text-amber-200">
+          <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
             Nota interna (staff apenas)
           </p>
         </div>
-        <p className="text-xs text-amber-200/70">
+        <p className="text-xs text-amber-800 dark:text-amber-200/70">
           Esta nota nunca é enviada ao cliente. Use para registrar contexto
           para outros membros da equipe de suporte. Não altera o status do
           ticket.
@@ -223,15 +223,15 @@ export function SupportTicketActions({
           rows={4}
           maxLength={10000}
           placeholder="Ex.: cliente já abriu ticket similar em março, verificar antes de responder…"
-          className="w-full px-3 py-2 bg-gray-900 border border-amber-900/60 rounded text-sm text-amber-50 placeholder-amber-200/40"
+          className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-amber-300 dark:border-amber-900/60 rounded text-sm text-amber-900 dark:text-amber-50 placeholder-amber-700 dark:placeholder-amber-200/40"
         />
-        {noteError && <p className="text-sm text-red-400">{noteError}</p>}
+        {noteError && <p className="text-sm text-red-600 dark:text-red-400">{noteError}</p>}
         <div className="flex justify-end">
           <button
             type="button"
             onClick={saveNote}
             disabled={isSavingNote || !note.trim()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-sm font-medium text-amber-50"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-sm font-medium text-white"
           >
             <Lock className="h-4 w-4" />
             {isSavingNote ? "Salvando…" : "Salvar nota"}

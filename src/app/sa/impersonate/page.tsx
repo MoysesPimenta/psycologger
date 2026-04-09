@@ -14,15 +14,15 @@ export default async function SAImpersonatePage() {
   const t = await getTranslations("sa");
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-8">
+    <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Link href="/sa/dashboard" className="text-gray-400 hover:text-white">
+          <Link href="/sa/dashboard" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
             <h1 className="text-2xl font-bold">{t("impersonate.title")}</h1>
-            <p className="text-gray-400 text-sm">{t("impersonate.subtitle")}</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">{t("impersonate.subtitle")}</p>
           </div>
         </div>
 

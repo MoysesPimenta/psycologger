@@ -31,14 +31,14 @@ export default async function BlocklistPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/sa/support" className="text-gray-400 hover:text-white">
+        <Link href="/sa/support" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex items-center gap-3">
           <Shield className="h-6 w-6 text-brand-400" />
           <div>
             <h1 className="text-2xl font-bold">{t("supportBlocklist.heading")}</h1>
-            <p className="text-gray-400 text-sm">{t("supportBlocklist.description")}</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">{t("supportBlocklist.description")}</p>
           </div>
         </div>
       </div>

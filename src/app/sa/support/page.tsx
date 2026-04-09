@@ -233,14 +233,14 @@ export default async function SASupportPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link href="/sa/dashboard" className="text-gray-400 hover:text-white">
+          <Link href="/sa/dashboard" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="flex items-center gap-3">
             <Inbox className="h-6 w-6 text-brand-400" />
             <div>
               <h1 className="text-2xl font-bold">{t("nav.support")}</h1>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 {t("support.tickets", {
                   totalCount,
                   openCount,
@@ -252,7 +252,7 @@ export default async function SASupportPage({
         </div>
         <Link
           href="/sa/support/blocklist"
-          className="px-3 py-1.5 rounded border border-gray-700 bg-gray-800 hover:bg-gray-700 text-sm text-gray-300"
+          className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300"
         >
           {t("support.blocklist")}
         </Link>
@@ -291,10 +291,10 @@ export default async function SASupportPage({
 
       <SupportBulkActions ticketIds={tickets.map((t) => t.id)} />
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-800 text-left text-xs text-gray-400">
+            <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs text-gray-600 dark:text-gray-400">
               <th className="p-4 w-8">
                 <SupportMasterCheckbox />
               </th>
@@ -306,7 +306,7 @@ export default async function SASupportPage({
               <th className="p-4">{t("support.lastMessage")}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-800">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {tickets.length === 0 ? (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-gray-500">
@@ -315,7 +315,7 @@ export default async function SASupportPage({
               </tr>
             ) : (
               tickets.map((tk) => (
-                <tr key={tk.id} className="hover:bg-gray-800/50">
+                <tr key={tk.id} className="hover:bg-gray-100 dark:hover:bg-gray-800/50">
                   <td className="p-4">
                     <input
                       type="checkbox"
@@ -339,7 +339,7 @@ export default async function SASupportPage({
                       t={t}
                     />
                   </td>
-                  <td className="p-4 text-xs text-gray-400">
+                  <td className="p-4 text-xs text-gray-600 dark:text-gray-400">
                     {tk.fromName ? `${tk.fromName} · ` : ""}
                     {tk.fromEmail}
                   </td>
@@ -352,13 +352,13 @@ export default async function SASupportPage({
                         {tenantMap.get(tk.tenantId)}
                       </Link>
                     ) : (
-                      <span className="text-gray-500">—</span>
+                      <span className="text-gray-500 dark:text-gray-500">—</span>
                     )}
                   </td>
-                  <td className="p-4 text-xs text-gray-500 font-mono">
+                  <td className="p-4 text-xs text-gray-600 dark:text-gray-500 font-mono">
                     {tk.tenantId ? tk.tenantId.slice(0, 8) + "…" : "—"}
                   </td>
-                  <td className="p-4 text-xs text-gray-400">
+                  <td className="p-4 text-xs text-gray-600 dark:text-gray-400">
                     {new Date(tk.lastMessageAt).toLocaleString("pt-BR")}
                   </td>
                 </tr>
@@ -370,14 +370,14 @@ export default async function SASupportPage({
 
       {pageCount > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             {t("tenants.pagination", { page, total: pageCount })}
           </p>
           <div className="flex gap-2">
             {page > 1 && (
               <Link
                 href={linkFor(page - 1)}
-                className="px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded text-sm"
+                className="px-3 py-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded text-sm"
               >
                 {t("tenants.previous")}
               </Link>
@@ -385,7 +385,7 @@ export default async function SASupportPage({
             {page < pageCount && (
               <Link
                 href={linkFor(page + 1)}
-                className="px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded text-sm"
+                className="px-3 py-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded text-sm"
               >
                 {t("tenants.next")}
               </Link>
@@ -437,7 +437,7 @@ function TicketBadges({
     <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
       {totalMsgs > 0 && (
         <span
-          className="px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-300"
+          className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
           title={`${stats.inbound} ${t("support.received")} · ${stats.outbound} ${t("support.sent")}`}
         >
           ✉ {totalMsgs}
@@ -445,7 +445,7 @@ function TicketBadges({
       )}
       {stats.notes > 0 && (
         <span
-          className="px-1.5 py-0.5 rounded bg-amber-900/40 border border-amber-800 text-amber-200"
+          className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-200"
           title={`${stats.notes} ${t("support.internalNotes")}`}
         >
           🔒 {stats.notes}
@@ -453,7 +453,7 @@ function TicketBadges({
       )}
       {openSinceDays !== null && (
         <span
-          className="px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-gray-400"
+          className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-400"
           title="Aberto há (dias desde a primeira mensagem)"
         >
           ⏱ {openSinceDays}d
@@ -464,8 +464,8 @@ function TicketBadges({
           className={
             "px-1.5 py-0.5 rounded border " +
             (rottenDays >= 7
-              ? "bg-red-900/50 border-red-800 text-red-200"
-              : "bg-yellow-900/40 border-yellow-800 text-yellow-200")
+              ? "bg-red-100 dark:bg-red-900/50 border-red-300 dark:border-red-800 text-red-700 dark:text-red-200"
+              : "bg-amber-100 dark:bg-yellow-900/40 border-amber-300 dark:border-yellow-800 text-amber-700 dark:text-yellow-200")
           }
           title="Dias sem retorno do cliente / sem ação"
         >
@@ -474,7 +474,7 @@ function TicketBadges({
       )}
       {oss && (
         <span
-          className="px-1.5 py-0.5 rounded bg-emerald-900/40 border border-emerald-700 text-emerald-200"
+          className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-200"
           title="Resolvido na primeira resposta em até 3 dias"
         >
           ⭐ One Stop Shop
@@ -486,9 +486,9 @@ function TicketBadges({
 
 function StatusPill({ status, t }: { status: "OPEN" | "PENDING" | "CLOSED"; t: any }) {
   const map = {
-    OPEN: "bg-red-900/50 text-red-300 border-red-800",
-    PENDING: "bg-yellow-900/50 text-yellow-300 border-yellow-800",
-    CLOSED: "bg-gray-800 text-gray-400 border-gray-700",
+    OPEN: "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800",
+    PENDING: "bg-amber-100 dark:bg-yellow-900/50 text-amber-700 dark:text-yellow-300 border-amber-300 dark:border-yellow-800",
+    CLOSED: "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border-gray-300 dark:border-gray-700",
   };
   const labelMap = {
     OPEN: t("support.statusOpen"),

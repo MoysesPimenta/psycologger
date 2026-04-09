@@ -49,7 +49,7 @@ export default function ImpersonationBanner({
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-red-900/90 text-white px-4 py-3 flex items-center justify-between">
+    <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 dark:bg-red-900/90 text-white px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <AlertCircle className="h-5 w-5 flex-shrink-0" />
         <div>
@@ -64,7 +64,7 @@ export default function ImpersonationBanner({
       <button
         onClick={handleStop}
         disabled={isLoading}
-        className="ml-4 flex items-center gap-2 px-3 py-1.5 bg-red-800 hover:bg-red-700 disabled:opacity-50 rounded text-xs font-medium transition-colors"
+        className="ml-4 flex items-center gap-2 px-3 py-1.5 bg-red-700 dark:bg-red-800 hover:bg-red-800 dark:hover:bg-red-700 disabled:opacity-50 rounded text-xs font-medium transition-colors"
       >
         {isLoading ? (
           <>

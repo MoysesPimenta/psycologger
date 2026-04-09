@@ -78,7 +78,7 @@ export default async function SAMetricsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold">{t("metrics.title")}</h1>
-        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
+        <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
           {t("metrics.description")}
         </p>
       </div>
@@ -135,7 +135,7 @@ export default async function SAMetricsPage() {
       </div>
 
       {/* MRR sparkline */}
-      <div className="bg-gray-900 dark:bg-gray-950 border border-gray-800 dark:border-gray-700 rounded-xl p-6">
+      <div className="bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-brand-400" />
@@ -156,15 +156,15 @@ export default async function SAMetricsPage() {
           {series.map((p) => (
             <div key={p.month} className="text-center">
               <div>{p.label}</div>
-              <div className="text-gray-400 dark:text-gray-500">{fmtBrlCents(p.mrrCents)}</div>
+              <div className="text-gray-500 dark:text-gray-500">{fmtBrlCents(p.mrrCents)}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Delinquent */}
-      <div className="bg-gray-900 dark:bg-gray-950 border border-gray-800 dark:border-gray-700 rounded-xl">
-        <div className="p-5 border-b border-gray-800 dark:border-gray-700 flex items-center justify-between">
+      <div className="bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl">
+        <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="font-semibold flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-yellow-400" />
             {t("metrics.delinquent", { count: delinquent.length })}
@@ -173,20 +173,20 @@ export default async function SAMetricsPage() {
         {delinquent.length === 0 ? (
           <p className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">{t("metrics.noDelinquent")} 🎉</p>
         ) : (
-          <div className="divide-y divide-gray-800 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {delinquent.map((dt) => (
               <Link
                 key={dt.id}
                 href={`/sa/tenants/${dt.id}`}
-                className="flex items-center justify-between p-4 hover:bg-gray-800/50 dark:hover:bg-gray-800/50 text-sm"
+                className="flex items-center justify-between p-4 hover:bg-gray-100 dark:hover:bg-gray-800/50 text-sm"
               >
                 <div>
                   <p className="font-medium">{dt.name}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-gray-600 dark:text-gray-500">
                     {dt.slug} · {dt.planTier} · {dt.subscriptionStatus}
                   </p>
                 </div>
-                <div className="text-right text-xs text-gray-400 dark:text-gray-500">
+                <div className="text-right text-xs text-gray-600 dark:text-gray-500">
                   {dt.graceUntil && <div>{t("metrics.graceUntil", { date: new Date(dt.graceUntil).toLocaleDateString("pt-BR") })}</div>}
                   <div>
                     {dt._count.memberships} {t("metrics.members")} · {dt._count.patients} {t("metrics.patients")}
@@ -199,11 +199,11 @@ export default async function SAMetricsPage() {
       </div>
 
       {/* Recent billing events */}
-      <div className="bg-gray-900 dark:bg-gray-950 border border-gray-800 dark:border-gray-700 rounded-xl">
-        <div className="p-5 border-b border-gray-800 dark:border-gray-700">
+      <div className="bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl">
+        <div className="p-5 border-b border-gray-200 dark:border-gray-700">
           <h2 className="font-semibold">{t("metrics.billingActivity")}</h2>
         </div>
-        <div className="divide-y divide-gray-800 dark:divide-gray-700 max-h-96 overflow-y-auto">
+        <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
           {recentBilling.length === 0 ? (
             <p className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">{t("metrics.noRecentEvents")}</p>
           ) : (
@@ -212,7 +212,7 @@ export default async function SAMetricsPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-medium">{event.action.replace("BILLING_", "")}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    <p className="text-xs text-gray-600 dark:text-gray-500 mt-0.5">
                       {new Date(event.createdAt).toLocaleString("pt-BR")}
                       {event.user?.email ? ` · ${event.user.email}` : ""}
                     </p>
@@ -220,7 +220,7 @@ export default async function SAMetricsPage() {
                   {event.summaryJson ? (
                     <details className="text-xs text-gray-500 dark:text-gray-400">
                       <summary className="cursor-pointer">json</summary>
-                      <pre className="bg-gray-950 dark:bg-gray-900 p-2 rounded mt-1 overflow-auto max-w-md">
+                      <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded mt-1 overflow-auto max-w-md">
                         {JSON.stringify(event.summaryJson, null, 2)}
                       </pre>
                     </details>
@@ -246,11 +246,11 @@ function Kpi({
   footer?: string;
   tone?: "default" | "warn";
 }) {
-  const borderClass = tone === "warn" ? "border-yellow-600" : "border-gray-800 dark:border-gray-700";
+  const borderClass = tone === "warn" ? "border-yellow-600" : "border-gray-200 dark:border-gray-700";
   const valueClass = tone === "warn" ? "text-yellow-400" : "";
   return (
-    <div className={`bg-gray-900 dark:bg-gray-950 border ${borderClass} rounded-xl p-5`}>
-      <p className="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">{label}</p>
+    <div className={`bg-gray-50 dark:bg-gray-950 border ${borderClass} rounded-xl p-5`}>
+      <p className="text-gray-600 dark:text-gray-500 text-xs uppercase tracking-wide">{label}</p>
       <p className={`text-2xl font-bold mt-2 ${valueClass}`}>{value}</p>
       {footer && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{footer}</p>}
     </div>

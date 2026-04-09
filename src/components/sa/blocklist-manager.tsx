@@ -70,14 +70,14 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
     <div className="space-y-6">
       <form
         onSubmit={add}
-        className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-3"
+        className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 space-y-3"
       >
-        <p className="text-sm font-medium text-gray-200">{t("supportBlocklist.addEntry")}</p>
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-200">{t("supportBlocklist.addEntry")}</p>
         <div className="grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-3">
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value as "EMAIL" | "DOMAIN")}
-            className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white"
+            className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-white"
           >
             <option value="EMAIL">{t("supportBlocklist.email")}</option>
             <option value="DOMAIN">{t("supportBlocklist.domain")}</option>
@@ -91,31 +91,31 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
                 ? t("supportBlocklist.emailPlaceholder")
                 : t("supportBlocklist.domainPlaceholder")
             }
-            className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
+            className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500"
           />
           <input
             type="text"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder={t("supportBlocklist.reason")}
-            className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500"
+            className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500"
           />
           <button
             type="submit"
             disabled={busy || !pattern.trim()}
-            className="inline-flex items-center gap-1 px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+            className="inline-flex items-center gap-1 px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-sm font-medium text-white"
           >
             <Plus className="h-4 w-4" />
             {t("supportBlocklist.block")}
           </button>
         </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       </form>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-800 text-left text-xs text-gray-400">
+            <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs text-gray-600 dark:text-gray-400">
               <th className="p-3">{t("supportBlocklist.type")}</th>
               <th className="p-3">{t("supportBlocklist.pattern")}</th>
               <th className="p-3">{t("supportBlocklist.reasonHeader")}</th>
@@ -123,7 +123,7 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
               <th className="p-3 w-12"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-800">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
             {entries.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-6 text-center text-gray-500">
@@ -134,20 +134,20 @@ export function BlocklistManager({ entries }: { entries: BlocklistEntry[] }) {
               entries.map((e) => (
                 <tr key={e.id}>
                   <td className="p-3">
-                    <span className="px-2 py-0.5 rounded bg-gray-800 text-xs text-gray-300 border border-gray-700">
+                    <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700">
                       {e.kind}
                     </span>
                   </td>
-                  <td className="p-3 font-mono text-xs">{e.pattern}</td>
-                  <td className="p-3 text-xs text-gray-400">{e.reason || "—"}</td>
-                  <td className="p-3 text-xs text-gray-400">
+                  <td className="p-3 font-mono text-xs text-gray-900 dark:text-gray-100">{e.pattern}</td>
+                  <td className="p-3 text-xs text-gray-600 dark:text-gray-400">{e.reason || "—"}</td>
+                  <td className="p-3 text-xs text-gray-600 dark:text-gray-400">
                     {new Date(e.createdAt).toLocaleDateString("pt-BR")}
                   </td>
                   <td className="p-3">
                     <button
                       type="button"
                       onClick={() => remove(e.id)}
-                      className="text-red-400 hover:text-red-300"
+                      className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                       title={t("supportBlocklist.remove")}
                     >
                       <Trash2 className="h-4 w-4" />

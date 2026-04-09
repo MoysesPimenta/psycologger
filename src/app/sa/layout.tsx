@@ -28,16 +28,20 @@ export default async function SALayout({ children }: { children: ReactNode }) {
   const t = await getTranslations("sa");
 
   return (
-    <div className="min-h-screen bg-gray-950 dark:bg-gray-950 text-white dark:text-white">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white">
       <div className="flex">
-        <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-gray-800 dark:border-gray-800 bg-gray-900 dark:bg-gray-900 min-h-screen sticky top-0">
-          <div className="p-5 border-b border-gray-800 dark:border-gray-800">
-            <p className="text-xs uppercase tracking-wider text-brand-400 dark:text-brand-400 font-semibold">
+        {/* Sidebar — fixed to viewport height, internal scroll for nav only */}
+        <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-screen sticky top-0">
+          {/* Logo / header */}
+          <div className="p-5 border-b border-gray-200 dark:border-gray-800">
+            <p className="text-xs uppercase tracking-wider text-brand-600 dark:text-brand-400 font-semibold">
               Psycologger
             </p>
-            <p className="text-sm text-gray-300 dark:text-gray-300 mt-0.5">{t("nav.console")}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-300 mt-0.5">{t("nav.console")}</p>
           </div>
-          <nav className="flex-1 p-3 space-y-1 text-sm">
+
+          {/* Nav — scrollable if content overflows */}
+          <nav className="flex-1 p-3 space-y-1 text-sm overflow-y-auto">
             <NavItem href="/sa/dashboard" icon={LayoutDashboard} label={t("nav.dashboard")} />
             <NavItem href="/sa/metrics" icon={BarChart3} label={t("nav.metrics")} />
             <NavItem href="/sa/tenants" icon={Building2} label={t("nav.clinics")} />
@@ -49,19 +53,22 @@ export default async function SALayout({ children }: { children: ReactNode }) {
               <NavItem href="/sa/impersonate" icon={Shield} label={t("nav.impersonate")} />
             )}
           </nav>
-          <div className="p-4 space-y-3 border-t border-gray-800 dark:border-gray-800">
+
+          {/* Footer — always pinned at bottom */}
+          <div className="p-4 space-y-3 border-t border-gray-200 dark:border-gray-800">
             <div className="flex items-center gap-2">
               <LocaleSwitcher />
               <ThemeToggle compact />
             </div>
-            <div className="text-[10px] text-gray-600 dark:text-gray-600">
+            <div className="text-[10px] text-gray-400 dark:text-gray-600">
               <p>{t("nav.auditWarning")}</p>
               <p className="mt-1">{t("nav.privacyWarning")}</p>
             </div>
           </div>
         </aside>
 
-        <main className="flex-1 p-6 md:p-8">
+        {/* Main content */}
+        <main className="flex-1 p-6 md:p-8 min-h-screen">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
@@ -81,9 +88,9 @@ function NavItem({
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-300 dark:text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-800 hover:text-white dark:hover:text-white transition-colors"
+      className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
     >
-      <Icon className="h-4 w-4 text-brand-400 dark:text-brand-400" />
+      <Icon className="h-4 w-4 text-brand-600 dark:text-brand-400" />
       {label}
     </Link>
   );

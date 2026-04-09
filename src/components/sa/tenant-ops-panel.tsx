@@ -59,10 +59,10 @@ export function TenantOpsPanel({
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-5">
+    <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-5">
       <h2 className="font-semibold text-lg">{t("ops.title")}</h2>
       {error && (
-        <div className="bg-red-950/40 border border-red-900 text-red-300 text-sm rounded p-2">
+        <div className="bg-red-100 dark:bg-red-950/40 border border-red-300 dark:border-red-900 text-red-700 dark:text-red-300 text-sm rounded p-2">
           {error}
         </div>
       )}
@@ -75,14 +75,14 @@ export function TenantOpsPanel({
             if (!confirm(t("ops.suspendConfirm"))) return;
             run(() => post(`/api/v1/sa/tenants/${tenantId}/suspend`, { reason: prompt(t("ops.reason")) ?? "" }));
           }}
-          className="px-3 py-2 text-xs bg-yellow-900/40 border border-yellow-700 text-yellow-200 hover:bg-yellow-900/60 rounded disabled:opacity-50"
+          className="px-3 py-2 text-xs bg-amber-100 dark:bg-yellow-900/40 border border-amber-300 dark:border-yellow-700 text-amber-700 dark:text-yellow-200 hover:bg-amber-200 dark:hover:bg-yellow-900/60 rounded disabled:opacity-50"
         >
           {t("ops.suspend")}
         </button>
         <button
           disabled={isPending}
           onClick={() => run(() => post(`/api/v1/sa/tenants/${tenantId}/reactivate`))}
-          className="px-3 py-2 text-xs bg-green-900/40 border border-green-700 text-green-200 hover:bg-green-900/60 rounded disabled:opacity-50"
+          className="px-3 py-2 text-xs bg-emerald-100 dark:bg-green-900/40 border border-emerald-300 dark:border-green-700 text-emerald-700 dark:text-green-200 hover:bg-emerald-200 dark:hover:bg-green-900/60 rounded disabled:opacity-50"
         >
           {t("ops.reactivate")}
         </button>
@@ -90,12 +90,12 @@ export function TenantOpsPanel({
 
       {/* Plan override */}
       <div className="space-y-2">
-        <label className="text-xs text-gray-400">{t("ops.planOverride")}</label>
+        <label className="text-xs text-gray-600 dark:text-gray-400">{t("ops.planOverride")}</label>
         <div className="flex flex-wrap gap-2">
           <select
             value={planChoice}
             onChange={(e) => setPlanChoice(e.target.value as PlanTier)}
-            className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
+            className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-900 dark:text-white"
           >
             <option value="FREE">FREE</option>
             <option value="PRO">PRO</option>
@@ -106,7 +106,7 @@ export function TenantOpsPanel({
             placeholder={t("ops.reasonRequired")}
             value={planReason}
             onChange={(e) => setPlanReason(e.target.value)}
-            className="flex-1 min-w-[200px] bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
+            className="flex-1 min-w-[200px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-900 dark:text-white"
           />
           <button
             disabled={isPending || planReason.length < 3 || planChoice === currentPlanTier}
@@ -127,11 +127,11 @@ export function TenantOpsPanel({
 
       {/* Internal note */}
       <div className="space-y-2">
-        <label className="text-xs text-gray-400">{t("ops.internalNote")}</label>
+        <label className="text-xs text-gray-600 dark:text-gray-400">{t("ops.internalNote")}</label>
         <textarea
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-2 text-sm min-h-[70px]"
+          className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-2 text-sm min-h-[70px] text-gray-900 dark:text-white"
           placeholder={t("ops.notePlaceholder")}
         />
         <button
@@ -142,7 +142,7 @@ export function TenantOpsPanel({
               setNoteText("");
             })
           }
-          className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded disabled:opacity-50"
+          className="px-3 py-1 text-xs bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 rounded disabled:opacity-50"
         >
           {t("ops.addNote")}
         </button>

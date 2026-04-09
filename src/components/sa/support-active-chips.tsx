@@ -50,7 +50,7 @@ export function SupportActiveChips() {
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
-      <span className="text-gray-500">{t("chips.activeFilters")}:</span>
+      <span className="text-gray-600 dark:text-gray-500">{t("chips.activeFilters")}:</span>
       {entries.map(([k, v]) => {
         const display = k === "status" ? STATUS_LABELS[v] ?? v : v;
         return (
@@ -58,7 +58,7 @@ export function SupportActiveChips() {
             key={k}
             type="button"
             onClick={() => remove(k)}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-900/40 border border-brand-700 text-brand-200 hover:bg-brand-900/70"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-100 dark:bg-brand-900/40 border border-brand-300 dark:border-brand-700 text-brand-700 dark:text-brand-200 hover:bg-brand-200 dark:hover:bg-brand-900/70"
             title={`Remover filtro ${LABELS[k]}`}
           >
             <span className="font-medium">{LABELS[k]}:</span>
@@ -70,7 +70,7 @@ export function SupportActiveChips() {
       <button
         type="button"
         onClick={clearAll}
-        className="px-2 py-1 rounded border border-gray-700 bg-gray-800 text-gray-300 hover:bg-gray-700"
+        className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
       >
         {t("chips.clearAll")}
       </button>

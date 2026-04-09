@@ -34,15 +34,15 @@ export default async function SATenantsPage({
   const { tenants, totalCount, pageCount } = result;
 
   return (
-    <div className="min-h-screen bg-gray-950 dark:bg-gray-950 text-white p-8">
+    <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-white p-8">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Link href="/sa/dashboard" className="text-gray-400 dark:text-gray-500 hover:text-white dark:hover:text-gray-300">
+          <Link href="/sa/dashboard" className="text-gray-600 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
             <h1 className="text-2xl font-bold">{t("tenants.title")}</h1>
-            <p className="text-gray-400 dark:text-gray-500 text-sm">{t("tenants.registered", { count: totalCount })}</p>
+            <p className="text-gray-600 dark:text-gray-500 text-sm">{t("tenants.registered", { count: totalCount })}</p>
           </div>
         </div>
 
@@ -75,29 +75,29 @@ export default async function SATenantsPage({
         />
 
         {/* Tenants grid */}
-        <div className="bg-gray-900 dark:bg-gray-950 border border-gray-800 dark:border-gray-700 rounded-xl divide-y divide-gray-800 dark:divide-gray-700">
+        <div className="bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-200 dark:divide-gray-700">
           {tenants.map((tenant) => (
             <Link
               key={tenant.id}
               href={`/sa/tenants/${tenant.id}`}
-              className="flex items-center justify-between p-4 hover:bg-gray-800/50 dark:hover:bg-gray-800/30 transition-colors group"
+              className="flex items-center justify-between p-4 hover:bg-gray-100 dark:hover:bg-gray-800/30 transition-colors group"
             >
               <div className="flex items-center gap-3">
-                <div className="bg-gray-800 dark:bg-gray-800 rounded-lg p-2">
+                <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-2">
                   <Building2 className="h-5 w-5 text-brand-400" />
                 </div>
                 <div>
                   <p className="font-medium">{tenant.name}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-gray-600 dark:text-gray-500">
                     {tenant.slug} · {t("tenants.plan")} {tenant.planTier} · {t("tenants.status")} {tenant.subscriptionStatus || "—"}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-6 text-sm text-gray-400 dark:text-gray-500">
+              <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-500">
                 <span>{tenant._count.memberships} {t("tenants.members")}</span>
                 <span>{tenant._count.patients} {t("tenants.patients")}</span>
                 <span>{tenant._count.appointments} {t("tenants.appointments")}</span>
-                <ArrowRight className="h-4 w-4 text-gray-600 dark:text-gray-500 group-hover:text-gray-300 dark:group-hover:text-gray-400" />
+                <ArrowRight className="h-4 w-4 text-gray-500 dark:text-gray-500 group-hover:text-gray-400 dark:group-hover:text-gray-400" />
               </div>
             </Link>
           ))}
@@ -116,7 +116,7 @@ export default async function SATenantsPage({
               {page > 1 && (
                 <Link
                   href={`/sa/tenants?page=${page - 1}${q ? `&q=${q}` : ""}`}
-                  className="px-3 py-1 bg-gray-800 dark:bg-gray-800 hover:bg-gray-700 dark:hover:bg-gray-700 rounded text-sm"
+                  className="px-3 py-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded text-sm"
                 >
                   {t("tenants.previous")}
                 </Link>
@@ -124,7 +124,7 @@ export default async function SATenantsPage({
               {page < pageCount && (
                 <Link
                   href={`/sa/tenants?page=${page + 1}${q ? `&q=${q}` : ""}`}
-                  className="px-3 py-1 bg-gray-800 dark:bg-gray-800 hover:bg-gray-700 dark:hover:bg-gray-700 rounded text-sm"
+                  className="px-3 py-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded text-sm"
                 >
                   {t("tenants.next")}
                 </Link>
