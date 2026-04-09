@@ -3,7 +3,7 @@
  *
  * IMPORTANT: SUPABASE_URL and SUPABASE_SERVICE_KEY are captured as module-level
  * constants at import time. Tests that need different env values must use
- * jest.resetModules() + require() to re-import with new env.
+ * vi.resetModules() + require() to re-import with new env.
  */
 
 // Set env vars BEFORE import so module-level constants get proper values
@@ -11,30 +11,30 @@ process.env.SUPABASE_URL = "https://example.supabase.co";
 process.env.SUPABASE_SERVICE_KEY = "test-service-key-123";
 
 // Mock fetch globally
-global.fetch = jest.fn();
+import { vi } from "vitest";
 
-import {
-  uploadFile,
-  signedDownloadUrl,
-  deleteFile,
-  isStorageConfigured,
-} from "@/lib/storage";
+global.fetch = vi.fn();
 
 describe("Storage service", () => {
   const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockFetch.mockReset();
+    // Always ensure env vars are set for non-test-env tests
+    process.env.SUPABASE_URL = "https://example.supabase.co";
+    process.env.SUPABASE_SERVICE_KEY = "test-service-key-123";
+    vi.resetModules();
   });
 
   // ─── Upload File ──────────────────────────────────────────────────────────
 
   describe("uploadFile", () => {
     test("uploads file with correct headers and body", async () => {
+      const { uploadFile } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        text: jest.fn().mockResolvedValueOnce(""),
+        text: vi.fn().mockResolvedValueOnce(""),
       } as unknown as Response);
 
       const buffer = Buffer.from("test file content");
@@ -62,10 +62,11 @@ describe("Storage service", () => {
     });
 
     test("returns the storageKey on success", async () => {
+      const { uploadFile } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        text: jest.fn().mockResolvedValueOnce(""),
+        text: vi.fn().mockResolvedValueOnce(""),
       } as unknown as Response);
 
       const result = await uploadFile({
@@ -79,10 +80,11 @@ describe("Storage service", () => {
     });
 
     test("throws error when upload fails", async () => {
+      const { uploadFile } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 403,
-        text: jest.fn().mockResolvedValueOnce("Unauthorized"),
+        text: vi.fn().mockResolvedValueOnce("Unauthorized"),
       } as unknown as Response);
 
       await expect(
@@ -96,10 +98,11 @@ describe("Storage service", () => {
     });
 
     test("includes status code in thrown error (without leaking response body)", async () => {
+      const { uploadFile } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
-        text: jest.fn().mockResolvedValueOnce("Internal server error"),
+        text: vi.fn().mockResolvedValueOnce("Internal server error"),
       } as unknown as Response);
 
       await expect(
@@ -113,6 +116,7 @@ describe("Storage service", () => {
     });
 
     test("rejects path traversal in storage key", async () => {
+      const { uploadFile } = await import("@/lib/storage");
       await expect(
         uploadFile({
           buffer: Buffer.from("content"),
@@ -124,6 +128,7 @@ describe("Storage service", () => {
     });
 
     test("rejects storage keys starting with /", async () => {
+      const { uploadFile } = await import("@/lib/storage");
       await expect(
         uploadFile({
           buffer: Buffer.from("content"),
@@ -135,6 +140,7 @@ describe("Storage service", () => {
     });
 
     test("rejects files exceeding max upload size", async () => {
+      const { uploadFile } = await import("@/lib/storage");
       const oversizedBuffer = Buffer.alloc(26 * 1024 * 1024); // 26 MB
       await expect(
         uploadFile({
@@ -147,10 +153,11 @@ describe("Storage service", () => {
     });
 
     test("sets x-upsert header to true", async () => {
+      const { uploadFile } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        text: jest.fn().mockResolvedValueOnce(""),
+        text: vi.fn().mockResolvedValueOnce(""),
       } as unknown as Response);
 
       await uploadFile({
@@ -169,10 +176,11 @@ describe("Storage service", () => {
 
   describe("signedDownloadUrl", () => {
     test("generates signed URL with correct endpoint", async () => {
+      const { signedDownloadUrl } = await import("@/lib/storage");
       const signedURLPath = "/object/sign/session-files/tenant/file.pdf?token=abc123";
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: jest.fn().mockResolvedValueOnce({ signedURL: signedURLPath }),
+        json: vi.fn().mockResolvedValueOnce({ signedURL: signedURLPath }),
       } as unknown as Response);
 
       const url = await signedDownloadUrl("tenant/file.pdf");
@@ -181,9 +189,10 @@ describe("Storage service", () => {
     });
 
     test("sends POST with expiresIn: 3600", async () => {
+      const { signedDownloadUrl } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: jest.fn().mockResolvedValueOnce({ signedURL: "/signed" }),
+        json: vi.fn().mockResolvedValueOnce({ signedURL: "/signed" }),
       } as unknown as Response);
 
       await signedDownloadUrl("tenant/file.pdf");
@@ -203,6 +212,7 @@ describe("Storage service", () => {
     });
 
     test("throws error when signing fails", async () => {
+      const { signedDownloadUrl } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
@@ -218,6 +228,7 @@ describe("Storage service", () => {
 
   describe("deleteFile", () => {
     test("sends DELETE request to correct endpoint", async () => {
+      const { deleteFile } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 204,
@@ -238,6 +249,7 @@ describe("Storage service", () => {
     });
 
     test("succeeds silently when file not found (404)", async () => {
+      const { deleteFile } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
@@ -249,10 +261,11 @@ describe("Storage service", () => {
     });
 
     test("throws error on non-404 failures", async () => {
+      const { deleteFile } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 403,
-        text: jest.fn().mockResolvedValueOnce("Forbidden"),
+        text: vi.fn().mockResolvedValueOnce("Forbidden"),
       } as unknown as Response);
 
       await expect(deleteFile("tenant/file.pdf")).rejects.toThrow(
@@ -261,10 +274,11 @@ describe("Storage service", () => {
     });
 
     test("includes error details in exception", async () => {
+      const { deleteFile } = await import("@/lib/storage");
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
-        text: jest.fn().mockResolvedValueOnce("Server error details"),
+        text: vi.fn().mockResolvedValueOnce("Server error details"),
       } as unknown as Response);
 
       await expect(deleteFile("tenant/file.pdf")).rejects.toThrow(
@@ -276,44 +290,49 @@ describe("Storage service", () => {
   // ─── isStorageConfigured ──────────────────────────────────────────────────
 
   describe("isStorageConfigured", () => {
-    test("returns true when both env vars are set", () => {
+    test("returns true when both env vars are set", async () => {
       // Module was imported with both env vars set
-      expect(isStorageConfigured()).toBe(true);
+      // Need to re-import after resetModules from other tests
+      process.env.SUPABASE_URL = "https://example.supabase.co";
+      process.env.SUPABASE_SERVICE_KEY = "test-service-key-123";
+      vi.resetModules();
+      const { isStorageConfigured: check } = await import("@/lib/storage");
+      expect(check()).toBe(true);
     });
 
-    test("returns false when SUPABASE_URL is missing", () => {
+    test("returns false when SUPABASE_URL is missing", async () => {
       delete process.env.SUPABASE_URL;
       process.env.SUPABASE_SERVICE_KEY = "test-key";
 
-      jest.resetModules();
-      const { isStorageConfigured: check } = require("@/lib/storage");
+      vi.resetModules();
+      const { isStorageConfigured: check } = await import("@/lib/storage");
       expect(check()).toBe(false);
     });
 
-    test("returns false when SUPABASE_SERVICE_KEY is missing", () => {
+    test("returns false when SUPABASE_SERVICE_KEY is missing", async () => {
       process.env.SUPABASE_URL = "https://example.supabase.co";
       delete process.env.SUPABASE_SERVICE_KEY;
 
-      jest.resetModules();
-      const { isStorageConfigured: check } = require("@/lib/storage");
+      vi.resetModules();
+      const { isStorageConfigured: check } = await import("@/lib/storage");
       expect(check()).toBe(false);
     });
 
-    test("returns false when both env vars are missing", () => {
+    test("returns false when both env vars are missing", async () => {
       delete process.env.SUPABASE_URL;
       delete process.env.SUPABASE_SERVICE_KEY;
 
-      jest.resetModules();
-      const { isStorageConfigured: check } = require("@/lib/storage");
+      vi.resetModules();
+      const { isStorageConfigured: check } = await import("@/lib/storage");
       expect(check()).toBe(false);
     });
 
-    test("returns false when env vars are empty strings", () => {
+    test("returns false when env vars are empty strings", async () => {
       process.env.SUPABASE_URL = "";
       process.env.SUPABASE_SERVICE_KEY = "";
 
-      jest.resetModules();
-      const { isStorageConfigured: check } = require("@/lib/storage");
+      vi.resetModules();
+      const { isStorageConfigured: check } = await import("@/lib/storage");
       expect(check()).toBe(false);
     });
   });
@@ -321,13 +340,13 @@ describe("Storage service", () => {
   // ─── Missing env vars (re-import needed) ──────────────────────────────────
 
   describe("missing env vars", () => {
-    test("storageBase throws when env vars are empty", () => {
+    test("storageBase throws when env vars are empty", async () => {
       delete process.env.SUPABASE_URL;
       delete process.env.SUPABASE_SERVICE_KEY;
 
-      jest.resetModules();
-      global.fetch = jest.fn();
-      const storage = require("@/lib/storage");
+      vi.resetModules();
+      global.fetch = vi.fn();
+      const storage = await import("@/lib/storage");
 
       expect(
         storage.uploadFile({
@@ -339,26 +358,26 @@ describe("Storage service", () => {
       ).rejects.toThrow("File storage not configured");
     });
 
-    test("signedDownloadUrl throws when env vars are empty", () => {
+    test("signedDownloadUrl throws when env vars are empty", async () => {
       delete process.env.SUPABASE_URL;
       delete process.env.SUPABASE_SERVICE_KEY;
 
-      jest.resetModules();
-      global.fetch = jest.fn();
-      const storage = require("@/lib/storage");
+      vi.resetModules();
+      global.fetch = vi.fn();
+      const storage = await import("@/lib/storage");
 
       expect(storage.signedDownloadUrl("test")).rejects.toThrow(
         "File storage not configured"
       );
     });
 
-    test("deleteFile throws when env vars are empty", () => {
+    test("deleteFile throws when env vars are empty", async () => {
       delete process.env.SUPABASE_URL;
       delete process.env.SUPABASE_SERVICE_KEY;
 
-      jest.resetModules();
-      global.fetch = jest.fn();
-      const storage = require("@/lib/storage");
+      vi.resetModules();
+      global.fetch = vi.fn();
+      const storage = await import("@/lib/storage");
 
       expect(storage.deleteFile("test")).rejects.toThrow(
         "File storage not configured"
@@ -369,11 +388,12 @@ describe("Storage service", () => {
   // ─── Edge cases ────────────────────────────────────────────────────────────
 
   describe("Edge cases", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       // Restore env and re-assign fetch mock (may have been replaced by resetModules tests)
       process.env.SUPABASE_URL = "https://example.supabase.co";
       process.env.SUPABASE_SERVICE_KEY = "test-service-key-123";
-      global.fetch = jest.fn();
+      vi.resetModules();
+      global.fetch = vi.fn();
     });
 
     test("handles special characters in storage key", async () => {
@@ -381,18 +401,18 @@ describe("Storage service", () => {
       mf.mockResolvedValueOnce({
         ok: true,
         status: 200,
-        text: jest.fn().mockResolvedValueOnce(""),
+        text: vi.fn().mockResolvedValueOnce(""),
       } as unknown as Response);
 
       // Re-import with proper env
-      jest.resetModules();
-      global.fetch = jest.fn();
+      vi.resetModules();
+      global.fetch = vi.fn();
       const mf2 = global.fetch as jest.MockedFunction<typeof fetch>;
       mf2.mockResolvedValueOnce({
-        ok: true, status: 200, text: jest.fn().mockResolvedValueOnce(""),
+        ok: true, status: 200, text: vi.fn().mockResolvedValueOnce(""),
       } as unknown as Response);
 
-      const storage = require("@/lib/storage");
+      const storage = await import("@/lib/storage");
       const specialKey = "tenant/session/my file (1).pdf";
       await storage.uploadFile({
         buffer: Buffer.from("content"),
@@ -408,14 +428,14 @@ describe("Storage service", () => {
     });
 
     test("handles large file buffers", async () => {
-      jest.resetModules();
-      global.fetch = jest.fn();
+      vi.resetModules();
+      global.fetch = vi.fn();
       const mf2 = global.fetch as jest.MockedFunction<typeof fetch>;
       mf2.mockResolvedValueOnce({
-        ok: true, status: 200, text: jest.fn().mockResolvedValueOnce(""),
+        ok: true, status: 200, text: vi.fn().mockResolvedValueOnce(""),
       } as unknown as Response);
 
-      const storage = require("@/lib/storage");
+      const storage = await import("@/lib/storage");
       const largeBuffer = Buffer.alloc(5 * 1024 * 1024); // 5MB
       await storage.uploadFile({
         buffer: largeBuffer,

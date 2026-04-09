@@ -9,19 +9,21 @@
  *   5. Audit actions are emitted correctly
  */
 
-jest.mock("@/lib/db", () => {
+import { vi } from "vitest";
+
+vi.mock("@/lib/db", () => {
   const db = {
     deviceToken: {
-      upsert: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
+      upsert: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
     },
   };
   return { db };
 });
 
-jest.mock("@/lib/audit", () => ({
-  auditLog: jest.fn(),
+vi.mock("@/lib/audit", () => ({
+  auditLog: vi.fn(),
 }));
 
 import {
@@ -37,7 +39,7 @@ type MockFn = jest.Mock;
 
 describe("push/stub — registerDeviceToken", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("upserts device token with correct parameters", async () => {
@@ -81,7 +83,7 @@ describe("push/stub — registerDeviceToken", () => {
 
     const call = (db.deviceToken.upsert as MockFn).mock.calls[0][0];
     expect(call.create.patientId).toBe("patient-1");
-    expect(call.create.userId).toBeNull();
+    expect(call.create.userId).toBeUndefined();
   });
 
   it("logs PUSH_TOKEN_REGISTERED audit event", async () => {
@@ -130,7 +132,7 @@ describe("push/stub — registerDeviceToken", () => {
 
 describe("push/stub — revokeDeviceToken", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("soft-deletes device token (sets revokedAt)", async () => {

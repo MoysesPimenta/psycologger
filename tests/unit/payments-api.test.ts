@@ -9,20 +9,22 @@
  */
 
 // Mock all dependencies BEFORE any imports
-jest.mock("@/lib/db", () => ({
+import { vi } from "vitest";
+
+vi.mock("@/lib/db", () => ({
   db: {
-    charge: { findFirst: jest.fn(), update: jest.fn(), create: jest.fn() },
-    payment: { create: jest.fn() },
-    $transaction: jest.fn(),
+    charge: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
+    payment: { create: vi.fn() },
+    $transaction: vi.fn(),
   },
 }));
-jest.mock("@/lib/tenant");
-jest.mock("@/lib/rbac");
-jest.mock("@/lib/audit");
-jest.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: jest.fn() }));
-jest.mock("next-auth", () => ({ getServerSession: jest.fn(), default: jest.fn() }));
-jest.mock("next-auth/providers/email", () => ({ default: jest.fn() }));
-jest.mock("resend", () => ({ Resend: jest.fn().mockImplementation(() => ({ emails: { send: jest.fn() } })) }));
+vi.mock("@/lib/tenant");
+vi.mock("@/lib/rbac");
+vi.mock("@/lib/audit");
+vi.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: vi.fn() }));
+vi.mock("next-auth", () => ({ getServerSession: vi.fn(), default: vi.fn() }));
+vi.mock("next-auth/providers/email", () => ({ default: vi.fn() }));
+vi.mock("resend", () => ({ Resend: vi.fn().mockImplementation(() => ({ emails: { send: vi.fn() } })) }));
 
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/v1/payments/route";
@@ -39,7 +41,7 @@ describe("Payments API", () => {
   const mockExtractRequestMeta = auditLib.extractRequestMeta as jest.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockRequirePermission.mockImplementation(() => {}); // Pass through
     mockAuditLog.mockResolvedValue({} as any);
     mockExtractRequestMeta.mockReturnValue({ ipAddress: "127.0.0.1", userAgent: "test" });
@@ -76,14 +78,14 @@ describe("Payments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const txMock = {
           charge: {
-            findFirst: jest.fn().mockResolvedValueOnce(charge as any),
-            update: jest.fn().mockResolvedValueOnce({
+            findFirst: vi.fn().mockResolvedValueOnce(charge as any),
+            update: vi.fn().mockResolvedValueOnce({
               id: "550e8400-e29b-41d4-a716-446655440001",
               status: "PAID",
             }),
           },
           payment: {
-            create: jest.fn().mockResolvedValueOnce({
+            create: vi.fn().mockResolvedValueOnce({
               id: "payment-001",
               tenantId: "tenant-456",
               chargeId: "550e8400-e29b-41d4-a716-446655440001",
@@ -144,20 +146,20 @@ describe("Payments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const txMock = {
           charge: {
-            findFirst: jest.fn().mockResolvedValueOnce(charge as any),
-            create: jest.fn().mockResolvedValueOnce({
+            findFirst: vi.fn().mockResolvedValueOnce(charge as any),
+            create: vi.fn().mockResolvedValueOnce({
               id: "charge-remainder",
               description: "Saldo restante",
               amountCents: 4000,
               status: "PENDING",
             }),
-            update: jest.fn().mockResolvedValueOnce({
+            update: vi.fn().mockResolvedValueOnce({
               id: "550e8400-e29b-41d4-a716-446655440001",
               status: "PAID",
             }),
           },
           payment: {
-            create: jest.fn().mockResolvedValueOnce({
+            create: vi.fn().mockResolvedValueOnce({
               id: "payment-partial",
               chargeId: "550e8400-e29b-41d4-a716-446655440001",
               amountCents: 6000,
@@ -215,14 +217,14 @@ describe("Payments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const txMock = {
           charge: {
-            findFirst: jest.fn().mockResolvedValueOnce(charge as any),
-            update: jest.fn().mockResolvedValueOnce({
+            findFirst: vi.fn().mockResolvedValueOnce(charge as any),
+            update: vi.fn().mockResolvedValueOnce({
               id: "550e8400-e29b-41d4-a716-446655440001",
               status: "PAID",
             }),
           },
           payment: {
-            create: jest.fn().mockResolvedValueOnce({
+            create: vi.fn().mockResolvedValueOnce({
               id: "payment-001",
               amountCents: 8000,
             }),
@@ -275,9 +277,9 @@ describe("Payments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const txMock = {
           charge: {
-            findFirst: jest.fn().mockResolvedValueOnce(charge as any),
+            findFirst: vi.fn().mockResolvedValueOnce(charge as any),
           },
-          payment: { create: jest.fn() },
+          payment: { create: vi.fn() },
         };
         return await cb(txMock as any);
       });
@@ -325,9 +327,9 @@ describe("Payments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const txMock = {
           charge: {
-            findFirst: jest.fn().mockResolvedValueOnce(charge as any),
+            findFirst: vi.fn().mockResolvedValueOnce(charge as any),
           },
-          payment: { create: jest.fn() },
+          payment: { create: vi.fn() },
         };
         return await cb(txMock as any);
       });
@@ -374,9 +376,9 @@ describe("Payments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const txMock = {
           charge: {
-            findFirst: jest.fn().mockResolvedValueOnce(charge as any),
+            findFirst: vi.fn().mockResolvedValueOnce(charge as any),
           },
-          payment: { create: jest.fn() },
+          payment: { create: vi.fn() },
         };
         return await cb(txMock as any);
       });
@@ -423,9 +425,9 @@ describe("Payments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const txMock = {
           charge: {
-            findFirst: jest.fn().mockResolvedValueOnce(charge as any),
+            findFirst: vi.fn().mockResolvedValueOnce(charge as any),
           },
-          payment: { create: jest.fn() },
+          payment: { create: vi.fn() },
         };
         return await cb(txMock as any);
       });
@@ -501,7 +503,7 @@ describe("Payments API", () => {
       const methods = ["PIX", "CASH", "CARD", "TRANSFER", "INSURANCE", "OTHER"];
 
       for (const method of methods) {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         mockRequirePermission.mockImplementation(() => {});
         mockExtractRequestMeta.mockReturnValue({ ipAddress: "127.0.0.1", userAgent: "test" });
         mockAuditLog.mockResolvedValue({} as any);
@@ -530,14 +532,14 @@ describe("Payments API", () => {
         mockDb.$transaction.mockImplementationOnce(async (cb) => {
           const txMock = {
             charge: {
-              findFirst: jest.fn().mockResolvedValueOnce(charge as any),
-              update: jest.fn().mockResolvedValueOnce({
+              findFirst: vi.fn().mockResolvedValueOnce(charge as any),
+              update: vi.fn().mockResolvedValueOnce({
                 id: "550e8400-e29b-41d4-a716-446655440001",
                 status: "PAID",
               }),
             },
             payment: {
-              create: jest.fn().mockResolvedValueOnce({
+              create: vi.fn().mockResolvedValueOnce({
                 id: "payment-001",
                 method,
               }),
@@ -588,14 +590,14 @@ describe("Payments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const txMock = {
           charge: {
-            findFirst: jest.fn().mockResolvedValueOnce(charge as any),
-            update: jest.fn().mockResolvedValueOnce({
+            findFirst: vi.fn().mockResolvedValueOnce(charge as any),
+            update: vi.fn().mockResolvedValueOnce({
               id: "550e8400-e29b-41d4-a716-446655440001",
               status: "PAID",
             }),
           },
           payment: {
-            create: jest.fn().mockResolvedValueOnce({
+            create: vi.fn().mockResolvedValueOnce({
               id: "payment-001",
               amountCents: 10000,
             }),

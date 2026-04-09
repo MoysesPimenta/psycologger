@@ -9,20 +9,22 @@
  */
 
 // Mock all dependencies BEFORE any imports
-jest.mock("@/lib/db", () => ({
+import { vi } from "vitest";
+
+vi.mock("@/lib/db", () => ({
   db: {
-    charge: { findMany: jest.fn(), aggregate: jest.fn(), count: jest.fn() },
-    payment: { findMany: jest.fn(), aggregate: jest.fn() },
-    appointment: { findMany: jest.fn(), count: jest.fn() },
-    patient: { findMany: jest.fn(), count: jest.fn() },
+    charge: { findMany: vi.fn(), aggregate: vi.fn(), count: vi.fn() },
+    payment: { findMany: vi.fn(), aggregate: vi.fn() },
+    appointment: { findMany: vi.fn(), count: vi.fn() },
+    patient: { findMany: vi.fn(), count: vi.fn() },
   },
 }));
-jest.mock("@/lib/tenant");
-jest.mock("@/lib/rbac");
-jest.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: jest.fn() }));
-jest.mock("next-auth", () => ({ getServerSession: jest.fn(), default: jest.fn() }));
-jest.mock("next-auth/providers/email", () => ({ default: jest.fn() }));
-jest.mock("resend", () => ({ Resend: jest.fn().mockImplementation(() => ({ emails: { send: jest.fn() } })) }));
+vi.mock("@/lib/tenant");
+vi.mock("@/lib/rbac");
+vi.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: vi.fn() }));
+vi.mock("next-auth", () => ({ getServerSession: vi.fn(), default: vi.fn() }));
+vi.mock("next-auth/providers/email", () => ({ default: vi.fn() }));
+vi.mock("resend", () => ({ Resend: vi.fn().mockImplementation(() => ({ emails: { send: vi.fn() } })) }));
 
 import { NextRequest } from "next/server";
 import { GET } from "@/app/api/v1/reports/route";
@@ -36,7 +38,7 @@ describe("Reports API", () => {
   const mockRequirePermission = rbacLib.requirePermission as jest.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockRequirePermission.mockImplementation(() => {});
   });
 

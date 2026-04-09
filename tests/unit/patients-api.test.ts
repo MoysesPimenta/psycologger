@@ -9,24 +9,33 @@
  */
 
 // Mock all dependencies BEFORE any imports
-jest.mock("@/lib/db", () => ({
-  db: {
-    patient: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn(), create: jest.fn(), update: jest.fn() },
-    membership: { findFirst: jest.fn() },
+import { vi } from "vitest";
+
+const { mockDb } = vi.hoisted(() => ({
+  mockDb: {
+    patient: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), update: vi.fn() },
+    membership: { findFirst: vi.fn() },
+    billingAccount: { findUnique: vi.fn() },
+    tenant: { findUnique: vi.fn() },
   },
 }));
-jest.mock("@/lib/cpf-crypto", () => ({
-  encryptCpf: jest.fn((value) => value),
-  decryptPatientCpf: jest.fn((value) => value),
-  decryptPatientCpfs: jest.fn((value) => value),
+
+vi.mock("@/lib/db", () => ({
+  db: mockDb,
 }));
-jest.mock("@/lib/tenant");
-jest.mock("@/lib/rbac");
-jest.mock("@/lib/audit");
-jest.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: jest.fn() }));
-jest.mock("next-auth", () => ({ getServerSession: jest.fn(), default: jest.fn() }));
-jest.mock("next-auth/providers/email", () => ({ default: jest.fn() }));
-jest.mock("resend", () => ({ Resend: jest.fn().mockImplementation(() => ({ emails: { send: jest.fn() } })) }));
+vi.mock("@/lib/cpf-crypto", () => ({
+  encryptCpf: vi.fn((value) => value),
+  decryptPatientCpf: vi.fn((value) => value),
+  decryptPatientCpfs: vi.fn((value) => value),
+  isCpfShapedQuery: vi.fn(() => false),
+}));
+vi.mock("@/lib/tenant");
+vi.mock("@/lib/rbac");
+vi.mock("@/lib/audit");
+vi.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: vi.fn() }));
+vi.mock("next-auth", () => ({ getServerSession: vi.fn(), default: vi.fn() }));
+vi.mock("next-auth/providers/email", () => ({ default: vi.fn() }));
+vi.mock("resend", () => ({ Resend: vi.fn().mockImplementation(() => ({ emails: { send: vi.fn() } })) }));
 
 import { NextRequest } from "next/server";
 import { GET as listPatients, POST as createPatient } from "@/app/api/v1/patients/route";
@@ -37,7 +46,7 @@ import * as rbacLib from "@/lib/rbac";
 import * as auditLib from "@/lib/audit";
 
 describe("Patients API", () => {
-  const mockDb = db as jest.Mocked<typeof db>;
+  const mockDbTyped = db as jest.Mocked<typeof db>;
   const mockGetAuthContext = tenantLib.getAuthContext as jest.Mock;
   const mockRequirePermission = rbacLib.requirePermission as jest.Mock;
   const mockGetPatientScope = rbacLib.getPatientScope as jest.Mock;
@@ -45,11 +54,15 @@ describe("Patients API", () => {
   const mockExtractRequestMeta = auditLib.extractRequestMeta as jest.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockRequirePermission.mockImplementation(() => {});
     mockAuditLog.mockResolvedValue({} as any);
     mockGetPatientScope.mockReturnValue("ALL"); // Default scope
     mockExtractRequestMeta.mockReturnValue({ ipAddress: "127.0.0.1", userAgent: "test" });
+    // Mock billingAccount for assertCanAddPatient
+    mockDb.billingAccount.findUnique.mockResolvedValue({ id: "ba-1", activePatientCount: 0, patientLimit: 100 } as any);
+    // Mock tenant for assertCanAddPatient
+    mockDb.tenant.findUnique.mockResolvedValue({ id: "tenant-456", planTier: "PRO" } as any);
   });
 
   // ─── GET /api/v1/patients ─────────────────────────────────────────────────

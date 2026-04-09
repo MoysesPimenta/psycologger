@@ -4,7 +4,9 @@
  */
 
 // Mock Prisma before importing patient-auth (which imports db)
-jest.mock("@/lib/db", () => ({ db: {} }));
+import { vi } from "vitest";
+
+vi.mock("@/lib/db", () => ({ db: {} }));
 
 import {
   hashPassword,

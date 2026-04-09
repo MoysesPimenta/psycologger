@@ -31,7 +31,7 @@ jobs:
         run: npm run typecheck
 
       - name: Run unit tests
-        run: npm run test:unit -- --ci --coverage
+        run: npm run test:unit -- --coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

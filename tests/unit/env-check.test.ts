@@ -3,6 +3,7 @@
  */
 
 import { randomBytes } from "crypto";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
 describe("env-check", () => {
   const VALID_ENV = {
@@ -10,14 +11,14 @@ describe("env-check", () => {
     CRON_SECRET: "this-is-a-long-cron-secret-value",
     RESEND_API_KEY: "re_test_1234567890",
     DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
-    NEXTAUTH_SECRET: "a-very-secure-secret-value",
+    NEXTAUTH_SECRET: "a-very-secure-secret-value-that-is-long-enough-for-32",
   };
 
   let validateEnv: () => void;
 
   beforeEach(async () => {
     // Reset module cache to re-read env
-    jest.resetModules();
+    vi.resetModules();
     // Set valid env
     for (const [k, v] of Object.entries(VALID_ENV)) {
       process.env[k] = v;
@@ -53,6 +54,11 @@ describe("env-check", () => {
     expect(() => validateEnv()).toThrow("16 characters");
   });
 
+  it("should throw when CRON_SECRET is empty", () => {
+    delete process.env.CRON_SECRET;
+    expect(() => validateEnv()).toThrow("CRON_SECRET");
+  });
+
   it("should throw when RESEND_API_KEY has wrong prefix", () => {
     process.env.RESEND_API_KEY = "sk_test_1234567890";
     expect(() => validateEnv()).toThrow("re_");
@@ -65,6 +71,6 @@ describe("env-check", () => {
 
   it("should throw when NEXTAUTH_SECRET is too short", () => {
     process.env.NEXTAUTH_SECRET = "short";
-    expect(() => validateEnv()).toThrow("16 characters");
+    expect(() => validateEnv()).toThrow("32 characters");
   });
 });

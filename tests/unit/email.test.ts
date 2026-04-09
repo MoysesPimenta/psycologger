@@ -3,14 +3,17 @@
  * Tests: sendMagicLink, sendInviteEmail, sendAppointmentConfirmation, sendAppointmentReminder
  */
 
-// Shared mock send function — must be declared before jest.mock
-const mockSend = jest.fn();
+import { vi } from "vitest";
 
-jest.mock("resend", () => ({
-  Resend: jest.fn().mockImplementation(() => ({
-    emails: { send: mockSend },
-  })),
+const { mockSend } = vi.hoisted(() => ({
+  mockSend: vi.fn(),
 }));
+
+vi.mock("resend", () => {
+  const ResendMock = vi.fn();
+  ResendMock.prototype.emails = { send: mockSend };
+  return { Resend: ResendMock };
+});
 
 import {
   sendMagicLink,
@@ -26,8 +29,8 @@ describe("Email service", () => {
   beforeEach(() => {
     mockSend.mockReset();
     mockSend.mockResolvedValue({ data: { id: "msg-123" }, error: null });
-    console.log = jest.fn();
-    console.error = jest.fn();
+    console.log = vi.fn();
+    console.error = vi.fn();
     process.env.RESEND_API_KEY = "test-api-key";
     process.env.NODE_ENV = "production";
   });

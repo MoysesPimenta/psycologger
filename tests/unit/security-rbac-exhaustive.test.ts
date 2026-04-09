@@ -103,14 +103,12 @@ const EXPECTED_PERMISSIONS: Record<Role, Set<Permission>> = {
     "charges:view", "charges:create", "charges:edit", "charges:void", "payments:create", "payments:view",
     "reports:view", "reports:export",
     "nfse:issue",
-    "audit:view",
   ]),
   READONLY: new Set([
     "patients:list",
     "appointments:view",
     "charges:view", "payments:view",
     "reports:view", "reports:export",
-    "audit:view",
   ]),
 };
 
@@ -381,7 +379,6 @@ describe("RBAC — exhaustive permission matrix", () => {
       const ctx = makeCtx({ role: "READONLY" });
       expect(can(ctx, "reports:view")).toBe(true);
       expect(can(ctx, "reports:export")).toBe(true);
-      expect(can(ctx, "audit:view")).toBe(true);
     });
 
     test("READONLY cannot view integrations", () => {

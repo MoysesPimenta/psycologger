@@ -9,22 +9,29 @@
  */
 
 // Mock all dependencies BEFORE any imports
-jest.mock("@/lib/db", () => ({
+import { vi } from "vitest";
+
+vi.mock("@/lib/db", () => ({
   db: {
-    clinicalSession: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn(), create: jest.fn(), update: jest.fn() },
-    sessionRevision: { create: jest.fn() },
-    patient: { findFirst: jest.fn() },
-    appointment: { update: jest.fn(), findFirst: jest.fn(), updateMany: jest.fn() },
-    $transaction: jest.fn(),
+    clinicalSession: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), update: vi.fn() },
+    sessionRevision: { create: vi.fn() },
+    patient: { findFirst: vi.fn() },
+    appointment: { update: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
+    $transaction: vi.fn(),
   },
 }));
-jest.mock("@/lib/tenant");
-jest.mock("@/lib/rbac");
-jest.mock("@/lib/audit");
-jest.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: jest.fn() }));
-jest.mock("next-auth", () => ({ getServerSession: jest.fn(), default: jest.fn() }));
-jest.mock("next-auth/providers/email", () => ({ default: jest.fn() }));
-jest.mock("resend", () => ({ Resend: jest.fn().mockImplementation(() => ({ emails: { send: jest.fn() } })) }));
+vi.mock("@/lib/clinical-notes", () => ({
+  encryptNote: vi.fn((text) => Promise.resolve(text)), // Mock that returns plaintext for testing
+  decryptNote: vi.fn((text) => Promise.resolve(text)),
+  isEncryptedNote: vi.fn(() => false),
+}));
+vi.mock("@/lib/tenant");
+vi.mock("@/lib/rbac");
+vi.mock("@/lib/audit");
+vi.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: vi.fn() }));
+vi.mock("next-auth", () => ({ getServerSession: vi.fn(), default: vi.fn() }));
+vi.mock("next-auth/providers/email", () => ({ default: vi.fn() }));
+vi.mock("resend", () => ({ Resend: vi.fn().mockImplementation(() => ({ emails: { send: vi.fn() } })) }));
 
 import { NextRequest } from "next/server";
 import { GET as listSessions, POST as createSession } from "@/app/api/v1/sessions/route";
@@ -43,7 +50,7 @@ describe("Sessions API", () => {
   const mockExtractRequestMeta = auditLib.extractRequestMeta as jest.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockRequirePermission.mockImplementation(() => {});
     mockAuditLog.mockResolvedValue({} as any);
     mockGetPatientScope.mockReturnValue("ALL");
@@ -244,7 +251,7 @@ describe("Sessions API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         return await cb({
           clinicalSession: {
-            create: jest.fn().mockResolvedValueOnce({
+            create: vi.fn().mockResolvedValueOnce({
               id: "session-new",
               patientId: "550e8400-e29b-41d4-a716-446655440001",
               providerUserId: "user-123",
@@ -253,17 +260,17 @@ describe("Sessions API", () => {
               tags: ["initial"],
               sessionDate: new Date("2026-03-20"),
             }),
-            findFirst: jest.fn().mockResolvedValueOnce(null),
+            findFirst: vi.fn().mockResolvedValueOnce(null),
           },
           sessionRevision: {
-            create: jest.fn().mockResolvedValueOnce({
+            create: vi.fn().mockResolvedValueOnce({
               id: "revision-1",
               sessionId: "session-new",
               noteText: "Patient assessment",
             }),
           },
           appointment: {
-            updateMany: jest.fn(),
+            updateMany: vi.fn(),
           },
         } as any);
       });
@@ -302,18 +309,18 @@ describe("Sessions API", () => {
 
       const mockTx = {
         clinicalSession: {
-          create: jest.fn().mockResolvedValueOnce({
+          create: vi.fn().mockResolvedValueOnce({
             id: "session-new",
             patientId: "550e8400-e29b-41d4-a716-446655440001",
             providerUserId: "user-123",
           }),
-          findFirst: jest.fn().mockResolvedValueOnce(null),
+          findFirst: vi.fn().mockResolvedValueOnce(null),
         },
         sessionRevision: {
-          create: jest.fn(),
+          create: vi.fn(),
         },
         appointment: {
-          updateMany: jest.fn(),
+          updateMany: vi.fn(),
         },
       };
 
@@ -359,16 +366,16 @@ describe("Sessions API", () => {
 
       const mockTx = {
         clinicalSession: {
-          create: jest.fn().mockResolvedValueOnce({
+          create: vi.fn().mockResolvedValueOnce({
             id: "session-new",
           }),
-          findFirst: jest.fn().mockResolvedValueOnce(null),
+          findFirst: vi.fn().mockResolvedValueOnce(null),
         },
         sessionRevision: {
-          create: jest.fn(),
+          create: vi.fn(),
         },
         appointment: {
-          updateMany: jest.fn(),
+          updateMany: vi.fn(),
         },
       };
 
@@ -438,17 +445,17 @@ describe("Sessions API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         return await cb({
           clinicalSession: {
-            create: jest.fn().mockResolvedValueOnce({
+            create: vi.fn().mockResolvedValueOnce({
               id: "session-new",
               patientId: "550e8400-e29b-41d4-a716-446655440001",
             }),
-            findFirst: jest.fn().mockResolvedValueOnce(null),
+            findFirst: vi.fn().mockResolvedValueOnce(null),
           },
           sessionRevision: {
-            create: jest.fn(),
+            create: vi.fn(),
           },
           appointment: {
-            updateMany: jest.fn(),
+            updateMany: vi.fn(),
           },
         } as any);
       });
@@ -620,13 +627,13 @@ describe("Sessions API", () => {
 
       const mockTx = {
         clinicalSession: {
-          update: jest.fn().mockResolvedValueOnce({
+          update: vi.fn().mockResolvedValueOnce({
             id: "session-123",
             noteText: "Updated notes",
           }),
         },
         sessionRevision: {
-          create: jest.fn(),
+          create: vi.fn(),
         },
       };
 
@@ -729,13 +736,13 @@ describe("Sessions API", () => {
 
       const mockTx = {
         clinicalSession: {
-          update: jest.fn().mockResolvedValueOnce({
+          update: vi.fn().mockResolvedValueOnce({
             id: "session-123",
             templateKey: "BIRP",
           }),
         },
         sessionRevision: {
-          create: jest.fn(),
+          create: vi.fn(),
         },
       };
 
@@ -779,12 +786,12 @@ describe("Sessions API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         return await cb({
           clinicalSession: {
-            update: jest.fn().mockResolvedValueOnce({
+            update: vi.fn().mockResolvedValueOnce({
               id: "session-123",
             }),
           },
           sessionRevision: {
-            create: jest.fn(),
+            create: vi.fn(),
           },
         } as any);
       });

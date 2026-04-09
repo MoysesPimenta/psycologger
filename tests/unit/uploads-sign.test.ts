@@ -9,31 +9,33 @@
  *   5. Tenant path enforcement: storagePath always starts with tenantId/
  */
 
-jest.mock("@/lib/db", () => {
+import { vi } from "vitest";
+
+vi.mock("@/lib/db", () => {
   const db = {
     patient: {
-      findUnique: jest.fn(),
-      findFirst: jest.fn(),
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     tenant: {
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
     },
     consentRecord: {
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
     },
   };
   return { db };
 });
 
-jest.mock("@/lib/auth", () => ({
-  getCurrentUser: jest.fn(),
-  getCurrentPatient: jest.fn(),
-  ensurePermission: jest.fn(),
+vi.mock("@/lib/auth", () => ({
+  getCurrentUser: vi.fn(),
+  getCurrentPatient: vi.fn(),
+  ensurePermission: vi.fn(),
 }));
 
-jest.mock("@/lib/audit", () => ({
-  auditLog: jest.fn(),
-  extractRequestMeta: jest.fn(() => ({
+vi.mock("@/lib/audit", () => ({
+  auditLog: vi.fn(),
+  extractRequestMeta: vi.fn(() => ({
     ipAddress: "127.0.0.1",
     userAgent: "test",
   })),
@@ -47,7 +49,7 @@ type MockFn = jest.Mock;
 
 describe("uploads/sign — request validation", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     (getCurrentUser as MockFn).mockResolvedValue({
       id: "user-1",
       tenantId: "tenant-1",
@@ -107,7 +109,7 @@ describe("uploads/sign — request validation", () => {
 
 describe("uploads/sign — patient access control", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("returns 404 when patient not found", async () => {
@@ -160,7 +162,7 @@ describe("uploads/sign — patient access control", () => {
 
 describe("uploads/sign — tenant scoping", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("generates storagePath starting with tenantId", async () => {
@@ -186,7 +188,7 @@ describe("uploads/sign — tenant scoping", () => {
 
 describe("uploads/sign — audit logging", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     (getCurrentUser as MockFn).mockResolvedValue({
       id: "user-1",
       tenantId: "tenant-1",
@@ -221,7 +223,7 @@ describe("uploads/sign — audit logging", () => {
 
 describe("portal/uploads/sign — patient portal variant", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("restricts purposes to portal-document and journal-attachment", async () => {

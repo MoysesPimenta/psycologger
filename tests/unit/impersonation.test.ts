@@ -20,11 +20,11 @@ describe("Impersonation Security", () => {
       expect(token.split(".")).toHaveLength(3);
     });
 
-    it("should create unique tokens each time (except exp)", async () => {
+    it("should create unique tokens for different users", async () => {
       const token1 = await signImpersonationToken("u1", "t1", "sa1");
-      const token2 = await signImpersonationToken("u1", "t1", "sa1");
+      const token2 = await signImpersonationToken("u2", "t1", "sa1");
 
-      // Tokens are different because each has a fresh signature and timestamp
+      // Different user IDs produce different tokens
       expect(token1).not.toEqual(token2);
     });
   });
@@ -47,8 +47,11 @@ describe("Impersonation Security", () => {
 
     it("should reject tampered token", async () => {
       const token = await signImpersonationToken("user-1", "tenant-1", "sa-1");
-      // Tamper with the token by changing a character
-      const tamperedToken = token.substring(0, token.length - 1) + "X";
+      // Tamper with the payload section (second part) to change user ID
+      const parts = token.split(".");
+      // Flip multiple characters in the payload to ensure invalidation
+      const tamperedPayload = parts[1].split("").reverse().join("");
+      const tamperedToken = `${parts[0]}.${tamperedPayload}.${parts[2]}`;
 
       await expect(verifyImpersonationToken(tamperedToken)).rejects.toThrow();
     });

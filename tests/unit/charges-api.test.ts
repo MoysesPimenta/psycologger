@@ -11,32 +11,34 @@
  */
 
 // Mock all dependencies BEFORE any imports
-jest.mock("@/lib/db", () => ({
+import { vi } from "vitest";
+
+vi.mock("@/lib/db", () => ({
   db: {
-    charge: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn(), create: jest.fn(), update: jest.fn(), aggregate: jest.fn() },
-    payment: { findMany: jest.fn(), aggregate: jest.fn() },
-    appointment: { findMany: jest.fn(), count: jest.fn(), findFirst: jest.fn() },
-    patient: { count: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn() },
-    tenant: { findUnique: jest.fn() },
-    reminderTemplate: { findFirst: jest.fn() },
-    paymentReminderLog: { create: jest.fn() },
-    clinicalSession: { findFirst: jest.fn() },
-    $transaction: jest.fn(),
+    charge: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), update: vi.fn(), aggregate: vi.fn() },
+    payment: { findMany: vi.fn(), aggregate: vi.fn() },
+    appointment: { findMany: vi.fn(), count: vi.fn(), findFirst: vi.fn() },
+    patient: { count: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn() },
+    tenant: { findUnique: vi.fn() },
+    reminderTemplate: { findFirst: vi.fn() },
+    paymentReminderLog: { create: vi.fn() },
+    clinicalSession: { findFirst: vi.fn() },
+    $transaction: vi.fn(),
   },
 }));
-jest.mock("@/lib/tenant");
-jest.mock("@/lib/rbac");
-jest.mock("@/lib/audit");
-jest.mock("@/lib/rate-limit", () => ({
-  rateLimit: jest.fn().mockResolvedValue({ allowed: true }),
+vi.mock("@/lib/tenant");
+vi.mock("@/lib/rbac");
+vi.mock("@/lib/audit");
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimit: vi.fn().mockResolvedValue({ allowed: true }),
 }));
-jest.mock("@/lib/email", () => ({
-  sendPaymentCreatedNotification: jest.fn(),
+vi.mock("@/lib/email", () => ({
+  sendPaymentCreatedNotification: vi.fn(),
 }));
-jest.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: jest.fn() }));
-jest.mock("next-auth", () => ({ getServerSession: jest.fn(), default: jest.fn() }));
-jest.mock("next-auth/providers/email", () => ({ default: jest.fn() }));
-jest.mock("resend", () => ({ Resend: jest.fn().mockImplementation(() => ({ emails: { send: jest.fn() } })) }));
+vi.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: vi.fn() }));
+vi.mock("next-auth", () => ({ getServerSession: vi.fn(), default: vi.fn() }));
+vi.mock("next-auth/providers/email", () => ({ default: vi.fn() }));
+vi.mock("resend", () => ({ Resend: vi.fn().mockImplementation(() => ({ emails: { send: vi.fn() } })) }));
 
 import { NextRequest } from "next/server";
 import { GET, POST } from "@/app/api/v1/charges/route";
@@ -53,7 +55,7 @@ describe("Charges API", () => {
   const mockExtractRequestMeta = auditLib.extractRequestMeta as jest.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockRequirePermission.mockImplementation(() => {}); // Pass through
     mockAuditLog.mockResolvedValue({} as any);
     mockExtractRequestMeta.mockReturnValue({ ipAddress: "127.0.0.1", userAgent: "test" });

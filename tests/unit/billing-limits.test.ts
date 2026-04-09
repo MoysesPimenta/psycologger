@@ -14,11 +14,13 @@
 
 // Mock the Prisma client BEFORE importing the module under test so the
 // top-level `import { db } from "@/lib/db"` resolves to our stub.
-jest.mock("@/lib/db", () => {
+import { vi } from "vitest";
+
+vi.mock("@/lib/db", () => {
   const db = {
-    tenant: { findUnique: jest.fn() },
-    patient: { count: jest.fn() },
-    membership: { count: jest.fn() },
+    tenant: { findUnique: vi.fn() },
+    patient: { count: vi.fn() },
+    membership: { count: vi.fn() },
   };
   return { db };
 });
@@ -38,7 +40,7 @@ const mockPatientCount = db.patient.count as unknown as MockFn;
 const mockMembershipCount = db.membership.count as unknown as MockFn;
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 describe("billing/limits — countActivePatients", () => {

@@ -8,17 +8,19 @@
  */
 
 // Mock all dependencies BEFORE imports
-jest.mock("@/lib/db", () => ({
+import { vi } from "vitest";
+
+vi.mock("@/lib/db", () => ({
   db: {
-    user: { findUnique: jest.fn() },
-    membership: { findFirst: jest.fn(), findMany: jest.fn() },
-    tenant: { findUnique: jest.fn() },
+    user: { findUnique: vi.fn() },
+    membership: { findFirst: vi.fn(), findMany: vi.fn() },
+    tenant: { findUnique: vi.fn() },
   },
 }));
-jest.mock("next-auth");
-jest.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: jest.fn() }));
-jest.mock("next-auth/providers/email", () => ({ default: jest.fn() }));
-jest.mock("resend", () => ({ Resend: jest.fn().mockImplementation(() => ({ emails: { send: jest.fn() } })) }));
+vi.mock("next-auth");
+vi.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: vi.fn() }));
+vi.mock("next-auth/providers/email", () => ({ default: vi.fn() }));
+vi.mock("resend", () => ({ Resend: vi.fn().mockImplementation(() => ({ emails: { send: vi.fn() } })) }));
 
 import { NextRequest } from "next/server";
 import { getAuthContext, getUserMemberships, getTenantBySlug } from "@/lib/tenant";
@@ -30,7 +32,7 @@ describe("Tenant resolution", () => {
   const mockDb = db as jest.Mocked<typeof db>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Default: non-superadmin user (tests can override)
     (mockDb as any).user.findUnique.mockResolvedValue({ isSuperAdmin: false });
   });

@@ -8,25 +8,27 @@
  */
 
 // Mock all dependencies BEFORE any imports
-jest.mock("@/lib/db", () => ({
+import { vi } from "vitest";
+
+vi.mock("@/lib/db", () => ({
   db: {
-    appointment: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn(), create: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
-    patient: { findFirst: jest.fn(), findUnique: jest.fn() },
-    membership: { findFirst: jest.fn() },
-    appointmentType: { findFirst: jest.fn() },
-    tenant: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
-    recurrence: { create: jest.fn() },
-    $transaction: jest.fn(),
+    appointment: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    patient: { findFirst: vi.fn(), findUnique: vi.fn() },
+    membership: { findFirst: vi.fn() },
+    appointmentType: { findFirst: vi.fn() },
+    tenant: { findUniqueOrThrow: vi.fn(), findUnique: vi.fn() },
+    recurrence: { create: vi.fn() },
+    $transaction: vi.fn(),
   },
 }));
-jest.mock("@/lib/tenant");
-jest.mock("@/lib/rbac");
-jest.mock("@/lib/audit");
-jest.mock("@/lib/email");
-jest.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: jest.fn() }));
-jest.mock("next-auth", () => ({ getServerSession: jest.fn(), default: jest.fn() }));
-jest.mock("next-auth/providers/email", () => ({ default: jest.fn() }));
-jest.mock("resend", () => ({ Resend: jest.fn().mockImplementation(() => ({ emails: { send: jest.fn() } })) }));
+vi.mock("@/lib/tenant");
+vi.mock("@/lib/rbac");
+vi.mock("@/lib/audit");
+vi.mock("@/lib/email");
+vi.mock("@auth/prisma-adapter", () => ({ PrismaAdapter: vi.fn() }));
+vi.mock("next-auth", () => ({ getServerSession: vi.fn(), default: vi.fn() }));
+vi.mock("next-auth/providers/email", () => ({ default: vi.fn() }));
+vi.mock("resend", () => ({ Resend: vi.fn().mockImplementation(() => ({ emails: { send: vi.fn() } })) }));
 
 import { NextRequest } from "next/server";
 import { GET as listAppointments, POST as createAppointment } from "@/app/api/v1/appointments/route";
@@ -44,7 +46,7 @@ describe("Appointments API", () => {
   const mockExtractRequestMeta = auditLib.extractRequestMeta as jest.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockRequirePermission.mockImplementation(() => {});
     mockAuditLog.mockResolvedValue({} as any);
     mockExtractRequestMeta.mockReturnValue({ ipAddress: "127.0.0.1", userAgent: "test" });
@@ -271,8 +273,8 @@ describe("Appointments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         return await cb({
           appointment: {
-            findFirst: jest.fn().mockResolvedValueOnce(null),
-            create: jest.fn().mockResolvedValueOnce({
+            findFirst: vi.fn().mockResolvedValueOnce(null),
+            create: vi.fn().mockResolvedValueOnce({
               id: "apt-new",
               patientId: "550e8400-e29b-41d4-a716-446655440001",
               providerUserId: "550e8400-e29b-41d4-a716-446655440002",
@@ -281,10 +283,10 @@ describe("Appointments API", () => {
               patient: { id: "550e8400-e29b-41d4-a716-446655440001", fullName: "John Doe" },
               appointmentType: { id: "t1", name: "Session" },
             }),
-            updateMany: jest.fn(),
+            updateMany: vi.fn(),
           },
           recurrence: {
-            create: jest.fn(),
+            create: vi.fn(),
           },
         } as any);
       });
@@ -327,12 +329,12 @@ describe("Appointments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const mockTx = {
           appointment: {
-            findFirst: jest.fn().mockResolvedValue({ id: "existing-apt" }), // Conflict found
-            create: jest.fn(),
-            updateMany: jest.fn(),
+            findFirst: vi.fn().mockResolvedValue({ id: "existing-apt" }), // Conflict found
+            create: vi.fn(),
+            updateMany: vi.fn(),
           },
           recurrence: {
-            create: jest.fn(),
+            create: vi.fn(),
           },
         };
         return await cb(mockTx);
@@ -513,8 +515,8 @@ describe("Appointments API", () => {
       (mockDb.$transaction as jest.Mock).mockImplementationOnce(async (cb) => {
         const mockTx = {
           appointment: {
-            update: jest.fn().mockResolvedValue(updated),
-            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+            update: vi.fn().mockResolvedValue(updated),
+            updateMany: vi.fn().mockResolvedValue({ count: 0 }),
           },
         };
         return await cb(mockTx);
@@ -561,9 +563,9 @@ describe("Appointments API", () => {
       (mockDb.$transaction as jest.Mock).mockImplementationOnce(async (cb) => {
         const mockTx = {
           appointment: {
-            findFirst: jest.fn().mockResolvedValue({ id: "apt-conflict" }), // Conflict detected
-            update: jest.fn(),
-            updateMany: jest.fn(),
+            findFirst: vi.fn().mockResolvedValue({ id: "apt-conflict" }), // Conflict detected
+            update: vi.fn(),
+            updateMany: vi.fn(),
           },
         };
         return await cb(mockTx);
@@ -615,8 +617,8 @@ describe("Appointments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const mockTx = {
           appointment: {
-            update: jest.fn().mockResolvedValue(updated),
-            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+            update: vi.fn().mockResolvedValue(updated),
+            updateMany: vi.fn().mockResolvedValue({ count: 0 }),
           },
         };
         return await cb(mockTx);
@@ -673,8 +675,8 @@ describe("Appointments API", () => {
       mockDb.$transaction.mockImplementationOnce(async (cb) => {
         const mockTx = {
           appointment: {
-            update: jest.fn().mockResolvedValue(updated),
-            updateMany: jest.fn().mockResolvedValue({ count: 3 }),
+            update: vi.fn().mockResolvedValue(updated),
+            updateMany: vi.fn().mockResolvedValue({ count: 3 }),
           },
         };
         return await cb(mockTx);

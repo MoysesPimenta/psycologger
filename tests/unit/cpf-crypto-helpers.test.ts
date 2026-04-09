@@ -18,7 +18,7 @@ describe("CPF crypto — encryption and blind index", () => {
       const formatted = "123.456.789-00";
       const encrypted = await encryptCpf(formatted);
 
-      expect(encrypted).toStartWith("enc:v1:");
+      expect(encrypted.startsWith("enc:v1:")).toBe(true);
       const decrypted = await decryptCpf(encrypted);
       expect(decrypted).toBe("12345678900");
     });
@@ -59,7 +59,7 @@ describe("CPF crypto — encryption and blind index", () => {
       const cpf = "12345678900";
       const encrypted = await encryptCpf(cpf);
 
-      expect(encrypted).toStartWith("enc:v1:");
+      expect(encrypted.startsWith("enc:v1:")).toBe(true);
     });
 
     test("encrypt/decrypt round-trip succeeds", async () => {
