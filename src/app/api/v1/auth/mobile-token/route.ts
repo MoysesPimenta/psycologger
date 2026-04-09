@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
     // Resolve user and tenant
     const user = await db.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true },
       include: {
         memberships: {
           select: { tenantId: true },

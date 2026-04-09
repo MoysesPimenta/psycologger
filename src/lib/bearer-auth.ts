@@ -67,7 +67,7 @@ export async function signMobileToken(
   ttlSec: number
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const payload: MobileTokenPayload = {
+  const payload = {
     userId,
     tenantId,
     kind,
@@ -75,7 +75,7 @@ export async function signMobileToken(
     exp: now + ttlSec,
   };
 
-  const token = await new SignJWT(payload as Record<string, unknown>)
+  const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .sign(getSigningKey());
 
@@ -108,7 +108,8 @@ export async function verifyBearer(
     const secret = getJwtSecret();
     const key = new TextEncoder().encode(secret);
     const verified = await jwtVerify(token, key);
-    return verified.payload as MobileTokenPayload;
+    const payload = verified.payload as unknown as MobileTokenPayload;
+    return payload;
   } catch (err) {
     // Token is invalid or expired
     console.debug("[bearer-auth] Token verification failed:", err);
