@@ -18,6 +18,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// TODO(i18n): This component has 50+ hardcoded Portuguese strings remaining:
+// - Status action buttons: "Confirmar presença", "Marcar como realizada", "Registrar falta", "Cancelar consulta"
+// - Modal titles: "Cobrar esta sessão?", "Cancelar consulta", "Corrigir status"
+// - Form labels: "Início", "Término", "Local", "Link de videoconferência", "Observações"
+// - Clinical session labels: "Prontuário", "Ver anotação", "Criar anotação clínica"
+// - Cancel dialog messages and options (e.g., "Somente esta consulta", "Esta e todas as futuras")
+// See docs/generated/33-i18n-guide.md for extraction patterns.
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AppointmentType {
@@ -68,8 +76,9 @@ interface Props {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// Status labels pulled from i18n via useTranslations in component
-const STATUS_LABELS: Record<string, string> = {
+// TODO(i18n): Build STATUS_LABELS dynamically from t("enums.appointmentStatus.*") in component
+// Keeping constants for fallback/quick reference, but should use i18n in render
+const STATUS_LABELS_FALLBACK: Record<string, string> = {
   SCHEDULED: "Agendada",
   CONFIRMED: "Confirmada",
   COMPLETED: "Realizada",
@@ -85,15 +94,15 @@ const STATUS_COLORS: Record<string, string> = {
   NO_SHOW:   "bg-orange-100 text-orange-800 border-orange-200",
 };
 
-// Session type labels pulled from i18n
-const SESSION_TYPE_LABELS: Record<string, string> = {
+// TODO(i18n): Build SESSION_TYPE_LABELS dynamically from t("enums.sessionType.*")
+const SESSION_TYPE_LABELS_FALLBACK: Record<string, string> = {
   IN_PERSON: "Presencial",
   ONLINE: "Online",
   EVALUATION: "Avaliação",
   GROUP: "Grupo",
 };
 
-// Payment methods - labels will be pulled from i18n in component
+// TODO(i18n): Pull payment method labels from t("enums.paymentMethod.*") in component
 const PAYMENT_METHODS = [
   { value: "PIX", label: "PIX" },
   { value: "CASH", label: "Dinheiro" },
@@ -103,6 +112,8 @@ const PAYMENT_METHODS = [
   { value: "OTHER", label: "Outro" },
 ];
 
+// TODO(i18n): Extract recurrence frequency labels ("Mensal", "Semanal", "Quinzenal")
+// and day labels ("segunda", "terça", etc.) to enums.recurrenceFrequency and forms
 function formatRRule(rrule: string): string {
   if (rrule.includes("FREQ=MONTHLY")) return "Mensal";
   const days: Record<string, string> = {
@@ -554,12 +565,14 @@ export function AppointmentDetailClient({
     <div className="max-w-3xl space-y-6">
       {/* ── Header ── */}
       <div className="flex items-center gap-3">
+        {/* TODO(i18n): Extract "Voltar" (Back) button label */}
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1.5 text-gray-500">
           <ChevronLeft className="h-4 w-4" /> Voltar
         </Button>
         <div className="flex-1" />
         <Badge className={`border text-xs font-medium ${STATUS_COLORS[appt.status]}`}>
-          {STATUS_LABELS[appt.status]}
+          {/* TODO(i18n): Replace with t(`enums.appointmentStatus.${appt.status}`) */}
+          {STATUS_LABELS_FALLBACK[appt.status]}
         </Badge>
       </div>
 
@@ -617,7 +630,8 @@ export function AppointmentDetailClient({
               <InfoRow icon={<div className="h-3 w-3 rounded-full" style={{ backgroundColor: appt.appointmentType.color }} />} label="Tipo">
                 {appt.appointmentType.name}
                 <span className="ml-1.5 text-xs text-gray-400">
-                  ({SESSION_TYPE_LABELS[appt.appointmentType.sessionType] ?? appt.appointmentType.sessionType})
+                  {/* TODO(i18n): Replace with t(`enums.sessionType.${appt.appointmentType.sessionType}`) */}
+                  ({SESSION_TYPE_LABELS_FALLBACK[appt.appointmentType.sessionType] ?? appt.appointmentType.sessionType})
                 </span>
               </InfoRow>
               {appt.location && (
