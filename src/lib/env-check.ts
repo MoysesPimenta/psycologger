@@ -94,6 +94,22 @@ const ENV_RULES: EnvRule[] = [
     },
   },
   {
+    name: "RESEND_WEBHOOK_SECRET_INBOUND",
+    required: false,
+    validate: (v) => {
+      if (v && !v.startsWith("whsec_")) return "RESEND_WEBHOOK_SECRET_INBOUND should start with 'whsec_'";
+      return undefined;
+    },
+  },
+  {
+    name: "RESEND_WEBHOOK_SECRET_EVENTS",
+    required: false,
+    validate: (v) => {
+      if (v && !v.startsWith("whsec_")) return "RESEND_WEBHOOK_SECRET_EVENTS should start with 'whsec_'";
+      return undefined;
+    },
+  },
+  {
     name: "CRON_SECRET",
     required: true,
     validate: (v) => {

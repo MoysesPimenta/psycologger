@@ -25,8 +25,10 @@ import { verifySvixSignature as verifySvixSignatureLib } from "@/lib/support-inb
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Resend webhook secret for delivery events (same prefix as inbound: whsec_)
-const WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET;
+// Resend webhook secret for delivery events — separate from inbound webhook
+const WEBHOOK_SECRET =
+  process.env.RESEND_WEBHOOK_SECRET_EVENTS ??
+  process.env.RESEND_WEBHOOK_SECRET;
 
 interface ResendEventPayload {
   type?: string;
