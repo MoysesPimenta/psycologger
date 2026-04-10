@@ -94,15 +94,29 @@ export async function POST(req: NextRequest) {
     },
   })) as unknown as AppointmentWithRelations[];
 
+  // Batch-fetch templates for all tenants upfront (avoid N+1)
+  const tenantIds = Array.from(new Set(appointments.map((a) => a.tenantId)));
+  const templates = await db.reminderTemplate.findMany({
+    where: { tenantId: { in: tenantIds }, type: "REMINDER_24H" },
+  });
+  const templatesByTenant = new Map(templates.map((t) => [t.tenantId, t]));
+
+  // Batch-fetch already-sent reminders upfront (avoid N+1)
+  const sentLogs = await db.reminderLog.findMany({
+    where: {
+      appointmentId: { in: appointments.map((a) => a.id) },
+      type: "REMINDER_24H",
+    },
+    select: { appointmentId: true },
+  });
+  const sentSet = new Set(sentLogs.map((l) => l.appointmentId));
+
   for (const appt of appointments) {
     if (!appt.patient.email) continue;
-    if (await hasReminderBeenSent(appt.id, "REMINDER_24H", appt.tenantId))
-      continue;
+    if (sentSet.has(appt.id)) continue;
 
     // Check if tenant has this template active (skip only if template exists AND is inactive)
-    const template = await db.reminderTemplate.findFirst({
-      where: { tenantId: appt.tenantId, type: "REMINDER_24H" },
-    });
+    const template = templatesByTenant.get(appt.tenantId);
     if (template && !template.isActive) continue;
 
     try {

@@ -6,7 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -57,6 +57,11 @@ export default async function RootLayout({
 }>) {
   const messages = await getMessages();
 
+  // Read the CSP nonce from the response header set by middleware.
+  // The nonce is generated per-request and enables strict CSP while
+  // still allowing Next.js inline hydration scripts.
+  const nonce = headers().get("x-csp-nonce") || "";
+
   // Per-user theme preference is mirrored to a long-lived cookie by
   // POST /api/v1/me/theme. Reading it here lets us SSR the correct
   // class on <html> and avoid a flash of the wrong theme.
@@ -73,8 +78,10 @@ export default async function RootLayout({
       <head>
         {/* No-flash theme bootstrap. Runs before paint, resolves
             "system" against the OS preference. Mirrors logic in
-            <ThemeToggle />. */}
+            <ThemeToggle />. The nonce attribute allows this inline
+            script to bypass strict CSP. */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var m=document.cookie.match(/(?:^|; )psy-theme=([^;]+)/);var t=m?m[1]:'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.classList.toggle('dark',d);r.style.colorScheme=d?'dark':'light';}catch(e){}})();`,
           }}

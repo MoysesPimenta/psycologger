@@ -521,7 +521,7 @@ requirePermission(ctx, "patients:create");
 
 #### TENANT_ADMIN
 - Tenant management: `tenant:view`, `tenant:edit`
-- User/member management: `users:invite`, `users:view`, `users:editRole`, `users:suspend`
+- User/member management: `users:invite`, `users:view`, `users:editRole`
 - All patient/appointment operations: `patients:*`, `appointments:*`
 - Financial: `charges:*`, `payments:*`, `reports:*`
 - **Conditional**:

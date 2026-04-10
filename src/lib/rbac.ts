@@ -16,8 +16,6 @@ export type Permission =
   | "users:invite"
   | "users:view"
   | "users:editRole"
-  // TODO(P1-2): No route enforces this permission yet — implement /api/v1/users/[id]/suspend or remove.
-  | "users:suspend"
   // Patients
   | "patients:list"
   | "patients:create"
@@ -70,7 +68,7 @@ export type Permission =
 const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
   SUPERADMIN: new Set<Permission>([
     "tenant:view", "tenant:edit", "tenant:delete",
-    "users:invite", "users:view", "users:editRole", "users:suspend",
+    "users:invite", "users:view", "users:editRole",
     "patients:list", "patients:create", "patients:edit", "patients:archive", "patients:viewAll",
     "appointments:view", "appointments:create", "appointments:edit",
     "appointments:cancel", "appointments:markNoShow",
@@ -87,7 +85,7 @@ const BASE_PERMISSIONS: Record<Role, Set<Permission>> = {
 
   TENANT_ADMIN: new Set<Permission>([
     "tenant:view", "tenant:edit",
-    "users:invite", "users:view", "users:editRole", "users:suspend",
+    "users:invite", "users:view", "users:editRole",
     "patients:list", "patients:create", "patients:edit", "patients:archive", "patients:viewAll",
     "appointments:view", "appointments:create", "appointments:edit",
     "appointments:cancel", "appointments:markNoShow",

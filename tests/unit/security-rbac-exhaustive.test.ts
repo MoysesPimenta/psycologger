@@ -31,7 +31,7 @@ const ALL_PERMISSIONS: Permission[] = [
   // Tenant management
   "tenant:view", "tenant:edit", "tenant:delete",
   // User / membership management
-  "users:invite", "users:view", "users:editRole", "users:suspend",
+  "users:invite", "users:view", "users:editRole",
   // Patients
   "patients:list", "patients:create", "patients:edit", "patients:archive", "patients:viewAll",
   // Appointments
@@ -61,7 +61,7 @@ const ROLES: Role[] = ["SUPERADMIN", "TENANT_ADMIN", "PSYCHOLOGIST", "ASSISTANT"
 const EXPECTED_PERMISSIONS: Record<Role, Set<Permission>> = {
   SUPERADMIN: new Set([
     "tenant:view", "tenant:edit", "tenant:delete",
-    "users:invite", "users:view", "users:editRole", "users:suspend",
+    "users:invite", "users:view", "users:editRole",
     "patients:list", "patients:create", "patients:edit", "patients:archive", "patients:viewAll",
     "appointments:view", "appointments:create", "appointments:edit", "appointments:cancel", "appointments:markNoShow",
     "sessions:view", "sessions:create", "sessions:edit", "sessions:viewRevisions", "sessions:restoreRevision",
@@ -74,7 +74,7 @@ const EXPECTED_PERMISSIONS: Record<Role, Set<Permission>> = {
   ]),
   TENANT_ADMIN: new Set([
     "tenant:view", "tenant:edit",
-    "users:invite", "users:view", "users:editRole", "users:suspend",
+    "users:invite", "users:view", "users:editRole",
     "patients:list", "patients:create", "patients:edit", "patients:archive", "patients:viewAll",
     "appointments:view", "appointments:create", "appointments:edit", "appointments:cancel", "appointments:markNoShow",
     "sessions:create", "sessions:edit", "sessions:viewRevisions", "sessions:restoreRevision",
@@ -220,11 +220,6 @@ describe("RBAC — exhaustive permission matrix", () => {
     test("TA cannot view tenant deletion", () => {
       const ctx = makeCtx({ role: "TENANT_ADMIN" });
       expect(can(ctx, "tenant:delete")).toBe(false);
-    });
-
-    test("TA cannot suspend users", () => {
-      const ctx = makeCtx({ role: "TENANT_ADMIN" });
-      expect(can(ctx, "users:suspend")).toBe(true);
     });
   });
 

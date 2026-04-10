@@ -3,13 +3,25 @@
  * Handles:
  * - Auth protection for /app/* and /sa/* routes
  * - Tenant resolution header injection
- * - CSP headers for defense-in-depth
+ * - CSP headers with per-request nonce for defense-in-depth
+ * - Nonce generation and distribution to layout for inline scripts
  */
 
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { setCsrfCookie, validateCsrf } from "@/lib/csrf";
+
+/**
+ * Generate a cryptographically random nonce using Web Crypto API.
+ * Returns a base64-encoded 16-byte string compatible with Edge Runtime.
+ */
+function generateNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  // Convert Uint8Array to string using Array.from for better TS compatibility
+  return btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(""));
+}
 
 /** Check if this is a patient portal route (uses its own auth, not NextAuth) */
 function isPortalRoute(pathname: string): boolean {
@@ -58,6 +70,10 @@ export default withAuth(
       }
     }
 
+    // Generate a unique nonce for this request's CSP and inline scripts.
+    // Stored in response header so layout can read it via headers().
+    const nonce = generateNonce();
+
     // Inject tenant header from cookie if present (for SSR).
     // SECURITY: always strip any client-supplied x-tenant-id header first;
     // the only trustworthy source is the cookie set after authentication.
@@ -67,12 +83,33 @@ export default withAuth(
     if (tenantId) {
       headers.set("x-tenant-id", tenantId);
     }
+    // Forward nonce to request so it's available in headers() calls
+    headers.set("x-csp-nonce", nonce);
 
-    // Helper to apply security headers to any response (including early rejects)
-    // NOTE: Content-Security-Policy is set statically in next.config.mjs headers
-    // (see the headers() export). Do NOT set CSP here — it would override the
-    // static header and block Sentry, Vercel Analytics, Stripe, Resend, etc.
+    // Helper to apply security headers to any response (including early rejects).
+    // CSP is now set here per-request with a unique nonce, rather than statically
+    // in next.config.mjs. The nonce enables dropping 'unsafe-inline' while still
+    // allowing Next.js inline hydration scripts and Sentry's instrumentation.
     const applySecurityHeaders = (res: NextResponse) => {
+      // CSP with per-request nonce. strict-dynamic allows scripts loaded by
+      // nonce'd scripts to run without re-allowlisting, which is how Sentry
+      // and third-party integrations work.
+      const csp = [
+        "default-src 'self'",
+        // script-src: nonce for inline scripts, strict-dynamic for dynamic loads
+        `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.sentry.io https://va.vercel-scripts.com https://vitals.vercel-insights.com`,
+        // style-src: nonce for inline styles (still needed for some frameworks)
+        `style-src 'self' 'nonce-${nonce}' 'unsafe-inline'`,
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data:",
+        "connect-src 'self' https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.supabase.co wss://*.supabase.co https://api.resend.com https://api.stripe.com https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+        "frame-src 'self' https://js.stripe.com",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join("; ");
+      res.headers.set("Content-Security-Policy", csp);
+
       res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
       res.headers.set("X-Content-Type-Options", "nosniff");
       res.headers.set("X-Frame-Options", "DENY");
@@ -81,6 +118,8 @@ export default withAuth(
         "Permissions-Policy",
         "camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=()",
       );
+      // Expose nonce via response header for layout to read
+      res.headers.set("x-csp-nonce", nonce);
       return res;
     };
 

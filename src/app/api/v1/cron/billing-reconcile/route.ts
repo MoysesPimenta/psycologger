@@ -130,20 +130,23 @@ export async function POST(req: NextRequest) {
             include: { user: { select: { email: true } } },
           });
 
-          for (const admin of admins) {
-            if (!admin.user.email) continue;
-            try {
-              await sendSubscriptionSuspended({
-                email: admin.user.email,
-                tenantName: tenant.name,
-              });
-            } catch (err) {
-              console.error(
-                `[cron/billing-reconcile] Failed to send suspension email to ${admin.user.email}:`,
-                err
-              );
-            }
-          }
+          // Use Promise.all to send emails concurrently (not sequential)
+          await Promise.all(
+            admins.map(async (admin) => {
+              if (!admin.user.email) return;
+              try {
+                await sendSubscriptionSuspended({
+                  email: admin.user.email,
+                  tenantName: tenant.name,
+                });
+              } catch (err) {
+                console.error(
+                  `[cron/billing-reconcile] Failed to send suspension email to ${admin.user.email}:`,
+                  err
+                );
+              }
+            })
+          );
         } catch (err) {
           console.error(
             `[cron/billing-reconcile] Failed to fetch admins for tenant ${tenant.id}:`,
@@ -192,25 +195,29 @@ export async function POST(req: NextRequest) {
       // Iterate through all pages of charges
       let cursor = charges;
       while (true) {
+        // Batch-fetch all DB charges for this page of Stripe charges at once (N+1 optimization)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const stripeChargeAmounts = cursor.data.map((c: any) => c.amount);
+        const batchDbCharges = await db.charge.findMany({
+          where: {
+            tenantId: tenant.id,
+            amountCents: { in: stripeChargeAmounts },
+          },
+          include: { payments: true },
+        });
+
         for (const stripeCharge of cursor.data) {
           totalCharges++;
 
-          // Try to find matching DB record by Stripe charge ID
-          // (assumes we store stripe_charge_id in DB — not in current schema yet)
-          // For now, we'll search by metadata or amount + date heuristic
-          const dbCharges = await db.charge.findMany({
-            where: {
-              tenantId: tenant.id,
-              // Match by amount in cents (Stripe amount in cents)
-              amountCents: stripeCharge.amount,
-            },
-            include: { payments: true },
-          });
+          // Find matching DB charges with this amount (may be multiple)
+          const matchingDbCharges = batchDbCharges.filter(
+            (c) => c.amountCents === stripeCharge.amount
+          );
 
           // Check if any matching DB charge exists
           // (This is a heuristic; production should have stripe_charge_id field)
           let matched = false;
-          for (const dbCharge of dbCharges) {
+          for (const dbCharge of matchingDbCharges) {
             // Verify by amount and approximate date
             const chargeAge = Math.abs(
               new Date(stripeCharge.created * 1000).getTime() -

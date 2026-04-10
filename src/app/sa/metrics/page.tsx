@@ -55,6 +55,7 @@ export default async function SAMetricsPage() {
     monthlyChurnRate: null as number | null, monthlyGrossChurnCents: 0,
     ltvCents: null as number | null, cac: null as number | null,
     webhookErrors24h: 0, overQuotaTenantCount: 0,
+    emailBounces24h: 0, emailComplaints24h: 0, emailBounces7d: 0, emailComplaints7d: 0,
   };
 
   const [metrics, recentBilling, series, delinquent] = await Promise.all([
@@ -101,6 +102,22 @@ export default async function SAMetricsPage() {
           label={t("metrics.pastDueGrace")}
           value={`${metrics.pastDueCount} / ${metrics.graceCount}`}
           tone={metrics.pastDueCount > 0 ? "warn" : "default"}
+        />
+      </div>
+
+      {/* Email delivery health row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Kpi
+          label={t("metrics.emailBounces")}
+          value={`${metrics.emailBounces24h} / ${metrics.emailBounces7d}`}
+          footer="24h / 7d"
+          tone={metrics.emailBounces24h > 0 ? "warn" : "default"}
+        />
+        <Kpi
+          label={t("metrics.emailComplaints")}
+          value={`${metrics.emailComplaints24h} / ${metrics.emailComplaints7d}`}
+          footer="24h / 7d"
+          tone={metrics.emailComplaints24h > 0 ? "danger" : "default"}
         />
       </div>
 
@@ -244,10 +261,20 @@ function Kpi({
   label: string;
   value: string;
   footer?: string;
-  tone?: "default" | "warn";
+  tone?: "default" | "warn" | "danger";
 }) {
-  const borderClass = tone === "warn" ? "border-yellow-600" : "border-gray-200 dark:border-gray-700";
-  const valueClass = tone === "warn" ? "text-yellow-400" : "";
+  const borderClass =
+    tone === "danger"
+      ? "border-red-600"
+      : tone === "warn"
+        ? "border-yellow-600"
+        : "border-gray-200 dark:border-gray-700";
+  const valueClass =
+    tone === "danger"
+      ? "text-red-400"
+      : tone === "warn"
+        ? "text-yellow-400"
+        : "";
   return (
     <div className={`bg-gray-50 dark:bg-gray-950 border ${borderClass} rounded-xl p-5`}>
       <p className="text-gray-600 dark:text-gray-500 text-xs uppercase tracking-wide">{label}</p>

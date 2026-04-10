@@ -80,6 +80,12 @@ export interface SaasMetrics {
   // Operational alerts
   webhookErrors24h: number;
   overQuotaTenantCount: number;
+
+  // Email delivery health
+  emailBounces24h: number;
+  emailComplaints24h: number;
+  emailBounces7d: number;
+  emailComplaints7d: number;
 }
 
 export async function computeSaasMetrics(): Promise<SaasMetrics> {
@@ -87,8 +93,9 @@ export async function computeSaasMetrics(): Promise<SaasMetrics> {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const [tenants, tenantCount, userCount, patientCount, webhookErrors24h] =
+  const [tenants, tenantCount, userCount, patientCount, webhookErrors24h, emailBounces24h, emailComplaints24h, emailBounces7d, emailComplaints7d] =
     await Promise.all([
       db.tenant.findMany({
         select: {
@@ -109,6 +116,30 @@ export async function computeSaasMetrics(): Promise<SaasMetrics> {
         where: {
           action: "BILLING_WEBHOOK_FAILED",
           createdAt: { gte: oneDayAgo },
+        },
+      }),
+      db.auditLog.count({
+        where: {
+          action: "EMAIL_BOUNCE",
+          createdAt: { gte: oneDayAgo },
+        },
+      }),
+      db.auditLog.count({
+        where: {
+          action: "EMAIL_COMPLAINT",
+          createdAt: { gte: oneDayAgo },
+        },
+      }),
+      db.auditLog.count({
+        where: {
+          action: "EMAIL_BOUNCE",
+          createdAt: { gte: sevenDaysAgo },
+        },
+      }),
+      db.auditLog.count({
+        where: {
+          action: "EMAIL_COMPLAINT",
+          createdAt: { gte: sevenDaysAgo },
         },
       }),
     ]);
@@ -241,6 +272,10 @@ export async function computeSaasMetrics(): Promise<SaasMetrics> {
     cac: null,
     webhookErrors24h,
     overQuotaTenantCount,
+    emailBounces24h,
+    emailComplaints24h,
+    emailBounces7d,
+    emailComplaints7d,
   };
 }
 

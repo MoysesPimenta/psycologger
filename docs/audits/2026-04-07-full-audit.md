@@ -78,7 +78,7 @@ The backend is in good shape. The biggest gap is **mobile + PWA** — you said p
 
 ### Security / API
 - **P1-1 — ASSISTANT scope leak in charges GET.** `src/app/api/v1/charges/route.ts:51-52` filters by `provider:` for `PSYCHOLOGIST` but does **not** apply the equivalent assigned-patient filter for `ASSISTANT`. ASSISTANT currently sees all tenant charges. Patch: add `...(ctx.role === "ASSISTANT" && { patient: { assignedUserId: ctx.userId } })`.
-- **P1-2 — `users:suspend` permission exists in RBAC but no API route enforces it.** Either remove the permission or implement the route with `USER_SUSPEND` audit action.
+- **P1-2 — RESOLVED.** `users:suspend` permission removed from RBAC system (2026-04-10). Tenant suspension stays SUPERADMIN-only via `requireSuperAdmin()` on `/api/v1/sa/tenants/[id]/suspend`.
 
 ### Performance
 - **P1-3 — Payment-reminders cron is N+1.** `src/app/api/v1/cron/payment-reminders/route.ts:99-140` calls `paymentReminderLog.count()` and `reminderTemplate.findFirst()` inside a `for` loop over `chargesDueTomorrow`. With 10k charges this is ~20k extra round trips. Patch: batch-fetch logs (`findMany({ where: { chargeId: { in: ids } } })`) and templates once before the loop, then look up from a `Set`/`Map` in memory. ~2 h.

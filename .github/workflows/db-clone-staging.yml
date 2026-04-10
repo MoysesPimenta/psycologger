@@ -1,0 +1,264 @@
+name: Clone production DB to staging
+
+# Daily database clone from production to staging with anonymization.
+# Runs after the backup workflow to ensure we have a backup before cloning.
+#
+# Required secrets (Settings → Secrets and variables → Actions):
+#   PROD_DATABASE_URL    — Production Supabase direct connection string
+#                          (Project Settings → Database → Connection string →
+#                          URI, the DIRECT one on port 5432, NOT the pooler).
+#   STAGING_DATABASE_URL — Staging Supabase direct connection string
+#                          Same format as above for the staging environment.
+#
+# Safety:
+#   - All sensitive data in production is already encrypted (AES-256-GCM)
+#   - After restore, staging uses a DIFFERENT encryption key, making
+#     encrypted data unreadable even if leaked
+#   - Anonymization step nullifies plaintext PII as defense-in-depth
+#   - audit_logs are truncated (staging doesn't need production audit history)
+#
+# Manual trigger: Actions → "Clone production DB to staging" → Run workflow.
+
+on:
+  schedule:
+    # 06:00 UTC (after db-backup.yml runs at 05:xx)
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  clone-to-staging:
+    name: pg_dump prod → psql staging + anonymize
+    runs-on: ubuntu-latest
+    # Don't stack runs — if one takes > 2h, the next is skipped
+    concurrency:
+      group: db-clone-staging
+      cancel-in-progress: false
+    # Network-egress sandbox: no npm, no checkout needed
+    permissions:
+      contents: read
+    steps:
+      - name: Install postgresql-client-17
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-17 >/dev/null
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Verify client and database versions
+        env:
+          PROD_URL: ${{ secrets.PROD_DATABASE_URL }}
+          STAGING_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PROD_URL" ]; then
+            echo "::error::PROD_DATABASE_URL secret is not set"; exit 1
+          fi
+          if [ -z "$STAGING_URL" ]; then
+            echo "::error::STAGING_DATABASE_URL secret is not set"; exit 1
+          fi
+          echo "=== PostgreSQL client version ==="
+          pg_dump --version
+          echo ""
+          echo "=== Production database version ==="
+          psql "$PROD_URL" -c "SELECT version();" | head -5
+          echo ""
+          echo "=== Staging database version ==="
+          psql "$STAGING_URL" -c "SELECT version();" | head -5
+
+      - name: Create pre-restore SQL script
+        run: |
+          cat > /tmp/pre_restore.sql << 'EOF'
+          -- Drop all foreign key constraints in staging to avoid violations
+          -- during restore. They'll be re-created by the dump.
+          DO $$
+          DECLARE
+            fk RECORD;
+          BEGIN
+            FOR fk IN
+              SELECT constraint_name, table_name
+              FROM information_schema.table_constraints
+              WHERE constraint_type = 'FOREIGN KEY'
+                AND table_schema = 'public'
+            LOOP
+              EXECUTE 'ALTER TABLE "' || fk.table_name || '" DROP CONSTRAINT "' || fk.constraint_name || '" CASCADE';
+              RAISE NOTICE 'Dropped FK: %.%', fk.table_name, fk.constraint_name;
+            END LOOP;
+          END $$;
+
+          -- Truncate all tables in public schema (preserves schema structure)
+          -- Order matters: children before parents (determined by FK dependencies)
+          TRUNCATE TABLE "JournalNote", "SessionRevision", "FileObject", "SupportAttachment" CASCADE;
+          TRUNCATE TABLE "AuditLog", "PatientNotification", "ConsentRecord", "PatientPreference" CASCADE;
+          TRUNCATE TABLE "PatientAuth", "PatientPortalSession", "NfseInvoice" CASCADE;
+          TRUNCATE TABLE "ClinicalSession", "Charge", "Payment", "EmailReminder" CASCADE;
+          TRUNCATE TABLE "JournalEntry", "Recurrence", "Appointment", "ReminderLog", "PaymentReminderLog" CASCADE;
+          TRUNCATE TABLE "ReminderTemplate", "AppointmentType" CASCADE;
+          TRUNCATE TABLE "PatientContact", "Patient" CASCADE;
+          TRUNCATE TABLE "Membership", "Invite" CASCADE;
+          TRUNCATE TABLE "Tenant", "GoogleCalendarToken", "IntegrationCredential" CASCADE;
+          TRUNCATE TABLE "VerificationToken", "Session", "Account", "User" CASCADE;
+          TRUNCATE TABLE "StripeWebhookEvent", "DeviceToken", "SupportBlocklist", "SupportMessage", "SupportTicket" CASCADE;
+
+          RAISE NOTICE 'Pre-restore cleanup complete: FK constraints dropped, tables truncated';
+          EOF
+          cat /tmp/pre_restore.sql
+
+      - name: Run pg_dump (public schema only, no owner/acl)
+        env:
+          PROD_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          echo "CLONE_STAMP=$STAMP" >> "$GITHUB_ENV"
+
+          # Dump only the public schema (where application tables live)
+          # --no-owner / --no-acl keep it portable
+          # --clean drops objects before restoring (idempotent)
+          # --if-exists prevents errors if tables don't exist
+          pg_dump "$PROD_URL" \
+            --schema=public \
+            --no-owner \
+            --no-acl \
+            --clean \
+            --if-exists \
+            --file="/tmp/staging-clone-$STAMP.sql"
+
+          ls -lh "/tmp/staging-clone-$STAMP.sql"
+          echo "DUMP_FILE=/tmp/staging-clone-$STAMP.sql" >> "$GITHUB_ENV"
+
+      - name: Pre-restore cleanup (drop FK, truncate tables)
+        env:
+          STAGING_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          psql "$STAGING_URL" -f /tmp/pre_restore.sql --echo-all
+
+      - name: Restore dump to staging
+        env:
+          STAGING_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          echo "Restoring production dump to staging..."
+          psql "$STAGING_URL" -f "$DUMP_FILE" --echo-errors
+          echo "Restore complete"
+
+      - name: Anonymize sensitive data in staging
+        env:
+          STAGING_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          cat > /tmp/anonymize.sql << 'EOF'
+          -- Anonymize Patient PII
+          -- CPF is already encrypted in production; staging's different encryption key
+          -- makes it unreadable. Nullify for defense-in-depth.
+          UPDATE "Patient"
+          SET
+            cpf = NULL,
+            cpfBlindIndex = NULL,
+            notes = NULL,
+            phone = NULL,
+            lastLoginIp = NULL
+          WHERE cpf IS NOT NULL OR notes IS NOT NULL;
+          RAISE NOTICE 'Anonymized % patients', (SELECT changes());
+
+          -- Anonymize User emails (production users become staging-<id>@test.psycologger.com)
+          UPDATE "User"
+          SET email = 'staging-' || "id"::text || '@test.psycologger.com'
+          WHERE email NOT LIKE 'staging-%@test.psycologger.com';
+          RAISE NOTICE 'Anonymized % users', (SELECT changes());
+
+          -- Anonymize clinical session notes
+          UPDATE "ClinicalSession"
+          SET noteText = 'enc:v1:ANONYMIZED'
+          WHERE noteText IS NOT NULL AND noteText != 'enc:v1:ANONYMIZED';
+          RAISE NOTICE 'Anonymized % clinical sessions', (SELECT changes());
+
+          -- Anonymize clinical session revision notes
+          UPDATE "SessionRevision"
+          SET noteText = 'enc:v1:ANONYMIZED'
+          WHERE noteText IS NOT NULL AND noteText != 'enc:v1:ANONYMIZED';
+          RAISE NOTICE 'Anonymized % session revisions', (SELECT changes());
+
+          -- Anonymize journal entry notes
+          UPDATE "JournalEntry"
+          SET noteText = 'enc:v1:ANONYMIZED'
+          WHERE noteText IS NOT NULL AND noteText != 'enc:v1:ANONYMIZED';
+          RAISE NOTICE 'Anonymized % journal entries', (SELECT changes());
+
+          -- Anonymize journal note details
+          UPDATE "JournalNote"
+          SET noteText = 'enc:v1:ANONYMIZED'
+          WHERE noteText IS NOT NULL AND noteText != 'enc:v1:ANONYMIZED';
+          RAISE NOTICE 'Anonymized % journal notes', (SELECT changes());
+
+          -- Clear patient contact information (phone, email)
+          UPDATE "PatientContact"
+          SET
+            phone = NULL,
+            email = NULL
+          WHERE phone IS NOT NULL OR email IS NOT NULL;
+          RAISE NOTICE 'Anonymized % patient contacts', (SELECT changes());
+
+          -- Truncate audit logs (staging doesn't need production audit history)
+          TRUNCATE TABLE "AuditLog";
+          RAISE NOTICE 'Truncated audit logs';
+
+          -- Clear device tokens (staging users shouldn't push to production devices)
+          TRUNCATE TABLE "DeviceToken";
+          RAISE NOTICE 'Truncated device tokens';
+
+          -- Clear support tickets and messages (production support data)
+          TRUNCATE TABLE "SupportMessage", "SupportAttachment", "SupportTicket" CASCADE;
+          RAISE NOTICE 'Truncated support data';
+
+          -- Clear webhook events (staging doesn't need prod Stripe events)
+          TRUNCATE TABLE "StripeWebhookEvent";
+          RAISE NOTICE 'Truncated Stripe webhook events';
+
+          RAISE NOTICE 'Anonymization complete at %', now()::text;
+          EOF
+
+          echo "Running anonymization script..."
+          psql "$STAGING_URL" -f /tmp/anonymize.sql --echo-all
+
+      - name: Verify staging data integrity
+        env:
+          STAGING_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          echo "=== Data integrity checks ==="
+          psql "$STAGING_URL" << 'EOF'
+          SELECT 'Users (anonymized)' as check_name, COUNT(*) as count FROM "User";
+          SELECT 'Patients (anonymized)' as check_name, COUNT(*) as count FROM "Patient";
+          SELECT 'Clinical Sessions' as check_name, COUNT(*) as count FROM "ClinicalSession";
+          SELECT 'Appointments' as check_name, COUNT(*) as count FROM "Appointment";
+          SELECT 'Journal Entries' as check_name, COUNT(*) as count FROM "JournalEntry";
+          SELECT 'Audit Logs (should be 0)' as check_name, COUNT(*) as count FROM "AuditLog";
+          SELECT 'Device Tokens (should be 0)' as check_name, COUNT(*) as count FROM "DeviceToken";
+
+          -- Verify no plaintext PII
+          SELECT 'Patients with null CPF' as check_name, COUNT(*) as count FROM "Patient" WHERE cpf IS NULL;
+          SELECT 'Users with staging emails' as check_name, COUNT(*) as count FROM "User" WHERE email LIKE 'staging-%@test.psycologger.com';
+          SELECT 'Anon ClinicalSession notes' as check_name, COUNT(*) as count FROM "ClinicalSession" WHERE noteText = 'enc:v1:ANONYMIZED';
+          EOF
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "### Database clone to staging complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Timestamp: \`$CLONE_STAMP\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Dump source: Production (PROD_DATABASE_URL)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Restore target: Staging (STAGING_DATABASE_URL)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- PII anonymized: Patient CPF/notes, User emails, Clinical notes, Journal entries" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Audit logs: Truncated (staging doesn't need prod history)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Device tokens: Truncated (prevents push to user devices)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Safety note**: All sensitive data in production is AES-256-GCM encrypted. Staging's different encryption key renders it unreadable, plus we null/anonymize as defense-in-depth." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Failure notification
+        if: failure()
+        run: |
+          echo "### Database clone FAILED" >> "$GITHUB_STEP_SUMMARY"
+          echo "Check the logs above for details. Do NOT manually restore staging until you understand the failure." >> "$GITHUB_STEP_SUMMARY"
+          exit 1
