@@ -433,6 +433,116 @@ export async function sendPortalMagicLinkEmail({
   return sendEmail({ to, subject, html });
 }
 
+// ─── Billing Notifications ──────────────────────────────────────────────────
+
+export async function sendOverQuotaWarning({
+  email,
+  tenantName,
+  resource,
+  current,
+  limit,
+  planTier,
+}: {
+  email: string;
+  tenantName: string;
+  resource: string;
+  current: number;
+  limit: number;
+  planTier: string;
+}) {
+  const subject = `Aviso: Limite de ${resource} excedido — ${esc(tenantName)}`;
+  const upgradeUrl = `${APP_URL}/app/billing`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+      <h2 style="color:#dc2626;">Limite de ${resource} excedido</h2>
+      <p>Olá,</p>
+      <p>Sua clínica <strong>${esc(tenantName)}</strong> ultrapassou o limite de ${resource} do plano <strong>${esc(planTier)}</strong>.</p>
+      <div style="background:#fef2f2; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #dc2626;">
+        <p style="margin:8px 0;"><strong>${resource.charAt(0).toUpperCase() + resource.slice(1)} ativos:</strong> ${current}/${limit}</p>
+        <p style="margin:8px 0; font-size:13px; color:#7f1d1d;">Você não poderá adicionar mais ${resource} até fazer upgrade do plano.</p>
+      </div>
+      <div style="text-align:center; margin:24px 0;">
+        <a href="${esc(upgradeUrl)}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; padding:12px 32px; border-radius:8px; font-weight:600;">
+          Fazer Upgrade do Plano
+        </a>
+      </div>
+      <p style="color:#6b7280; font-size:13px;">
+        Se você acredita que este é um erro, entre em contato com nosso suporte.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, html });
+}
+
+export async function sendPaymentOverdueWarning({
+  email,
+  tenantName,
+  graceDaysLeft,
+}: {
+  email: string;
+  tenantName: string;
+  graceDaysLeft: number;
+}) {
+  const subject = `Aviso: Pagamento vencido — ${esc(tenantName)}`;
+  const billingUrl = `${APP_URL}/app/billing`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+      <h2 style="color:#dc2626;">Pagamento vencido</h2>
+      <p>Olá,</p>
+      <p>O pagamento da sua assinatura em <strong>${esc(tenantName)}</strong> não foi processado.</p>
+      <div style="background:#fef2f2; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #dc2626;">
+        <p style="margin:8px 0;"><strong>Período de graça:</strong> ${graceDaysLeft} dias restantes</p>
+        <p style="margin:8px 0; font-size:13px; color:#7f1d1d;">Após este período, seu acesso ao Psycologger será bloqueado.</p>
+      </div>
+      <div style="text-align:center; margin:24px 0;">
+        <a href="${esc(billingUrl)}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; padding:12px 32px; border-radius:8px; font-weight:600;">
+          Atualizar Pagamento
+        </a>
+      </div>
+      <p style="color:#6b7280; font-size:13px;">
+        Por favor, atualize seu método de pagamento para evitar interrupção do serviço.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, html });
+}
+
+export async function sendSubscriptionSuspended({
+  email,
+  tenantName,
+}: {
+  email: string;
+  tenantName: string;
+}) {
+  const subject = `Assinatura bloqueada — ${esc(tenantName)}`;
+  const reactivateUrl = `${APP_URL}/app/billing/reactivate`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+      <h2 style="color:#dc2626;">Assinatura bloqueada</h2>
+      <p>Olá,</p>
+      <p>A assinatura de <strong>${esc(tenantName)}</strong> foi bloqueada devido a pagamento não realizado.</p>
+      <div style="background:#fef2f2; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #dc2626;">
+        <p style="margin:8px 0; font-size:13px; color:#7f1d1d;">Seu acesso ao Psycologger foi interrompido. Você não poderá criar ou gerenciar pacientes até reativar sua assinatura.</p>
+      </div>
+      <div style="text-align:center; margin:24px 0;">
+        <a href="${esc(reactivateUrl)}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; padding:12px 32px; border-radius:8px; font-weight:600;">
+          Reativar Assinatura
+        </a>
+      </div>
+      <p style="color:#6b7280; font-size:13px;">
+        Se você já pagou, por favor entre em contato com nosso suporte para reativar sua conta.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, html });
+}
+
 // ─── Base send ────────────────────────────────────────────────────────────────
 
 async function sendEmail({

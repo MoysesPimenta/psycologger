@@ -7,6 +7,7 @@ import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { BillingBanner } from "@/components/billing/billing-banner";
 import ImpersonationBanner from "@/components/sa/impersonation-banner";
 import { requireActiveSubscription } from "@/lib/billing/subscription-status";
+import { getTenantQuotaUsage } from "@/lib/billing/limits";
 import { db } from "@/lib/db";
 import { ThemeSync } from "@/components/theme-sync";
 
@@ -48,7 +49,8 @@ export default async function AppLayout({
   }
 
   // Fetch billing banner data
-  let graceBanner = null;
+  let billingBanner = null;
+
   if (billingState === "GRACE") {
     const tenant = await db.tenant.findUnique({
       where: { id: ctx.tenantId },
@@ -58,7 +60,23 @@ export default async function AppLayout({
       const daysLeft = Math.ceil(
         (new Date(tenant.graceUntil).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
       );
-      graceBanner = { state: "GRACE" as const, graceDaysLeft: daysLeft };
+      billingBanner = { state: "GRACE" as const, graceDaysLeft: daysLeft };
+    }
+  }
+
+  // Check for over-quota condition
+  if (!billingBanner) {
+    try {
+      const quotaUsage = await getTenantQuotaUsage(ctx.tenantId);
+      if (quotaUsage.patients.overQuota || quotaUsage.therapists.overQuota) {
+        billingBanner = {
+          state: "OVER_QUOTA" as const,
+          quotaInfo: quotaUsage,
+        };
+      }
+    } catch (err) {
+      // If quota check fails, don't block rendering — just log it
+      console.error(`[layout] Failed to check quota for tenant ${ctx.tenantId}:`, err);
     }
   }
 
@@ -82,7 +100,13 @@ export default async function AppLayout({
           impersonatedUserEmail={undefined}
         />
       )}
-      {graceBanner && <BillingBanner state={graceBanner.state} graceDaysLeft={graceBanner.graceDaysLeft} />}
+      {billingBanner && (
+        <BillingBanner
+          state={billingBanner.state}
+          graceDaysLeft={billingBanner.graceDaysLeft}
+          quotaInfo={billingBanner.quotaInfo}
+        />
+      )}
       <div className={`flex h-screen bg-gray-50 ${ctx.impersonating ? "pt-16" : ""}`}>
         <AppSidebar userRole={ctx.role} />
         {/* Main content area — offset by sidebar width on md+ */}

@@ -22,6 +22,10 @@ import { db } from "@/lib/db";
 import { apiError } from "@/lib/api";
 import { auditLog, type AuditAction } from "@/lib/audit";
 import { tierFromPriceId } from "@/lib/billing/plans";
+import {
+  sendPaymentOverdueWarning,
+  sendSubscriptionSuspended,
+} from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -253,6 +257,38 @@ async function handleSubscriptionDeleted(event: Stripe.Event) {
     event: "subscription_deleted",
     previousTier,
   });
+
+  // Send subscription suspended notification to tenant admins
+  try {
+    const admins = await db.membership.findMany({
+      where: {
+        tenantId: tenant.id,
+        role: "TENANT_ADMIN",
+        status: "ACTIVE",
+      },
+      include: { user: { select: { email: true } } },
+    });
+
+    for (const admin of admins) {
+      if (!admin.user.email) continue;
+      try {
+        await sendSubscriptionSuspended({
+          email: admin.user.email,
+          tenantName: tenant.name,
+        });
+      } catch (err) {
+        console.error(
+          `[stripe-webhook] Failed to send suspension notice to ${admin.user.email}:`,
+          err
+        );
+      }
+    }
+  } catch (err) {
+    console.error(
+      "[stripe-webhook] Failed to send subscription suspended emails:",
+      err
+    );
+  }
 }
 
 async function handleInvoicePaymentFailed(event: Stripe.Event) {
@@ -279,6 +315,40 @@ async function handleInvoicePaymentFailed(event: Stripe.Event) {
       entityId: tenant.id,
       summary: { event: "invoice_payment_failed", graceUntilDays: 3 },
     });
+
+    // Send payment overdue warning to tenant admins
+    try {
+      const admins = await db.membership.findMany({
+        where: {
+          tenantId: tenant.id,
+          role: "TENANT_ADMIN",
+          status: "ACTIVE",
+        },
+        include: { user: { select: { email: true } } },
+      });
+
+      const graceDaysLeft = 3;
+      for (const admin of admins) {
+        if (!admin.user.email) continue;
+        try {
+          await sendPaymentOverdueWarning({
+            email: admin.user.email,
+            tenantName: tenant.name,
+            graceDaysLeft,
+          });
+        } catch (err) {
+          console.error(
+            `[stripe-webhook] Failed to send payment warning to ${admin.user.email}:`,
+            err
+          );
+        }
+      }
+    } catch (err) {
+      console.error(
+        "[stripe-webhook] Failed to send payment warning emails:",
+        err
+      );
+    }
   }
 }
 

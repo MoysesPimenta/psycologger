@@ -37,6 +37,10 @@
       "schedule": "0 4 * * *"
     },
     {
+      "path": "/api/v1/cron/billing-quota-check",
+      "schedule": "0 2 * * *"
+    },
+    {
       "path": "/api/v1/cron/support-stale-pending",
       "schedule": "0 5 * * *"
     },
