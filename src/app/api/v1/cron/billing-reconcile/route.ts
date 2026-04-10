@@ -25,6 +25,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { db } from "@/lib/db";
 import { requireCronAuth } from "@/lib/cron-auth";
 import { auditLog } from "@/lib/audit";
@@ -157,6 +158,16 @@ export async function POST(req: NextRequest) {
         graceAutoSuspended++;
         console.log(
           `[cron/billing-reconcile] Auto-suspended tenant ${tenant.id} (grace expired)`
+        );
+
+        // Fire Sentry so alerts trigger on tenant suspensions
+        Sentry.captureMessage(
+          `Tenant auto-suspended: ${tenant.name} (grace period expired)`,
+          {
+            level: "warning",
+            tags: { action: "BILLING_GRACE_EXPIRED" },
+            extra: { tenantId: tenant.id, tenantName: tenant.name },
+          }
         );
       } catch (err) {
         console.error(

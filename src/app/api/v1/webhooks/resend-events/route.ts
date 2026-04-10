@@ -16,6 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { db } from "@/lib/db";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { rateLimit } from "@/lib/rate-limit";
@@ -151,6 +152,12 @@ export async function POST(req: NextRequest) {
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
       });
+      // Fire Sentry warning so "Number of Errors" alerts can trigger
+      Sentry.captureMessage(`Email bounced: ${email} (${bounceType})`, {
+        level: "warning",
+        tags: { action: "EMAIL_BOUNCE", bounceType },
+        extra: { email, messageId, reason, tenantId },
+      });
       break;
 
     case "email.complained":
@@ -167,6 +174,12 @@ export async function POST(req: NextRequest) {
         },
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
+      });
+      // Fire Sentry error so alerts trigger immediately for complaints
+      Sentry.captureMessage(`Email complaint (spam report): ${email}`, {
+        level: "error",
+        tags: { action: "EMAIL_COMPLAINT", complaintType },
+        extra: { email, messageId, complaintType, tenantId },
       });
       break;
 
