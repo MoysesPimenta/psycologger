@@ -30,6 +30,9 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      - name: Validate Prisma schema and migrations
+        run: npm run db:validate
+
       - name: Run unit tests
         run: npm run test:unit -- --coverage
 

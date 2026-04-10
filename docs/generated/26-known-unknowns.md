@@ -7,17 +7,21 @@ This document tracks everything that is ambiguous, missing evidence, contradicto
 The following generated docs are now partially stale relative to code and should be regenerated when the next doc-gen pass runs:
 
 - **05-auth-and-rbac.md** — Login Attempt Rate Limiting section was hand-patched on 2026-04-07; the rest of the patient-portal sections (lockout, last-login, audit actions) need a full regen pass.
-- **08-business-domains.md** — Add billing reconciliation cron (`/api/v1/cron/billing-reconcile`).
-- **11-api-reference.md** — Add `/api/debug/sentry-test`, `/api/v1/cron/billing-reconcile`, `/api/v1/webhooks/resend`, `/api/v1/calendar/*`, `/api/v1/nfse/*`, `/api/v1/patients/[id]/dsar/*`, `/api/v1/cron/lgpd-purge`, `/api/v1/health`, `/api/health`.
-- **16-integrations.md** — Add Google Calendar OAuth2 flow, NFSe (PlugNotas) integration, Resend webhook + Stripe reconciliation.
+- **11-api-reference.md** — Add `/api/debug/sentry-test`, `/api/v1/webhooks/resend-events`, `/api/v1/cron/billing-quota-check`.
+- **16-integrations.md** — Add Resend email delivery webhook monitoring + Stripe reconciliation details.
 - **17-security-and-privacy.md** — RLS section already updated by hand; PWA + service-worker section should be added; i18n routing updates.
-- **18-testing.md** — Stale; new Jest unit suites under `tests/unit/` and `.github/workflows/ci.yml` are not reflected.
+- **18-testing.md** — Stale; new Jest unit suites under `tests/unit/`, k6 load tests under `tests/load/`, and `.github/workflows/ci.yml` Prisma validation not reflected.
 - **20-tech-debt-and-known-issues.md** — Updated: i18n now implemented (remove from debt), `as never` casts resolved, appointment reminder cron confirmed (remove from unknowns); parked CSP-nonce branch still in backlog.
+
+**Regenerated or verified 2026-04-10:**
+- **08-business-domains.md** — Billing reconciliation cron documented
+- **25-system-context-summary.md** — Updated with billing enforcement, env validation, k6 load tests, Resend webhook, Prisma CI validation
 
 New runbooks live under `docs/runbooks/` (not auto-generated):
 - `backup-restore-drill.md` — quarterly PITR drill
 - `sentry-alerts.md` — alert rules to configure in Sentry UI
 - `i18n-audit-2026-04-07.md` — i18n posture and recommendation
+- `encryption-key-rotation.md` — key rotation procedure (Phases 1–3)
 
 
 ## Deployment & Infrastructure
@@ -136,10 +140,10 @@ New runbooks live under `docs/runbooks/` (not auto-generated):
 
 ### Load Testing & Capacity Planning
 - **Question:** Has load testing been performed?
-- **Evidence:** No load testing or capacity planning visible in codebase or docs
-- **Gap:** Unknown capacity limits, scaling behavior, or bottlenecks
-- **Impact:** Unexpected behavior under load; no SLO baselines
-- **Action needed:** Perform load testing and document capacity limits
+- **Evidence:** k6 load testing suite available in `tests/load/` with smoke and API tests
+- **Status:** RESOLVED 2026-04-10 — k6-smoke.js and k6-api.js with ramp-up/hold/ramp-down stages, p95 < 500ms and error rate < 1% thresholds
+- **Impact:** Can now baseline performance and detect regressions
+- **Next step:** Integrate into CI/CD and run against production regularly
 
 ### Expected User Load
 - **Question:** What is the expected user load (tenants, psychologists, patients, API RPS)?
@@ -220,16 +224,18 @@ New runbooks live under `docs/runbooks/` (not auto-generated):
 
 ## Summary of Critical Actions
 
-| Area | Action | Priority |
-|------|--------|----------|
-| Deployment | Verify Vercel cron is running | Critical |
-| Encryption | Document key rotation procedure | Critical |
-| Security | Decide on Sentry retention and finalize CSP nonce migration | High |
-| Testing | Set up staging environment | High |
-| Operations | Create operational runbooks | High |
-| Performance | Perform load testing | Medium |
-| Monitoring | Add audit log alerting | Medium |
-| Code | Audit for N+1 queries | Low |
+| Area | Action | Priority | Status |
+|------|--------|----------|--------|
+| Deployment | Verify Vercel cron is running | Critical | Pending |
+| Encryption | Document key rotation procedure | Critical | RESOLVED 2026-04-10 |
+| Security | Decide on Sentry retention and finalize CSP nonce migration | High | Pending |
+| Testing | Set up staging environment | High | Pending |
+| Operations | Create operational runbooks | High | Partial (key rotation done) |
+| Performance | Perform load testing | Medium | RESOLVED 2026-04-10 |
+| Monitoring | Add audit log alerting | Medium | Pending |
+| Code | Audit for N+1 queries | Low | Pending |
+| Billing | Verify grace period enforcement in production | High | RESOLVED 2026-04-10 |
+| Email | Verify Resend webhook delivery monitoring | High | RESOLVED 2026-04-10 |
 
 ## Resolved 2026-04-09 (Session 2)
 
@@ -270,6 +276,46 @@ New runbooks live under `docs/runbooks/` (not auto-generated):
 - **Mobile bearer token foundation**: Implemented — JWT (HS256) tokens with 30-day TTL, feature-flagged via `MOBILE_BEARER_ENABLED=true`, fallback to NextAuth/portal sessions, `src/lib/bearer-auth.ts` + mobile token endpoints at `/api/v1/auth/mobile-token` and `/api/v1/portal/auth/mobile-token`.
 - **Error & loading boundaries**: Deployed across `/app/*`, `/sa/*`, `/portal/*`, `/login/*` segments with minimal skeletons and error recovery.
 - **Mobile readiness guide**: Complete — covers API envelope, token lifecycle, mobile-ready endpoints, recommended Expo stack, what's still needed (signed URLs, push notifications).
+
+## Resolved 2026-04-10
+
+- **Billing enforcement (Grace & Over-Quota):**
+  - Grace period auto-suspension: `/api/v1/cron/billing-reconcile` (runs daily at 04:00 UTC) suspends tenants after grace period expires, clears `subscriptionStatus`, suspends ACTIVE memberships, sends email to TENANT_ADMIN users
+  - Over-quota enforcement: `/api/v1/cron/billing-quota-check` detects when patient/therapist counts exceed plan limits, triggers `BILLING_QUOTA_WARNING_SENT` audit action, sends email notifications
+  - Over-quota banner: `src/components/billing/billing-banner.tsx` displays GRACE and OVER_QUOTA states with action links
+  - Email notifications: Payment overdue, suspension, and over-quota warnings via Resend
+
+- **Resend email delivery webhook monitoring:**
+  - Webhook endpoint: `/api/v1/webhooks/resend-events` (POST, Svix-verified)
+  - Events tracked: `email.delivered`, `email.bounced`, `email.complained`, `email.delivery_delayed`
+  - Audit logging: EMAIL_BOUNCE and EMAIL_COMPLAINT actions logged with bounce/complaint reason and bounce type
+  - Rate limiting: 100 events / 10 min per tenant, 500 events / 1 min global
+
+- **New audit actions:** EMAIL_BOUNCE, EMAIL_COMPLAINT, BILLING_QUOTA_WARNING_SENT (total now 52+ actions)
+
+- **Enhanced env var startup validation:**
+  - Module: `src/lib/env-check.ts` with `validateAllEnvVars()` function
+  - Validates: DATABASE_URL (required), ENCRYPTION_KEY (required, base64 32-byte check), RESEND_API_KEY, STRIPE_SECRET_KEY, and 10+ others
+  - Integration: Called in `src/instrumentation.ts` at app startup; fails fast with clear error messages if validation fails
+  - Health check: `/api/v1/health` verifies encryption key is valid
+
+- **k6 load testing suite:**
+  - Location: `tests/load/` with smoke test (`k6-smoke.js`) and API test (`k6-api.js`)
+  - Smoke test: 5 VUs for 30s, validates health, landing page, login
+  - API test: Ramp-up 1→20 VUs over 1 min, hold 20 for 2 min, ramp-down; tests appointments, patients, charges CRUD
+  - Thresholds: p95 response < 500ms, error rate < 1%
+  - README with installation and usage instructions included
+
+- **Prisma migration CI validation:**
+  - Step in `.github/workflows/ci.yml`: `npm run db:validate` validates schema and migrations before merge
+  - Prevents deploying broken migrations or schema mismatches
+
+- **Encryption key rotation runbook:**
+  - Location: `docs/runbooks/encryption-key-rotation.md`
+  - Phase 1 (dual keys): Deploy new ENCRYPTION_KEY + old as ENCRYPTION_KEY_PREVIOUS, new data encrypted with new key, old data still decrypts
+  - Phase 2 (re-encrypt): Script re-encrypts all encrypted fields (CPF, clinical notes, journals, support messages, integrations, OAuth tokens) with new key
+  - Phase 3 (cleanup): Remove ENCRYPTION_KEY_PREVIOUS, single-key mode
+  - Disaster recovery scenarios and rollback procedures documented
 
 ## LGPD Tenant Purge Automation (2026-04-09)
 

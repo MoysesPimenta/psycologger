@@ -12,6 +12,8 @@ describe("env-check", () => {
     RESEND_API_KEY: "re_test_1234567890",
     DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
     NEXTAUTH_SECRET: "a-very-secure-secret-value-that-is-long-enough-for-32",
+    STRIPE_SECRET_KEY: "sk_test_abc123",
+    STRIPE_WEBHOOK_SECRET: "whsec_test_abc123",
   };
 
   let validateEnv: () => void;

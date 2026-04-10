@@ -69,6 +69,9 @@ export type AuditAction =
   | "GOOGLE_CALENDAR_CONNECT"
   | "GOOGLE_CALENDAR_DISCONNECT"
   | "INTEGRATION_CREDENTIAL_UPDATE"
+  // Email delivery
+  | "EMAIL_BOUNCE"
+  | "EMAIL_COMPLAINT"
   // Patient Portal
   | "PORTAL_ACCOUNT_ACTIVATED"
   | "PORTAL_LOGIN"

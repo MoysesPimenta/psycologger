@@ -107,7 +107,7 @@ export default async function AppLayout({
           quotaInfo={billingBanner.quotaInfo}
         />
       )}
-      <div className={`flex h-screen bg-gray-50 ${ctx.impersonating ? "pt-16" : ""}`}>
+      <div className={`flex h-screen bg-gray-50 ${ctx.impersonating ? "pt-16" : ""} ${billingBanner ? "pt-16" : ""}`}>
         <AppSidebar userRole={ctx.role} />
         {/* Main content area — offset by sidebar width on md+ */}
         <main className="flex-1 md:ml-64 overflow-auto">

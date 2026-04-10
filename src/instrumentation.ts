@@ -20,11 +20,29 @@ export async function register() {
 
   // Only run remaining checks on the server (not Edge Runtime)
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
   // Skip during `next build` — env vars from Vercel marketplace integrations
   // (e.g. Upstash) are only injected at runtime, not during the build phase.
   // Validating then would fail builds even though prod runtime is healthy.
   if (process.env.NEXT_PHASE === "phase-production-build") return;
-  const { validateEnv } = await import("@/lib/env-check");
+
+  // Startup environment validation
+  const { validateEnv, validateAllEnvVars } = await import("@/lib/env-check");
+
+  // Log detailed validation results in development
+  if (process.env.NODE_ENV === "development") {
+    const result = validateAllEnvVars();
+    if (!result.valid) {
+      console.error("\n[env-check] Validation errors:");
+      result.errors.forEach((err) => console.error(`  ✗ ${err}`));
+    }
+    if (result.warnings.length > 0) {
+      console.warn("\n[env-check] Validation warnings:");
+      result.warnings.forEach((warn) => console.warn(`  ⚠ ${warn}`));
+    }
+  }
+
+  // Throw and exit if any required vars are missing
   validateEnv();
 }
 

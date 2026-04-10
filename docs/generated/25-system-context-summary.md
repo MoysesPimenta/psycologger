@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
 - Clinical session templates (SOAP, BIRP, FREE)
 - Charge and partial payment tracking
 - Patient portal with journal and encryption
-- Audit logging with 49 actions
+- Audit logging with 52+ actions
 - Email reminders (Vercel cron)
 - File upload with magic byte validation
 - Encryption and key rotation
@@ -139,6 +139,11 @@ export async function POST(req: NextRequest) {
 - NFSe integration (PlugNotas adapter with credential CRUD, issue/cancel/status-check endpoints; routes at `/api/v1/nfse/*`)
 - LGPD DSAR (patient data export, deletion, anonymization via `/api/v1/patients/[id]/dsar/*`; tenant purge automation at `/api/v1/cron/lgpd-purge`)
 - Health check endpoint (`/api/v1/health` and `/api/health`)
+- **Billing enforcement:** Grace period auto-suspension cron (`/api/v1/cron/billing-reconcile`), over-quota detection (`/api/v1/cron/billing-quota-check`), banner display (GRACE and OVER_QUOTA states), email notifications for payment overdue/suspended/over-quota
+- **Resend email delivery webhook** at `/api/v1/webhooks/resend-events` — monitors delivery, bounces, complaints
+- **Enhanced env var validation** with startup health checks (`validateAllEnvVars()` in `src/lib/env-check.ts`, called in `src/instrumentation.ts`)
+- **k6 load testing scripts** in `tests/load/` (smoke test + API load test with realistic ramp-up)
+- **Prisma migration validation** in CI via `npm run db:validate` (`.github/workflows/ci.yml`)
 
 **Stubs/Incomplete:**
 
@@ -168,9 +173,11 @@ export async function POST(req: NextRequest) {
 5. ~~NFSe integration stub~~ — RESOLVED 2026-04-09: PlugNotas adapter with credential CRUD and status check
 6. ~~Appointment reminder cron missing~~ — RESOLVED 2026-04-09: registered in vercel.json at `/api/v1/cron/appointment-reminders`
 7. ~~LGPD data deletion not automated~~ — RESOLVED 2026-04-09: DSAR endpoints (export, delete, anonymize) + tenant purge cron implemented
-8. **No staging environment** — cannot test pre-release changes safely
-9. **Rate limiting may be ineffective** — Upstash Redis optional; in-memory fallback not production-safe
-10. **No load testing visible** — capacity unknown; no performance baselines
+8. ~~No load testing visible~~ — RESOLVED 2026-04-10: k6 smoke and API tests in `tests/load/` with ramp-up, thresholds (p95 < 500ms, error rate < 1%)
+9. ~~Env var startup validation missing~~ — RESOLVED 2026-04-10: `validateAllEnvVars()` in `src/lib/env-check.ts` with base64 validation for ENCRYPTION_KEY, called in `src/instrumentation.ts`
+10. ~~Prisma migration safety in CI~~ — RESOLVED 2026-04-10: `npm run db:validate` in `.github/workflows/ci.yml` validates schema and migrations
+11. **No staging environment** — cannot test pre-release changes safely
+12. **Rate limiting may be ineffective** — Upstash Redis optional; in-memory fallback not production-safe
 
 ## File Map (What to Read First)
 
@@ -197,7 +204,7 @@ export async function POST(req: NextRequest) {
 
 ---
 
-**Last verified against code:** 2026-04-09
+**Last verified against code:** 2026-04-10
 - i18n (next-intl) with pt-BR, en, es locales live
 - Google Calendar sync with OAuth2 flow live
 - NFSe integration with PlugNotas adapter live
@@ -205,6 +212,11 @@ export async function POST(req: NextRequest) {
 - Health check endpoints (`/api/v1/health` and `/api/health`) verified
 - CPF encryption with blind index verified
 - Clinical notes encryption with production rejection option verified
+- Billing enforcement (grace auto-suspension, over-quota banner, email notifications) live
+- Resend webhook monitoring (`/api/v1/webhooks/resend-events`) live
+- Enhanced env var startup validation live
+- k6 load testing suite available
+- Prisma migration CI validation live
 
 ## April 2026 update — plan-limit enforcement & SA console
 

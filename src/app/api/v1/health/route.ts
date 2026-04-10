@@ -5,11 +5,25 @@
  * Checks:
  * - Database connectivity
  * - Encryption key validity
+ * - Environment variable validation (required vars only)
+ *
  * Returns: 200 with health status, or 503 if critical checks fail
+ * Never exposes sensitive values, only names and validation status.
  */
 
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { validateAllEnvVars } from "@/lib/env-check";
+
+interface HealthCheckEnv {
+  status: "ok" | "error";
+  requiredVarsSet: number;
+  requiredVarsTotal: number;
+  warningCount: number;
+  missingVarNames: string[];
+  invalidVarNames: string[];
+  warningVarNames: string[];
+}
 
 interface HealthCheck {
   status: "healthy" | "degraded" | "unhealthy";
@@ -24,6 +38,7 @@ interface HealthCheck {
       status: "ok" | "error";
       error?: string;
     };
+    env: HealthCheckEnv;
   };
   version: string;
 }
@@ -33,9 +48,42 @@ export async function GET(): Promise<NextResponse> {
   const checks: HealthCheck["checks"] = {
     database: { status: "error" },
     encryption: { status: "error" },
+    env: {
+      status: "error",
+      requiredVarsSet: 0,
+      requiredVarsTotal: 0,
+      warningCount: 0,
+      missingVarNames: [],
+      invalidVarNames: [],
+      warningVarNames: [],
+    },
   };
 
   let overallStatus: "healthy" | "degraded" | "unhealthy" = "unhealthy";
+
+  // Check environment variables
+  try {
+    const envResult = validateAllEnvVars();
+    checks.env = {
+      status: envResult.valid ? "ok" : "error",
+      requiredVarsSet: envResult.requiredVarsSet,
+      requiredVarsTotal: envResult.requiredVarsTotal,
+      warningCount: envResult.warnings.length,
+      missingVarNames: envResult.missingVarNames,
+      invalidVarNames: envResult.invalidVarNames,
+      warningVarNames: envResult.warningVarNames,
+    };
+  } catch (err) {
+    checks.env = {
+      status: "error",
+      requiredVarsSet: 0,
+      requiredVarsTotal: 0,
+      warningCount: 0,
+      missingVarNames: [],
+      invalidVarNames: [],
+      warningVarNames: [],
+    };
+  }
 
   // Check database connectivity
   const dbStart = Date.now();
@@ -62,10 +110,10 @@ export async function GET(): Promise<NextResponse> {
       };
     } else {
       const key = Buffer.from(keyBase64, "base64");
-      if (key.length !== 32) {
+      if (key.length < 32) {
         checks.encryption = {
           status: "error",
-          error: "ENCRYPTION_KEY must be 32 bytes (256-bit), base64-encoded",
+          error: "ENCRYPTION_KEY must be at least 32 bytes (256-bit), base64-encoded",
         };
       } else {
         checks.encryption = {
@@ -81,21 +129,29 @@ export async function GET(): Promise<NextResponse> {
   }
 
   // Determine overall status
-  if (checks.database.status === "ok" && checks.encryption.status === "ok") {
+  // Unhealthy if any critical check fails
+  if (checks.env.status === "ok" && checks.database.status === "ok" && checks.encryption.status === "ok") {
     overallStatus = "healthy";
-  } else if (checks.database.status === "ok" || checks.encryption.status === "ok") {
+  } else if (
+    (checks.env.status === "ok" || checks.database.status === "ok" || checks.encryption.status === "ok") &&
+    (checks.env.status === "ok" && checks.database.status === "ok") // At least DB and env must be OK
+  ) {
     overallStatus = "degraded";
+  } else {
+    overallStatus = "unhealthy";
   }
 
   const response: HealthCheck = {
     status: overallStatus,
     timestamp,
     checks,
-    version: process.env.VERCEL_ENV === "production"
-      ? (process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7) ?? "unknown")
-      : "development",
+    version:
+      process.env.VERCEL_ENV === "production"
+        ? process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7) ?? "unknown"
+        : "development",
   };
 
-  const httpStatus = overallStatus === "healthy" ? 200 : 503;
+  // Return 503 if any critical env var is missing
+  const httpStatus = checks.env.status === "ok" && overallStatus !== "unhealthy" ? 200 : 503;
   return NextResponse.json(response, { status: httpStatus });
 }
