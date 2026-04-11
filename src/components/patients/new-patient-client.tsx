@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -108,7 +109,7 @@ export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?:
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">{t("phone")}</Label>
-              <Input id="phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="11 99999-0000" />
+              <PhoneInput id="phone" value={form.phone} onChange={(v) => set("phone", v)} />
             </div>
           </div>
 

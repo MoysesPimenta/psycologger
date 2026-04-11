@@ -258,7 +258,8 @@
     "month": "Month",
     "businessHours": "Show business hours (7am–7pm)",
     "allDay": "Show 24 hours",
-    "newAppointment": "New appointment"
+    "newAppointment": "New appointment",
+    "noAppointments": "No appointments"
   },
   "financial": {
     "currentMonth": "Current month",

@@ -258,7 +258,8 @@
     "month": "Mese",
     "businessHours": "Mostra orario di lavoro (7:00-19:00)",
     "allDay": "Mostra 24 ore",
-    "newAppointment": "Nuovo appuntamento"
+    "newAppointment": "Nuovo appuntamento",
+    "noAppointments": "Nessun appuntamento"
   },
   "financial": {
     "currentMonth": "Mese corrente",

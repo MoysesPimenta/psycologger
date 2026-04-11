@@ -258,7 +258,8 @@
     "month": "חודש",
     "businessHours": "הצג שעות עבודה (7:00–19:00)",
     "allDay": "הצג 24 שעות",
-    "newAppointment": "פגישה חדשה"
+    "newAppointment": "פגישה חדשה",
+    "noAppointments": "אין פגישות"
   },
   "financial": {
     "currentMonth": "חודש נוכחי",

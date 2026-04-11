@@ -258,7 +258,8 @@
     "month": "Mês",
     "businessHours": "Mostrar horário comercial (7h–19h)",
     "allDay": "Mostrar 24 horas",
-    "newAppointment": "Nova consulta"
+    "newAppointment": "Nova consulta",
+    "noAppointments": "Sem compromissos"
   },
   "financial": {
     "currentMonth": "Mês atual",

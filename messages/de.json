@@ -258,7 +258,8 @@
     "month": "Monat",
     "businessHours": "Geschäftszeiten anzeigen (7:00–19:00)",
     "allDay": "24 Stunden anzeigen",
-    "newAppointment": "Neuer Termin"
+    "newAppointment": "Neuer Termin",
+    "noAppointments": "Keine Termine"
   },
   "financial": {
     "currentMonth": "Aktueller Monat",

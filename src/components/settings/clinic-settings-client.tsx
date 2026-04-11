@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 
 const TIMEZONES = [
@@ -27,6 +29,7 @@ const WORKING_DAYS_OPTIONS = [
 ];
 
 export function ClinicSettingsClient() {
+  const t = useTranslations("patients");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -163,15 +166,11 @@ export function ClinicSettingsClient() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input
+              <Label htmlFor="phone">{t("phone")}</Label>
+              <PhoneInput
                 id="phone"
-                type="tel"
-                placeholder="(11) 99999-9999"
                 value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                maxLength={20}
-                className="h-11"
+                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
               />
             </div>
             <div className="space-y-2">

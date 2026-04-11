@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { User, Mail, Phone, Save, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { fetchWithCsrf } from "@/lib/csrf-client";
@@ -126,14 +127,10 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
               Telefone / WhatsApp
               <span className="text-xs font-normal text-gray-400">(opcional)</span>
             </Label>
-            <Input
+            <PhoneInput
               id="profile-phone"
-              type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+55 11 99999-9999"
-              maxLength={30}
-              className="h-11"
+              onChange={setPhone}
             />
           </div>
 

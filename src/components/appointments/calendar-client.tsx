@@ -2,8 +2,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks, addMonths, subMonths, startOfMonth, endOfMonth } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS, es, he, it, fr, de } from "date-fns/locale";
 import { useTranslations, useLocale } from "next-intl";
+import type { Locale as DateFnsLocale } from "date-fns";
+
+const dateFnsLocaleMap: Record<string, DateFnsLocale> = {
+  "pt-BR": ptBR, en: enUS, es, he, it, fr, de,
+};
 import { ChevronLeft, ChevronRight, Plus, Clock, User, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +53,7 @@ export function CalendarClient({
 }) {
   const t = useTranslations("calendar");
   const locale = useLocale();
+  const dfLocale = dateFnsLocaleMap[locale] ?? ptBR;
   const [view, setView] = useState<ViewMode>("week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -101,8 +107,8 @@ export function CalendarClient({
     : Array.from({ length: 13 }, (_, i) => i + 7), [show24h]);
 
   const title = view === "week"
-    ? `${format(weekDays[0], "dd MMM", { locale: ptBR })} – ${format(weekDays[6], "dd MMM yyyy", { locale: ptBR })}`
-    : format(currentDate, "MMMM yyyy", { locale: ptBR });
+    ? `${format(weekDays[0], "dd MMM", { locale: dfLocale })} – ${format(weekDays[6], "dd MMM yyyy", { locale: dfLocale })}`
+    : format(currentDate, "MMMM yyyy", { locale: dfLocale });
 
   return (
     <div className="space-y-4">
@@ -179,7 +185,7 @@ export function CalendarClient({
                       isSameDay(day, new Date()) && "bg-brand-50"
                     )}
                   >
-                    <p className="text-xs text-gray-500 uppercase">{format(day, "EEE", { locale: ptBR })}</p>
+                    <p className="text-xs text-gray-500 uppercase">{format(day, "EEE", { locale: dfLocale })}</p>
                     <p className={cn(
                       "text-lg font-bold mt-0.5",
                       isSameDay(day, new Date()) ? "text-brand-600" : "text-gray-900"
@@ -242,10 +248,10 @@ export function CalendarClient({
                     "text-sm font-semibold px-4 py-3 border-b",
                     isSameDay(day, new Date()) ? "bg-brand-50 text-brand-700" : "bg-gray-50 text-gray-900"
                   )}>
-                    {format(day, "EEEE, d 'de' MMMM", { locale: ptBR })}
+                    {new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long" }).format(day)}
                   </h3>
                   {dayAppts.length === 0 ? (
-                    <p className="text-xs text-gray-400 px-4 py-6 text-center">Sem compromissos</p>
+                    <p className="text-xs text-gray-400 px-4 py-6 text-center">{t("noAppointments")}</p>
                   ) : (
                     <div className="divide-y">
                       {dayAppts.map((appt) => (
@@ -293,9 +299,12 @@ export function CalendarClient({
         <div className="bg-white border rounded-xl overflow-hidden">
           {/* Day headers */}
           <div className="grid grid-cols-7 border-b">
-            {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => (
-              <div key={d} className="p-3 text-xs font-medium text-gray-500 text-center border-r last:border-r-0">
-                {d}
+            {eachDayOfInterval({
+              start: startOfWeek(new Date(), { weekStartsOn: 1 }),
+              end: endOfWeek(new Date(), { weekStartsOn: 1 }),
+            }).map((d) => (
+              <div key={d.toISOString()} className="p-3 text-xs font-medium text-gray-500 text-center border-r last:border-r-0">
+                {format(d, "EEE", { locale: dfLocale })}
               </div>
             ))}
           </div>

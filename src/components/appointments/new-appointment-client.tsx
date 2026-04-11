@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 import { format, addMinutes, addWeeks, addMonths, nextDay, getDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useTranslations } from "next-intl";
 import {
   Video, RefreshCw, Repeat, Bell, ChevronDown, ChevronUp,
   UserPlus, X, Check, Infinity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +91,7 @@ function nearestDayOfWeek(from: Date, targetDay: number): Date {
 export function NewAppointmentClient({ userId, role }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("patients");
 
   const prefillPatientId = searchParams.get("patientId") ?? "";
   const today = format(new Date(), "yyyy-MM-dd");
@@ -398,12 +401,10 @@ export function NewAppointmentClient({ userId, role }: Props) {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Telefone</Label>
-                    <Input
-                      type="tel"
-                      placeholder="(11) 99999-9999"
+                    <Label className="text-xs">{t("phone")}</Label>
+                    <PhoneInput
                       value={newPatient.phone}
-                      onChange={(e) => setNewPatient((n) => ({ ...n, phone: e.target.value }))}
+                      onChange={(v) => setNewPatient((n) => ({ ...n, phone: v }))}
                     />
                   </div>
                   <div className="col-span-2 space-y-1">
