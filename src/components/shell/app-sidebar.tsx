@@ -93,7 +93,7 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
   return (
     <>
       {/* Mobile top bar */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-white/90 backdrop-blur border-b flex items-center gap-3 px-4 safe-pt">
+      <header className="md:hidden fixed top-0 inset-inline-0 z-30 h-14 bg-white/90 backdrop-blur border-b flex items-center gap-3 px-4 safe-pt">
         <button
           className="-ml-1 p-2 rounded-lg active:bg-gray-100 tap-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -121,9 +121,9 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 h-full w-64 bg-white border-r flex flex-col transition-transform duration-200",
-          "md:translate-x-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          "fixed inset-inline-start-0 top-0 z-40 h-full w-64 bg-white border-e flex flex-col transition-transform duration-200",
+          "md:translate-x-0 rtl:md:-translate-x-0",
+          mobileOpen ? "translate-x-0 rtl:-translate-x-0" : "-translate-x-full rtl:translate-x-full md:translate-x-0 rtl:md:-translate-x-0"
         )}
       >
         {/* Logo */}
@@ -213,7 +213,7 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
       </aside>
 
       {/* Mobile bottom navigation bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t md:hidden safe-area-inset-bottom">
+      <nav className="fixed bottom-0 inset-inline-0 z-40 bg-white border-t md:hidden safe-area-inset-bottom">
         <div className="flex justify-around">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;

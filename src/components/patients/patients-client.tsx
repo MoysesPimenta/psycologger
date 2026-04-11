@@ -64,13 +64,13 @@ export function PatientsClient() {
   return (
     <div className="space-y-4 pb-4">
       {/* Sticky search bar */}
-      <div className="sticky top-0 z-20 bg-gradient-to-b from-white to-white/95 pb-2 -mb-2">
+      <div className="sticky top-0 z-20 bg-gradient-to-b from-background to-background/95 pb-2 -mb-2">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute inset-inline-start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={t("searchPlaceholder")}
-              className="pl-9 h-11"
+              className="ps-9 h-11"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             />

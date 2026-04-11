@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getAuthContext } from "@/lib/tenant";
-import { formatDate } from "@/lib/utils";
+import { formatDateHeadingServer } from "@/lib/utils";
 import { TodayClient } from "@/components/appointments/today-client";
 import { startOfDay, endOfDay } from "date-fns";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 
 export async function generateMetadata() {
   const t = await getTranslations("pageTitle");
@@ -28,6 +28,7 @@ export default async function TodayPage() {
 
   const t = await getTranslations("pageTitle");
   const tToday = await getTranslations("today");
+  const locale = await getLocale();
 
   // Get tenant timezone
   const tenant = await db.tenant.findUnique({
@@ -82,7 +83,7 @@ export default async function TodayPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {t("today")} — {formatDate(from, "EEEE, dd 'de' MMMM")}
+            {t("today")} — {formatDateHeadingServer(from, locale)}
           </h1>
           <p className="text-gray-500 text-sm mt-1">{tenant?.name}</p>
         </div>

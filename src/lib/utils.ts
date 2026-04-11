@@ -1,18 +1,48 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format, formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS, es, he, it, fr, de } from "date-fns/locale";
+import type { Locale as DateFnsLocale } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Map app locale codes to date-fns locale objects */
+const dateFnsLocales: Record<string, DateFnsLocale> = {
+  "pt-BR": ptBR,
+  en: enUS,
+  es: es,
+  he: he,
+  it: it,
+  fr: fr,
+  de: de,
+};
+
+/**
+ * Resolve the current app locale from the NEXT_LOCALE cookie (client-side)
+ * or fall back to pt-BR. Used by formatting functions.
+ */
+function getDateFnsLocale(): DateFnsLocale {
+  if (typeof document !== "undefined") {
+    const match = document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/);
+    if (match) return dateFnsLocales[match[1]] ?? ptBR;
+    // Fall back to html lang attribute
+    const htmlLang = document.documentElement.lang;
+    if (htmlLang && dateFnsLocales[htmlLang]) return dateFnsLocales[htmlLang];
+  }
+  return ptBR;
+}
+
 export function formatDate(date: Date | string, fmt = "dd/MM/yyyy"): string {
-  return format(new Date(date), fmt, { locale: ptBR });
+  return format(new Date(date), fmt, { locale: getDateFnsLocale() });
 }
 
 export function formatDateTime(date: Date | string): string {
-  return format(new Date(date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  const loc = getDateFnsLocale();
+  // Use locale-appropriate connector between date and time
+  const connector = loc === ptBR ? "'às'" : loc === es ? "'a las'" : "','";
+  return format(new Date(date), `dd/MM/yyyy ${connector} HH:mm`, { locale: loc });
 }
 
 export function formatTime(date: Date | string): string {
@@ -20,7 +50,42 @@ export function formatTime(date: Date | string): string {
 }
 
 export function formatRelative(date: Date | string): string {
-  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: ptBR });
+  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: getDateFnsLocale() });
+}
+
+/**
+ * Format a date for display headings (e.g. "Saturday, April 11").
+ * Uses Intl.DateTimeFormat for proper locale support.
+ */
+export function formatDateHeading(date: Date | string): string {
+  const d = new Date(date);
+  let locale = "pt-BR";
+  if (typeof document !== "undefined") {
+    const match = document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/);
+    if (match) locale = match[1];
+    else {
+      const htmlLang = document.documentElement.lang;
+      if (htmlLang) locale = htmlLang;
+    }
+  }
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(d);
+}
+
+/**
+ * Server-side locale-aware date heading. Accepts explicit locale string
+ * since server components can't read cookies via document.cookie.
+ */
+export function formatDateHeadingServer(date: Date | string, locale = "pt-BR"): string {
+  const d = new Date(date);
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(d);
 }
 
 /** Convert a decimal amount (e.g. 79.90) to integer cents (7990). */
