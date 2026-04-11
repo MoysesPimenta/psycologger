@@ -45,6 +45,7 @@
     "create": "Erstellen",
     "update": "Aktualisieren",
     "remove": "Entfernen",
+    "optional": "optional",
     "themeLight": "Hell",
     "themeDark": "Dunkel",
     "themeSystem": "System"
@@ -162,6 +163,8 @@
     "assignedPsychologist": "Zugeordneter Psychologe",
     "noSelection": "— Keine —",
     "consent": "Zustimmung zur Behandlung erteilt",
+    "consentGivenAt": "Erteilt am {date}",
+    "consentNotRecorded": "Nicht erfasst",
     "defaultChargingSection": "Standardabrechnung",
     "defaultAppointmentType": "Standardtermintyp",
     "sessionFeeValue": "Sitzungsgebühr (R$)",

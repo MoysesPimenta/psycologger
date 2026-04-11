@@ -45,6 +45,7 @@
     "create": "יצירה",
     "update": "עדכון",
     "remove": "הסרה",
+    "optional": "אופציונלי",
     "themeLight": "בהיר",
     "themeDark": "כהה",
     "themeSystem": "מערכת"
@@ -162,6 +163,8 @@
     "assignedPsychologist": "פסיכולוג אחראי",
     "noSelection": "— ללא —",
     "consent": "הסכמה לטיפול ניתנה",
+    "consentGivenAt": "ניתנה ב-{date}",
+    "consentNotRecorded": "לא נרשם",
     "defaultChargingSection": "חיוב ברירת מחדל",
     "defaultAppointmentType": "סוג פגישה ברירת מחדל",
     "sessionFeeValue": "מחיר למפגש (₪)",

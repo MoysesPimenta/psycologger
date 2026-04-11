@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
 }
 
 export function ProfileSettingsClient({ initialName, email, initialPhone }: Props) {
+  const t = useTranslations("patients");
+  const tc = useTranslations("common");
   const { update: updateSession } = useSession();
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState(initialPhone);
@@ -124,8 +127,8 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
           <div className="space-y-1.5">
             <Label htmlFor="profile-phone" className="flex items-center gap-1.5 text-sm font-medium">
               <Phone className="h-3.5 w-3.5 text-gray-400" />
-              Telefone / WhatsApp
-              <span className="text-xs font-normal text-gray-400">(opcional)</span>
+              {t("phone")}
+              <span className="text-xs font-normal text-gray-400">({tc("optional")})</span>
             </Label>
             <PhoneInput
               id="profile-phone"

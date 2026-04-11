@@ -14,6 +14,7 @@ import { formatDate, formatDateTime, formatCurrency, chargeStatusLabel, initials
 import { cn } from "@/lib/utils";
 import { SOFT_DELETE_RETENTION_MS } from "@/lib/constants";
 import PatientJournalTab from "@/components/journal/patient-journal-tab";
+import { useTranslations } from "next-intl";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 
 interface AppointmentTypeSummary {
@@ -83,6 +84,8 @@ export function PatientDetailClient({
   appointmentTypes?: AppointmentTypeSummary[];
 }) {
   const { toast } = useToast();
+  const t = useTranslations("patients");
+  const tc = useTranslations("common");
   const [tab, setTab] = useState<Tab>("timeline");
   const [patient, setPatient] = useState(initialPatient);
   const [togglingActive, setTogglingActive] = useState(false);
@@ -886,6 +889,7 @@ function ProfileTab({
   appointmentTypes: AppointmentTypeSummary[];
   onPatientUpdate: (updates: Record<string, any>) => void;
 }) {
+  const t = useTranslations("patients");
   const { toast } = useToast();
   const [editingBilling, setEditingBilling] = useState(false);
   const [billingForm, setBillingForm] = useState({
@@ -967,14 +971,14 @@ function ProfileTab({
       {/* General info */}
       <div className="bg-white rounded-xl border p-6 space-y-4">
         {[
-          { label: "Nome completo", value: patient.fullName },
-          { label: "Nome preferido", value: patient.preferredName },
-          { label: "Email", value: patient.email },
-          { label: "Telefone", value: patient.phone },
-          { label: "Data de nascimento", value: patient.dob ? formatDate(patient.dob) : null },
-          { label: "Psicólogo responsável", value: patient.assignedUser?.name },
-          { label: "Observações", value: patient.notes },
-          { label: "Consentimento", value: patient.consentGiven ? `Dado em ${formatDate(patient.consentGivenAt)}` : "Não registrado" },
+          { label: t("fullName"), value: patient.fullName },
+          { label: t("preferredName"), value: patient.preferredName },
+          { label: t("email"), value: patient.email },
+          { label: t("phone"), value: patient.phone },
+          { label: t("dateOfBirth"), value: patient.dob ? formatDate(patient.dob) : null },
+          { label: t("assignedPsychologist"), value: patient.assignedUser?.name },
+          { label: t("notes"), value: patient.notes },
+          { label: t("consent"), value: patient.consentGiven ? t("consentGivenAt", { date: formatDate(patient.consentGivenAt) }) : t("consentNotRecorded") },
         ].map((field) => field.value ? (
           <div key={field.label}>
             <p className="text-xs text-gray-500 font-medium">{field.label}</p>

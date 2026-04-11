@@ -45,6 +45,7 @@
     "create": "Create",
     "update": "Update",
     "remove": "Remove",
+    "optional": "optional",
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeSystem": "System"
@@ -162,6 +163,8 @@
     "assignedPsychologist": "Assigned psychologist",
     "noSelection": "— None —",
     "consent": "Consent for treatment granted",
+    "consentGivenAt": "Given on {date}",
+    "consentNotRecorded": "Not recorded",
     "defaultChargingSection": "Default charging",
     "defaultAppointmentType": "Default appointment type",
     "sessionFeeValue": "Session fee (R$)",
