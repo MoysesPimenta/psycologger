@@ -107,11 +107,11 @@ export default async function AppLayout({
           quotaInfo={billingBanner.quotaInfo}
         />
       )}
-      <div className={`flex h-screen bg-gray-50 ${ctx.impersonating ? "pt-16" : ""} ${billingBanner ? "pt-16" : ""}`}>
+      <div className={`flex min-h-dvh bg-background ${ctx.impersonating ? "pt-16" : ""} ${billingBanner ? "pt-16" : ""}`}>
         <AppSidebar userRole={ctx.role} />
         {/* Main content area — offset by sidebar width on md+ */}
         <main className="flex-1 md:ms-64 overflow-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-8 pb-28 md:pb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-8 pb-24 md:pb-8">
             {children}
           </div>
         </main>

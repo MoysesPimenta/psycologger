@@ -141,7 +141,7 @@ export function ClinicSettingsClient() {
   }, []);
 
   if (loading) {
-    return <div className="animate-pulse h-32 bg-gray-100 rounded-xl" />;
+    return <div className="animate-pulse h-32 bg-muted rounded-xl" />;
   }
 
   return (
@@ -273,8 +273,8 @@ export function ClinicSettingsClient() {
                     onClick={() => toggleWorkingDay(value)}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
                       active
-                        ? "bg-brand-600 text-white border-brand-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        ? "bg-primary text-white border-primary"
+                        : "bg-card text-foreground border-border hover:bg-muted"
                     }`}
                   >
                     {label}
@@ -343,7 +343,7 @@ export function ClinicSettingsClient() {
               <option value="FIRST_NAME">Apenas o primeiro nome</option>
               <option value="FULL_NAME">Nome completo</option>
             </select>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Controla o que é visível para usuários com permissão de visualizar a agenda.
             </p>
           </div>
@@ -355,7 +355,7 @@ export function ClinicSettingsClient() {
               aria-checked={form.adminCanViewClinical}
               onClick={() => setForm((f) => ({ ...f, adminCanViewClinical: !f.adminCanViewClinical }))}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                form.adminCanViewClinical ? "bg-brand-600" : "bg-gray-200"
+                form.adminCanViewClinical ? "bg-primary" : "bg-muted"
               }`}
             >
               <span
@@ -368,7 +368,7 @@ export function ClinicSettingsClient() {
               <Label className="cursor-pointer" onClick={() => setForm((f) => ({ ...f, adminCanViewClinical: !f.adminCanViewClinical }))}>
                 Administrador pode ver prontuários clínicos
               </Label>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Quando ativado, usuários com papel de Administrador têm acesso às anotações clínicas e sessões.
                 Desative em clínicas onde o admin não é o terapeuta.
               </p>

@@ -356,7 +356,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
               <button
                 type="button"
                 onClick={() => setShowNewPatient((v) => !v)}
-                className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 font-medium"
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium"
               >
                 {showNewPatient ? <X className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
                 {showNewPatient ? "Cancelar" : "Novo paciente"}
@@ -380,8 +380,8 @@ export function NewAppointmentClient({ userId, role }: Props) {
 
             {/* Inline new patient form */}
             {showNewPatient && (
-              <div className="mt-2 border border-brand-200 bg-brand-50 rounded-lg p-4 space-y-3">
-                <p className="text-xs font-semibold text-brand-800 uppercase tracking-wide">Cadastrar novo paciente</p>
+              <div className="mt-2 border border-primary/30 bg-primary/10 rounded-lg p-4 space-y-3">
+                <p className="text-xs font-semibold text-primary/90 uppercase tracking-wide">Cadastrar novo paciente</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2 space-y-1">
                     <Label className="text-xs">Nome completo *</Label>
@@ -511,8 +511,8 @@ export function NewAppointmentClient({ userId, role }: Props) {
                   onClick={() => setForm((f) => ({ ...f, durationMin: d }))}
                   className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
                     form.durationMin === d
-                      ? "bg-brand-600 text-white border-brand-600"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                      ? "bg-primary text-white border-primary"
+                      : "bg-card text-foreground border-border hover:bg-muted"
                   }`}
                 >
                   {d}min
@@ -561,14 +561,14 @@ export function NewAppointmentClient({ userId, role }: Props) {
               </Button>
             </div>
             {form.videoLink?.includes("meet.jit.si") && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Sala Jitsi criada automaticamente ao primeiro acesso. Funciona no navegador, sem instalação.{" "}
-                <a href={form.videoLink} target="_blank" rel="noopener noreferrer" className="text-brand-600 underline">
+                <a href={form.videoLink} target="_blank" rel="noopener noreferrer" className="text-primary underline">
                   Testar link ↗
                 </a>
               </p>
             )}
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground/70">
               Você também pode colar um link do Google Meet, Zoom ou qualquer outra plataforma.
             </p>
           </div>
@@ -582,15 +582,15 @@ export function NewAppointmentClient({ userId, role }: Props) {
           onClick={() => setShowRecurrence((v) => !v)}
         >
           <div className="flex items-center gap-2">
-            <Repeat className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-900">Consulta recorrente</span>
+            <Repeat className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Consulta recorrente</span>
             {rec.enabled && recLabel && (
-              <Badge variant="outline" className="text-xs font-normal text-brand-700 border-brand-300 bg-brand-50">
+              <Badge variant="outline" className="text-xs font-normal text-primary border-primary/30 bg-primary/10">
                 {recLabel} · {rec.indeterminate ? "∞" : `${rec.occurrences}x`}
               </Badge>
             )}
           </div>
-          {showRecurrence ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+          {showRecurrence ? <ChevronUp className="h-4 w-4 text-muted-foreground/70" /> : <ChevronDown className="h-4 w-4 text-muted-foreground/70" />}
         </button>
 
         {showRecurrence && (
@@ -605,7 +605,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
             </div>
 
             {rec.enabled && (
-              <div className="space-y-5 pl-5 border-l-2 border-brand-100">
+              <div className="space-y-5 pl-5 border-l-2 border-primary/30">
 
                 {/* Frequency */}
                 <div className="space-y-2">
@@ -621,8 +621,8 @@ export function NewAppointmentClient({ userId, role }: Props) {
                         <button key={opt.label} type="button"
                           onClick={() => setRec((r) => ({ ...r, frequency: opt.freq as "WEEKLY"|"MONTHLY", interval: opt.int }))}
                           className={`px-4 py-2 rounded-md text-sm border transition-colors ${
-                            active ? "bg-brand-600 text-white border-brand-600"
-                                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                            active ? "bg-primary text-white border-primary"
+                                   : "bg-card text-foreground border-border hover:bg-muted"
                           }`}
                         >
                           {opt.label}
@@ -642,15 +642,15 @@ export function NewAppointmentClient({ userId, role }: Props) {
                           onClick={() => handleRecDayChange(dayIndex)}
                           className={`w-10 h-10 rounded-lg text-sm font-medium border transition-colors ${
                             rec.dayIndex === dayIndex
-                              ? "bg-brand-600 text-white border-brand-600"
-                              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                              ? "bg-primary text-white border-primary"
+                              : "bg-card text-foreground border-border hover:bg-muted"
                           }`}
                         >
                           {label}
                         </button>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       A data de início foi ajustada para o próximo{" "}
                       <strong>{WEEK_DAYS.find((d) => d.dayIndex === rec.dayIndex)?.label}</strong>{" "}
                       ({form.date}).
@@ -670,7 +670,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
                     {rec.time !== form.time && (
                       <button type="button"
                         onClick={() => setRec((r) => ({ ...r, time: form.time }))}
-                        className="text-xs text-gray-500 hover:text-gray-700 underline"
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
                       >
                         Usar horário da 1ª sessão ({form.time})
                       </button>
@@ -689,13 +689,13 @@ export function NewAppointmentClient({ userId, role }: Props) {
                       onChange={(e) => setRec((r) => ({ ...r, indeterminate: e.target.checked }))}
                       className="rounded" />
                     <Label htmlFor="indeterminate" className="font-normal cursor-pointer flex items-center gap-1.5">
-                      <Infinity className="h-3.5 w-3.5 text-gray-500" />
+                      <Infinity className="h-3.5 w-3.5 text-muted-foreground" />
                       Indeterminado (até cancelar)
                     </Label>
                   </div>
 
                   {rec.indeterminate ? (
-                    <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md p-2">
+                    <p className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-md p-2">
                       Serão criadas <strong>{INDETERMINATE_COUNTS[rec.frequency]?.[rec.interval] ?? 104} sessões</strong>{" "}
                       (aproximadamente 2 anos). Você pode cancelar sessões individuais a qualquer momento.
                     </p>
@@ -704,13 +704,13 @@ export function NewAppointmentClient({ userId, role }: Props) {
                       <div className="flex items-center gap-3">
                         <input type="range" min={2} max={52} value={rec.occurrences}
                           onChange={(e) => setRec((r) => ({ ...r, occurrences: parseInt(e.target.value) }))}
-                          className="flex-1 accent-brand-600"
+                          className="flex-1 accent-primary"
                         />
-                        <span className="text-sm font-semibold text-gray-900 w-16 text-right">
+                        <span className="text-sm font-semibold text-foreground w-16 text-right">
                           {rec.occurrences} sessões
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {rec.frequency === "MONTHLY"
                           ? `~${rec.occurrences} meses`
                           : rec.interval === 2
@@ -733,15 +733,15 @@ export function NewAppointmentClient({ userId, role }: Props) {
           onClick={() => setShowNotification((v) => !v)}
         >
           <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-900">Notificar paciente</span>
+            <Bell className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Notificar paciente</span>
             {notif.enabled && notif.methods.length > 0 && (
-              <Badge variant="outline" className="text-xs font-normal text-brand-700 border-brand-300 bg-brand-50">
+              <Badge variant="outline" className="text-xs font-normal text-primary border-primary/30 bg-primary/10">
                 {notif.methods.join(", ")}
               </Badge>
             )}
           </div>
-          {showNotification ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+          {showNotification ? <ChevronUp className="h-4 w-4 text-muted-foreground/70" /> : <ChevronDown className="h-4 w-4 text-muted-foreground/70" />}
         </button>
 
         {showNotification && (
@@ -755,14 +755,14 @@ export function NewAppointmentClient({ userId, role }: Props) {
             </div>
 
             {notif.enabled && (
-              <div className="space-y-3 pl-5 border-l-2 border-brand-100">
+              <div className="space-y-3 pl-5 border-l-2 border-primary/30">
                 <div className="flex gap-2 flex-wrap">
                   {/* Email — active */}
                   <button type="button" onClick={() => toggleNotifyMethod("EMAIL")}
                     className={`px-4 py-2 rounded-md text-sm border transition-colors flex items-center gap-1.5 ${
                       notif.methods.includes("EMAIL")
-                        ? "bg-brand-600 text-white border-brand-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        ? "bg-primary text-white border-primary"
+                        : "bg-card text-foreground border-border hover:bg-muted"
                     }`}
                   >
                     ✉️ Email
@@ -771,11 +771,11 @@ export function NewAppointmentClient({ userId, role }: Props) {
                   {[{ emoji: "💬", label: "WhatsApp" }, { emoji: "📱", label: "SMS" }].map(({ emoji, label }) => (
                     <div key={label} className="relative">
                       <button type="button" disabled
-                        className="px-4 py-2 rounded-md text-sm border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed flex items-center gap-1.5"
+                        className="px-4 py-2 rounded-md text-sm border border-border bg-muted/50 text-muted-foreground/70 cursor-not-allowed flex items-center gap-1.5"
                       >
                         {emoji} {label}
                       </button>
-                      <span className="absolute -top-2 -right-1 text-[9px] bg-gray-200 text-gray-500 rounded-full px-1.5 py-0.5 font-medium leading-4">
+                      <span className="absolute -top-2 -right-1 text-[9px] bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 font-medium leading-4">
                         Em breve
                       </span>
                     </div>

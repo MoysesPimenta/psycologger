@@ -104,13 +104,13 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Safe area support */
+  /* Safe area support — only apply horizontal insets on body.
+   * Vertical insets are handled by the app shell (top bar / bottom nav)
+   * to avoid double-padding that creates excessive gaps on mobile. */
   @supports (padding: max(0px)) {
     body {
-      padding-left: max(0.75rem, env(safe-area-inset-left));
-      padding-right: max(0.75rem, env(safe-area-inset-right));
-      padding-top: max(0.75rem, env(safe-area-inset-top));
-      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
     }
   }
 }
@@ -197,6 +197,46 @@
   /* Active/pressed state for mobile list items and buttons */
   .active-mobile {
     @apply active:bg-muted active:opacity-75;
+  }
+
+  /* -------------------------------------------------------------------------
+   * Mobile-first page layout utilities
+   * Standardizes page spacing across all screens
+   * ------------------------------------------------------------------------- */
+
+  /* Page section spacing — tighter on mobile, roomier on desktop */
+  .page-section {
+    @apply space-y-4 sm:space-y-6;
+  }
+
+  /* Page header pattern — responsive title + subtitle */
+  .page-title {
+    @apply text-xl sm:text-2xl font-bold text-foreground;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-muted-foreground mt-0.5;
+  }
+
+  /* Responsive card grid — 1 col mobile, 2 col tablet, 3+ col desktop */
+  .card-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4;
+  }
+
+  /* Stat card styling */
+  .stat-card {
+    @apply bg-card rounded-xl border border-border/50 p-4 sm:p-5;
+  }
+
+  /* List card — touch-optimized card for list items */
+  .list-card {
+    @apply flex items-center gap-3 bg-card rounded-xl border border-border/50 p-3.5 sm:p-4
+           hover:shadow-sm active:bg-muted/50 transition-all min-h-[64px];
+  }
+
+  /* Section header row — flexes title + action */
+  .section-header {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
   }
 }
 

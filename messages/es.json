@@ -182,7 +182,9 @@
     "saveError": "Error al guardar",
     "placeholderTags": "ansiedad, depresión, adulto",
     "placeholderNotes": "Preferencias de horario, preferencias de contacto, etc.",
-    "placeholderCPF": "000.000.000-00"
+    "placeholderCPF": "000.000.000-00",
+    "paginationPrev": "Anterior",
+    "paginationNext": "Siguiente"
   },
   "settings": {
     "headerSubtitle": "Administra tu práctica y preferencias",

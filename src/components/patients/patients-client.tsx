@@ -89,14 +89,14 @@ export function PatientsClient() {
       </div>
 
       {fetchError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
+        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-700 dark:text-red-400 flex items-center justify-between">
           <span>{fetchError}</span>
-          <button onClick={() => fetch_()} className="text-red-600 underline text-xs ml-4">{t("retryLoad")}</button>
+          <button onClick={() => fetch_()} className="text-red-600 dark:text-red-400 underline text-xs ms-4">{t("retryLoad")}</button>
         </div>
       )}
 
       {/* Results count */}
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-muted-foreground">
         {total} {total === 1 ? t("foundSingular") : t("foundPlural")}
       </p>
 
@@ -104,12 +104,12 @@ export function PatientsClient() {
       <div className="space-y-2">
         {loading ? (
           Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border p-4 animate-pulse h-20" />
+            <div key={i} className="bg-card rounded-xl border border-border/50 p-4 animate-pulse h-20" />
           ))
         ) : patients.length === 0 ? (
-          <div className="bg-white rounded-xl border p-12 text-center">
-            <User className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">
+          <div className="bg-card rounded-xl border border-border/50 p-8 sm:p-12 text-center">
+            <User className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-muted-foreground">
               {search ? t("noSearchResults") : t("noPatients")}
             </p>
           </div>
@@ -118,17 +118,17 @@ export function PatientsClient() {
             <Link
               key={patient.id}
               href={`/app/patients/${patient.id}`}
-              className="flex items-center gap-3 sm:gap-4 bg-white rounded-xl border p-3 sm:p-4 hover:shadow-sm active:bg-gray-50 transition-all group min-h-[70px]"
+              className="list-card group"
             >
               {/* Avatar */}
-              <div className="w-12 h-12 sm:w-10 sm:h-10 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+              <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                 {initials(patient.fullName)}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-gray-900">
+                  <span className="font-semibold text-foreground">
                     {patient.preferredName ?? patient.fullName}
                   </span>
                   {!patient.isActive && (
@@ -136,9 +136,9 @@ export function PatientsClient() {
                   )}
                 </div>
                 {patient.preferredName && (
-                  <p className="text-xs text-gray-400 mt-0.5">{patient.fullName}</p>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">{patient.fullName}</p>
                 )}
-                <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-gray-500 flex-wrap">
+                <div className="flex items-center gap-2 sm:gap-4 mt-1 text-xs text-muted-foreground flex-wrap">
                   {patient.phone && (
                     <span className="flex items-center gap-1">
                       <Phone className="h-3 w-3 flex-shrink-0" />
@@ -152,18 +152,18 @@ export function PatientsClient() {
                 {patient.tags.length > 0 && (
                   <div className="flex gap-1 mt-2">
                     {patient.tags.slice(0, 2).map((tag) => (
-                      <span key={tag} className="inline-flex items-center gap-0.5 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                      <span key={tag} className="inline-flex items-center gap-0.5 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
                         <Tag className="h-2.5 w-2.5" /> {tag}
                       </span>
                     ))}
                     {patient.tags.length > 2 && (
-                      <span className="text-xs text-gray-500">+{patient.tags.length - 2}</span>
+                      <span className="text-xs text-muted-foreground">+{patient.tags.length - 2}</span>
                     )}
                   </div>
                 )}
               </div>
 
-              <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-gray-500 flex-shrink-0" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground/30 group-hover:text-muted-foreground flex-shrink-0" />
             </Link>
           ))
         )}
@@ -171,17 +171,17 @@ export function PatientsClient() {
 
       {/* Pagination */}
       {total > 20 && (
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
           >
-            Anterior
+            {t("paginationPrev")}
           </Button>
-          <span className="text-sm text-gray-500 flex items-center px-2">
-            Página {page} de {Math.ceil(total / 20)}
+          <span className="text-sm text-muted-foreground flex items-center px-2">
+            {page} / {Math.ceil(total / 20)}
           </span>
           <Button
             variant="outline"
@@ -189,7 +189,7 @@ export function PatientsClient() {
             onClick={() => setPage((p) => p + 1)}
             disabled={page * 20 >= total}
           >
-            Próxima
+            {t("paginationNext")}
           </Button>
         </div>
       )}

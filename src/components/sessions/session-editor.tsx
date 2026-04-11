@@ -88,7 +88,7 @@ function formatBytes(bytes: number): string {
 function FileIcon({ mimeType }: { mimeType: string }) {
   if (mimeType.startsWith("image/")) return <Image className="h-4 w-4 text-blue-500" />;
   if (mimeType === "application/pdf") return <File className="h-4 w-4 text-red-500" />;
-  return <FileText className="h-4 w-4 text-gray-500" />;
+  return <FileText className="h-4 w-4 text-muted-foreground" />;
 }
 
 // ─── File Attachment Panel ────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ function FileAttachmentPanel({
           onClick={() => !uploading && fileInputRef.current?.click()}
           className={cn(
             "relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 cursor-pointer transition-colors",
-            dragging ? "border-brand-400 bg-brand-50" : "border-gray-200 hover:border-brand-300 hover:bg-gray-50",
+            dragging ? "border-brand-400 bg-brand-50" : "border-border hover:border-brand-300 hover:bg-muted",
             uploading && "cursor-not-allowed opacity-60"
           )}
         >
@@ -196,14 +196,14 @@ function FileAttachmentPanel({
             disabled={uploading}
           />
           {uploading ? (
-            <><Loader2 className="h-6 w-6 animate-spin text-brand-500" /><p className="text-xs text-gray-600">{uploadProgress}</p></>
+            <><Loader2 className="h-6 w-6 animate-spin text-brand-500" /><p className="text-xs text-muted-foreground">{uploadProgress}</p></>
           ) : (
             <>
-              <Upload className="h-6 w-6 text-gray-400" />
-              <p className="text-xs text-gray-600 text-center">
-                <span className="font-medium text-brand-600">Clique para selecionar</span> ou arraste aqui
+              <Upload className="h-6 w-6 text-muted-foreground/70" />
+              <p className="text-xs text-muted-foreground text-center">
+                <span className="font-medium text-primary">Clique para selecionar</span> ou arraste aqui
               </p>
-              <p className="text-xs text-gray-400">PDF, imagens, Word · máx. 25 MB por arquivo</p>
+              <p className="text-xs text-muted-foreground/70">PDF, imagens, Word · máx. 25 MB por arquivo</p>
             </>
           )}
         </div>
@@ -212,24 +212,24 @@ function FileAttachmentPanel({
       {files.length > 0 ? (
         <div className="space-y-2">
           {files.map((file) => (
-            <div key={file.id} className="flex items-center gap-3 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+            <div key={file.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-sm">
               <div className="shrink-0"><FileIcon mimeType={file.mimeType} /></div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900">{file.fileName}</p>
-                <p className="text-xs text-gray-400">
+                <p className="truncate text-sm font-medium text-foreground">{file.fileName}</p>
+                <p className="text-xs text-muted-foreground/40">
                   {formatBytes(file.sizeBytes)} · {formatDate(file.createdAt)}
                   {file.uploader?.name && ` · ${file.uploader.name}`}
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <Button variant="ghost" size="sm" onClick={() => handleDownload(file)} title="Baixar"
-                  className="h-7 w-7 p-0 text-gray-400 hover:text-brand-600">
+                  className="h-7 w-7 p-0 text-muted-foreground/70 hover:text-primary">
                   <Download className="h-3.5 w-3.5" />
                 </Button>
                 {canEdit && (
                   <Button variant="ghost" size="sm" disabled={deletingId === file.id}
                     onClick={() => setConfirmDelete({ id: file.id, name: file.fileName })} title="Excluir"
-                    className="h-7 w-7 p-0 text-gray-400 hover:text-red-600">
+                    className="h-7 w-7 p-0 text-muted-foreground/70 hover:text-red-600">
                     {deletingId === file.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </Button>
                 )}
@@ -238,7 +238,7 @@ function FileAttachmentPanel({
           ))}
         </div>
       ) : (
-        <p className="text-center text-xs text-gray-400 py-2">Nenhum arquivo anexado</p>
+        <p className="text-center text-xs text-muted-foreground/70 py-2">Nenhum arquivo anexado</p>
       )}
 
       {/* File delete confirmation modal */}
@@ -246,10 +246,10 @@ function FileAttachmentPanel({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
           role="dialog" aria-modal="true" aria-labelledby="file-delete-title"
           onClick={() => setConfirmDelete(null)}>
-          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-4"
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-card p-6 shadow-xl space-y-4"
             onClick={(e) => e.stopPropagation()}>
-            <h2 id="file-delete-title" className="text-base font-semibold text-gray-900">Excluir arquivo?</h2>
-            <p className="text-sm text-gray-600">
+            <h2 id="file-delete-title" className="text-base font-semibold text-foreground">Excluir arquivo?</h2>
+            <p className="text-sm text-muted-foreground">
               O arquivo <strong>{confirmDelete.name}</strong> será removido permanentemente. Esta ação não pode ser desfeita.
             </p>
             <div className="flex justify-end gap-2 pt-2">
@@ -429,10 +429,10 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
           role="dialog" aria-modal="true" aria-labelledby="delete-session-title"
           onClick={() => setShowDeleteModal(false)}>
-          <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-4"
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-card p-6 shadow-xl space-y-4"
             onClick={(e) => e.stopPropagation()}>
-            <h2 id="delete-session-title" className="text-base font-semibold text-gray-900">Excluir sessão clínica?</h2>
-            <p className="text-sm text-gray-600">
+            <h2 id="delete-session-title" className="text-base font-semibold text-foreground">Excluir sessão clínica?</h2>
+            <p className="text-sm text-muted-foreground">
               A sessão será removida imediatamente e excluída permanentemente após 30 dias. Esta ação não pode ser desfeita.
             </p>
             <div className="flex justify-end gap-2 pt-2">
@@ -457,9 +457,9 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
             </Link>
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{session ? "Nota clínica" : "Nova sessão"}</h1>
+            <h1 className="text-xl font-bold text-foreground">{session ? "Nota clínica" : "Nova sessão"}</h1>
             {patient && (
-              <p className="text-sm text-gray-500">{patient.fullName} · {formatDate(sessionDate)}</p>
+              <p className="text-sm text-muted-foreground">{patient.fullName} · {formatDate(sessionDate)}</p>
             )}
           </div>
         </div>
@@ -495,7 +495,7 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
               <button key={key} onClick={() => handleTemplateChange(key)} disabled={!canEdit}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                  templateKey === key ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  templateKey === key ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}>
                 {key === "FREE" ? "Texto livre" : key}
               </button>
@@ -503,36 +503,36 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
           </div>
 
           {/* Note textarea */}
-          <div className="bg-white border rounded-xl overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2 border-b bg-gray-50">
-              <FileText className="h-4 w-4 text-gray-400" />
-              <span className="text-xs text-gray-500 font-medium">Nota clínica</span>
-              <span className="ml-auto text-xs text-gray-400">{noteText.length} caracteres</span>
+          <div className="bg-card border rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/50">
+              <FileText className="h-4 w-4 text-muted-foreground/70" />
+              <span className="text-xs text-muted-foreground font-medium">Nota clínica</span>
+              <span className="ml-auto text-xs text-muted-foreground/70">{noteText.length} caracteres</span>
             </div>
             <textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               readOnly={!canEdit}
               placeholder="Registre a evolução do paciente…"
-              className="w-full p-4 text-sm text-gray-900 font-mono leading-relaxed resize-none focus:outline-none"
+              className="w-full p-4 text-sm text-foreground font-mono leading-relaxed resize-none focus:outline-none"
               style={{ minHeight: "420px" }}
             />
           </div>
 
           {/* ── File attachments ── */}
-          <div className="bg-white border rounded-xl overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2 border-b bg-gray-50">
-              <Paperclip className="h-4 w-4 text-gray-400" />
-              <span className="text-xs text-gray-500 font-medium">Anexos</span>
+          <div className="bg-card border rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/50">
+              <Paperclip className="h-4 w-4 text-muted-foreground/70" />
+              <span className="text-xs text-muted-foreground font-medium">Anexos</span>
               {savedSessionId && (
-                <span className="ml-auto text-xs text-gray-400">
+                <span className="ml-auto text-xs text-muted-foreground/70">
                   {fileCount} arquivo{fileCount !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
             <div className="p-4">
               {!savedSessionId ? (
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
                   Salve a nota antes de adicionar anexos.
                 </div>
@@ -560,16 +560,16 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
 
         {/* ── Sidebar ── */}
         <div className="space-y-4">
-          <div className="bg-white border rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700">Informações</h3>
+          <div className="bg-card border rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Informações</h3>
             {appointment?.startsAt && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock className="h-4 w-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4 text-muted-foreground/70" />
                 {formatDateTime(appointment.startsAt)}
               </div>
             )}
             {appointment?.id && (
-              <Link href={`/app/appointments/${appointment.id}`} className="text-xs text-brand-600 hover:underline block">
+              <Link href={`/app/appointments/${appointment.id}`} className="text-xs text-primary hover:underline block">
                 Ver consulta →
               </Link>
             )}
@@ -580,8 +580,8 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
             )}
           </div>
 
-          <div className="bg-white border rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+          <div className="bg-card border rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1">
               <Tag className="h-4 w-4" /> Tags
             </h3>
             <div className="flex flex-wrap gap-1">
@@ -608,13 +608,13 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
           </div>
 
           {showHistory && session?.revisions && (
-            <div className="bg-white border rounded-xl p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-gray-700">Histórico de edições</h3>
+            <div className="bg-card border rounded-xl p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Histórico de edições</h3>
               <div className="space-y-2">
                 {session.revisions.map((rev) => (
-                  <div key={rev.id} className="text-xs text-gray-500">
+                  <div key={rev.id} className="text-xs text-muted-foreground">
                     {formatDateTime(rev.editedAt)}
-                    {rev.editedBy?.name && <span className="text-gray-400"> · {rev.editedBy.name}</span>}
+                    {rev.editedBy?.name && <span className="text-muted-foreground/70"> · {rev.editedBy.name}</span>}
                   </div>
                 ))}
               </div>
@@ -631,14 +631,14 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
           onClick={handleNavCancel}
         >
           <div
-            className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+            className="mx-4 w-full max-w-sm rounded-2xl bg-card p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 mb-4">
               <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <h2 id="unsaved-changes-title" className="text-sm font-semibold text-gray-900">Alterações não salvas</h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <h2 id="unsaved-changes-title" className="text-sm font-semibold text-foreground">Alterações não salvas</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Você tem alterações que ainda não foram salvas. Se sair agora, elas serão perdidas.
                 </p>
               </div>

@@ -182,7 +182,9 @@
     "saveError": "Fehler beim Speichern",
     "placeholderTags": "Angststörung, Depression, Erwachsener",
     "placeholderNotes": "Terminplanungsvorlieben, Kontaktvorlieben usw.",
-    "placeholderCPF": "000.000.000-00"
+    "placeholderCPF": "000.000.000-00",
+    "paginationPrev": "Zurück",
+    "paginationNext": "Weiter"
   },
   "settings": {
     "headerSubtitle": "Verwalten Sie Ihre Praxis und Einstellungen",

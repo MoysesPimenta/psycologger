@@ -182,7 +182,9 @@
     "saveError": "Error saving",
     "placeholderTags": "anxiety, depression, adult",
     "placeholderNotes": "Schedule preferences, contact preferences, etc.",
-    "placeholderCPF": "000.000.000-00"
+    "placeholderCPF": "000.000.000-00",
+    "paginationPrev": "Previous",
+    "paginationNext": "Next"
   },
   "settings": {
     "headerSubtitle": "Manage your practice and preferences",

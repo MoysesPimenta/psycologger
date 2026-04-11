@@ -17,10 +17,10 @@ export default async function ReportsPage() {
   const tReports = await getTranslations("reports");
 
   return (
-    <div className="space-y-6">
+    <div className="page-section">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t("reports")}</h1>
-        <p className="text-sm text-gray-500 mt-1">{tReports("headerSubtitle")}</p>
+        <h1 className="page-title">{t("reports")}</h1>
+        <p className="page-subtitle">{tReports("headerSubtitle")}</p>
       </div>
       <ReportsClient />
     </div>

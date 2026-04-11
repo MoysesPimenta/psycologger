@@ -129,47 +129,47 @@ function TodayChargePrompt({
   );
 
   return (
-    <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 space-y-3">
+    <div className="mt-3 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-3 sm:p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <CreditCard className="h-4 w-4 text-green-600" />
-        <span className="text-sm font-medium text-green-800">{t("chargeThisSession")}</span>
+        <CreditCard className="h-4 w-4 text-green-600 dark:text-green-400" />
+        <span className="text-sm font-medium text-green-800 dark:text-green-300">{t("chargeThisSession")}</span>
       </div>
       {error && (
-        <p className="text-xs text-red-600 flex items-center gap-1">
+        <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
           <AlertTriangle className="h-3 w-3" /> {error}
         </p>
       )}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         <div>
-          <label className="text-xs text-gray-500 block mb-1">{t("amount")}</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t("amount")}</label>
           <input
             type="text" inputMode="decimal"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-400"
+            className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400"
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500 block mb-1">{t("discount")}</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t("discount")}</label>
           <input
             type="text" inputMode="decimal"
             value={discount}
             onChange={(e) => setDiscount(e.target.value)}
-            className="w-full border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-400"
+            className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400"
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500 block mb-1">{t("dueDate")}</label>
+          <label className="text-xs text-muted-foreground block mb-1">{t("dueDate")}</label>
           <input
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="w-full border rounded px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-green-400"
+            className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400"
           />
         </div>
       </div>
       {net > 0 && (
-        <p className="text-xs text-green-700 font-medium">
+        <p className="text-xs text-green-700 dark:text-green-400 font-medium">
           {t("netAmount")} R$ {net.toFixed(2).replace(".", ",")}
         </p>
       )}
@@ -177,7 +177,7 @@ function TodayChargePrompt({
         <button
           onClick={handleCharge}
           disabled={saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-green-600 hover:bg-green-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500 transition-colors disabled:opacity-50"
         >
           <Check className="h-3.5 w-3.5" />
           {saving ? t("creating") : t("create")}
@@ -185,7 +185,7 @@ function TodayChargePrompt({
         <button
           onClick={onSkip}
           disabled={saving}
-          className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white border hover:bg-gray-50 transition-colors"
+          className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground bg-background border border-border hover:bg-muted transition-colors"
         >
           {t("skipNow")}
         </button>
@@ -257,10 +257,10 @@ export function TodayClient({ appointments, userId, role }: Props) {
 
   if (localAppts.length === 0) {
     return (
-      <div className="bg-white rounded-xl border p-12 text-center">
-        <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
-        <h2 className="font-semibold text-gray-900 text-lg">{t("noAppointments")}</h2>
-        <p className="text-gray-500 mt-1 mb-6">{t("noAppointmentsHint")}</p>
+      <div className="bg-card rounded-xl border border-border/50 p-8 sm:p-12 text-center">
+        <CheckCircle2 className="h-12 w-12 text-green-400 dark:text-green-500 mx-auto mb-4" />
+        <h2 className="font-semibold text-foreground text-lg">{t("noAppointments")}</h2>
+        <p className="text-muted-foreground mt-1 mb-6">{t("noAppointmentsHint")}</p>
         <Button asChild variant="outline">
           <Link href="/app/calendar">{t("viewCalendar")}</Link>
         </Button>
@@ -284,13 +284,13 @@ export function TodayClient({ appointments, userId, role }: Props) {
           <div
             key={appt.id}
             className={cn(
-              "bg-white rounded-xl border p-4 transition-all",
-              isCompleted && "opacity-75",
+              "bg-card rounded-xl border border-border/50 p-3.5 sm:p-4 transition-all",
+              isCompleted && "opacity-70",
             )}
           >
-            <div className="flex items-start gap-4">
-              {/* Time + color bar */}
-              <div className="flex flex-col items-center">
+            <div className="flex items-start gap-3">
+              {/* Color bar */}
+              <div className="flex flex-col items-center pt-1">
                 <div
                   className="w-1 h-full rounded-full min-h-[3rem]"
                   style={{ backgroundColor: appt.appointmentType.color }}
@@ -299,33 +299,33 @@ export function TodayClient({ appointments, userId, role }: Props) {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-gray-900">{displayName}</span>
+                      <span className="font-semibold text-foreground truncate">{displayName}</span>
                       <Badge variant={statusColors[appt.status] ?? "secondary"} className="text-xs">
                         {appointmentStatusLabel(appt.status)}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="h-3.5 w-3.5" />
                         {formatTime(appt.startsAt)} – {formatTime(appt.endsAt)}
                       </span>
-                      <span>{appt.appointmentType.name}</span>
+                      <span className="hidden sm:inline">{appt.appointmentType.name}</span>
                       {appt.location && (
                         <span className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" /> {appt.location}
+                          <MapPin className="h-3.5 w-3.5" /> {appt.location}
                         </span>
                       )}
                       {appt.videoLink && (
                         <a href={appt.videoLink} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-brand-600 hover:underline">
-                          <Video className="h-3 w-3" /> {t("online")}
+                          className="flex items-center gap-1 text-primary hover:underline">
+                          <Video className="h-3.5 w-3.5" /> {t("online")}
                         </a>
                       )}
                     </div>
                     {role !== "PSYCHOLOGIST" && (
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-muted-foreground/70 mt-0.5">
                         {t("provider")} {appt.provider.name}
                       </p>
                     )}
@@ -333,20 +333,21 @@ export function TodayClient({ appointments, userId, role }: Props) {
 
                   <Link
                     href={`/app/appointments/${appt.id}`}
-                    className="text-gray-400 hover:text-brand-600 flex-shrink-0"
+                    className="text-muted-foreground hover:text-primary flex-shrink-0 p-1 -m-1"
                     title={t("viewEditAppt")}
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Link>
                 </div>
 
-                {/* Quick actions */}
-                <div className="flex flex-wrap gap-2 mt-3">
+                {/* Quick actions — horizontal scroll on mobile to avoid cramped wrapping */}
+                <div className="flex gap-2 mt-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
                   {isPending && (
                     <>
                       <Button
                         size="sm"
                         variant="default"
+                        className="whitespace-nowrap flex-shrink-0"
                         onClick={() => router.push(`/app/sessions/new?appointmentId=${appt.id}&patientId=${appt.patient.id}`)}
                         disabled={isLoading}
                       >
@@ -356,6 +357,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="whitespace-nowrap flex-shrink-0"
                         onClick={() => updateStatus(appt.id, "CONFIRMED")}
                         disabled={isLoading || appt.status === "CONFIRMED"}
                       >
@@ -365,9 +367,9 @@ export function TodayClient({ appointments, userId, role }: Props) {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="whitespace-nowrap flex-shrink-0"
                         onClick={() => updateStatus(appt.id, "COMPLETED")}
                         disabled={isLoading}
-                        className="border-gray-300 text-gray-700"
                       >
                         <Check className="h-3 w-3" />
                         {t("completed")}
@@ -375,6 +377,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="whitespace-nowrap flex-shrink-0"
                         onClick={() => updateStatus(appt.id, "NO_SHOW")}
                         disabled={isLoading}
                       >
@@ -384,6 +387,7 @@ export function TodayClient({ appointments, userId, role }: Props) {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="whitespace-nowrap flex-shrink-0"
                         onClick={() => updateStatus(appt.id, "CANCELED")}
                         disabled={isLoading}
                       >

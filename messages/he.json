@@ -182,7 +182,9 @@
     "saveError": "שגיאה בשמירה",
     "placeholderTags": "חרדה, דיכאון, מבוגר",
     "placeholderNotes": "העדפות זמנים, אמצעי קשר מועדף, וכו'.",
-    "placeholderCPF": "000000000"
+    "placeholderCPF": "000000000",
+    "paginationPrev": "הקודם",
+    "paginationNext": "הבא"
   },
   "settings": {
     "headerSubtitle": "ניהול המרפאה וההעדפות שלך",

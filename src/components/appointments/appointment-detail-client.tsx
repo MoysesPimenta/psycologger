@@ -71,7 +71,7 @@ interface Props {
 const STATUS_COLORS: Record<string, string> = {
   SCHEDULED: "bg-blue-100 text-blue-800 border-blue-200",
   CONFIRMED: "bg-green-100 text-green-800 border-green-200",
-  COMPLETED: "bg-gray-100 text-gray-800 border-gray-200",
+  COMPLETED: "bg-muted text-gray-800 border-border",
   CANCELED:  "bg-red-100 text-red-800 border-red-200",
   NO_SHOW:   "bg-orange-100 text-orange-800 border-orange-200",
 };
@@ -225,16 +225,16 @@ function PaymentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="appt-payment-modal-title">
-      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl space-y-4">
+      <div className="w-full max-w-sm rounded-xl bg-card p-6 shadow-2xl space-y-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
             <CreditCard className="h-5 w-5 text-green-600" />
           </div>
           <div>
-            <h2 id="appt-payment-modal-title" className="font-semibold text-gray-900">
+            <h2 id="appt-payment-modal-title" className="font-semibold text-foreground">
               {partial ? t("paymentModalTitlePartial") : t("paymentModalTitle")}
             </h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {t("paymentModalTotal")} R$ {(netAmountCents / 100).toFixed(2).replace(".", ",")}
             </p>
           </div>
@@ -248,11 +248,11 @@ function PaymentModal({
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-gray-500 block mb-1">{t("paymentMethodLabel")}</label>
+            <label className="text-xs text-muted-foreground block mb-1">{t("paymentMethodLabel")}</label>
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border rounded-md px-3 py-2 text-sm bg-card focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               {buildPaymentMethods(t).map((m: any) => (
                 <option key={m.value} value={m.value}>{m.label}</option>
@@ -260,7 +260,7 @@ function PaymentModal({
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">{t("paymentAmountLabel")}</label>
+            <label className="text-xs text-muted-foreground block mb-1">{t("paymentAmountLabel")}</label>
             <input
               type="text" inputMode="decimal"
               value={amount}
@@ -269,7 +269,7 @@ function PaymentModal({
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">{t("paymentDateLabel")}</label>
+            <label className="text-xs text-muted-foreground block mb-1">{t("paymentDateLabel")}</label>
             <input
               type="date"
               value={paidAt}
@@ -279,7 +279,7 @@ function PaymentModal({
           </div>
           {partial && (
             <div>
-              <label className="text-xs text-gray-500 block mb-1">
+              <label className="text-xs text-muted-foreground block mb-1">
                 {t("paymentDueDateLabel")}
               </label>
               <input
@@ -540,7 +540,7 @@ export function AppointmentDetailClient({
     <div className="max-w-3xl space-y-6">
       {/* ── Header ── */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1.5 text-gray-500">
+        <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1.5 text-muted-foreground">
           <ChevronLeft className="h-4 w-4" /> {t("backButton")}
         </Button>
         <div className="flex-1" />
@@ -551,10 +551,10 @@ export function AppointmentDetailClient({
 
       {/* ── Title block ── */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-foreground">
           {appt.patient.preferredName ?? appt.patient.fullName}
         </h1>
-        <p className="text-sm text-gray-500 mt-0.5 capitalize">{dateLabel}</p>
+        <p className="text-sm text-muted-foreground mt-0.5 capitalize">{dateLabel}</p>
       </div>
 
       {/* ── Error banner ── */}
@@ -580,54 +580,54 @@ export function AppointmentDetailClient({
           {!editing ? (
             // ── View mode ──────────────────────────────────────────────────
             <div className="grid gap-4 sm:grid-cols-2">
-              <InfoRow icon={<Calendar className="h-4 w-4 text-brand-500" />} label={t("labelDate")}>
+              <InfoRow icon={<Calendar className="h-4 w-4 text-primary" />} label={t("labelDate")}>
                 <span className="capitalize">{dateLabel}</span>
               </InfoRow>
-              <InfoRow icon={<Clock className="h-4 w-4 text-brand-500" />} label={t("labelTime")}>
-                {timeLabel} <span className="text-gray-400">({durationMin} min)</span>
+              <InfoRow icon={<Clock className="h-4 w-4 text-primary" />} label={t("labelTime")}>
+                {timeLabel} <span className="text-muted-foreground/70">({durationMin} min)</span>
               </InfoRow>
-              <InfoRow icon={<User className="h-4 w-4 text-brand-500" />} label={t("labelPatient")}>
+              <InfoRow icon={<User className="h-4 w-4 text-primary" />} label={t("labelPatient")}>
                 <a
                   href={`/app/patients/${appt.patient.id}`}
-                  className="text-brand-600 hover:underline font-medium"
+                  className="text-primary hover:underline font-medium"
                 >
                   {appt.patient.fullName}
                 </a>
                 {appt.patient.email && (
-                  <span className="block text-xs text-gray-500">{appt.patient.email}</span>
+                  <span className="block text-xs text-muted-foreground">{appt.patient.email}</span>
                 )}
               </InfoRow>
-              <InfoRow icon={<Stethoscope className="h-4 w-4 text-brand-500" />} label={t("labelProvider")}>
+              <InfoRow icon={<Stethoscope className="h-4 w-4 text-primary" />} label={t("labelProvider")}>
                 {appt.provider.name}
               </InfoRow>
               <InfoRow icon={<div className="h-3 w-3 rounded-full" style={{ backgroundColor: appt.appointmentType.color }} />} label={t("labelType")}>
                 {appt.appointmentType.name}
-                <span className="ml-1.5 text-xs text-gray-400">
+                <span className="ml-1.5 text-xs text-muted-foreground/70">
                   ({t(`enums.sessionType.${appt.appointmentType.sessionType}`)})
                 </span>
               </InfoRow>
               {appt.location && (
-                <InfoRow icon={<MapPin className="h-4 w-4 text-brand-500" />} label={t("labelLocation")}>
+                <InfoRow icon={<MapPin className="h-4 w-4 text-primary" />} label={t("labelLocation")}>
                   {appt.location}
                 </InfoRow>
               )}
               {appt.videoLink && (
-                <InfoRow icon={<Video className="h-4 w-4 text-brand-500" />} label={t("labelVideoLink")}>
+                <InfoRow icon={<Video className="h-4 w-4 text-primary" />} label={t("labelVideoLink")}>
                   <a
                     href={appt.videoLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-brand-600 hover:underline"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
                   >
                     {t("joinRoom")} <ExternalLink className="h-3 w-3" />
                   </a>
                 </InfoRow>
               )}
               {appt.recurrence && (
-                <InfoRow icon={<Repeat className="h-4 w-4 text-brand-500" />} label={t("labelRecurrence")}>
+                <InfoRow icon={<Repeat className="h-4 w-4 text-primary" />} label={t("labelRecurrence")}>
                   {formatRRule(appt.recurrence.rrule)}
                   {recurrenceTotal > 0 && (
-                    <span className="ml-1.5 text-xs text-gray-400">
+                    <span className="ml-1.5 text-xs text-muted-foreground/70">
                       · {recurrenceTotal} {t("detailedSessionCount")}
                     </span>
                   )}
@@ -635,8 +635,8 @@ export function AppointmentDetailClient({
               )}
               {appt.adminNotes && (
                 <div className="sm:col-span-2">
-                  <InfoRow icon={<FileText className="h-4 w-4 text-brand-500" />} label={t("labelNotes")}>
-                    <p className="whitespace-pre-wrap text-gray-700">{appt.adminNotes}</p>
+                  <InfoRow icon={<FileText className="h-4 w-4 text-primary" />} label={t("labelNotes")}>
+                    <p className="whitespace-pre-wrap text-foreground">{appt.adminNotes}</p>
                   </InfoRow>
                 </div>
               )}
@@ -692,7 +692,7 @@ export function AppointmentDetailClient({
                 <Button
                   onClick={handleSaveEdit}
                   disabled={saving}
-                  className="gap-1.5 bg-brand-600 hover:bg-brand-700"
+                  className="gap-1.5 bg-primary hover:bg-primary"
                 >
                   <Check className="h-4 w-4" />
                   {saving ? t("loadingMessage") : t("actionSaveEdit")}
@@ -730,7 +730,7 @@ export function AppointmentDetailClient({
                 size="sm"
                 disabled={saving}
                 onClick={() => handleStatusChange("COMPLETED")}
-                className="gap-1.5 border-gray-300 text-gray-700 hover:bg-gray-50"
+                className="gap-1.5 border-border text-foreground hover:bg-muted"
               >
                 <Check className="h-3.5 w-3.5" /> Marcar como realizada
               </Button>
@@ -779,7 +779,7 @@ export function AppointmentDetailClient({
                 size="sm"
                 disabled={saving}
                 onClick={() => handleStatusChange("SCHEDULED")}
-                className="gap-1.5 border-amber-400 text-amber-800 hover:bg-amber-100 bg-white"
+                className="gap-1.5 border-amber-400 text-amber-800 hover:bg-amber-100 bg-card"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Reagendar (voltar para agendada)
               </Button>
@@ -788,7 +788,7 @@ export function AppointmentDetailClient({
                 size="sm"
                 disabled={saving}
                 onClick={() => handleStatusChange("CONFIRMED")}
-                className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50 bg-white"
+                className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50 bg-card"
               >
                 <Check className="h-3.5 w-3.5" /> Marcar como confirmada
               </Button>
@@ -798,7 +798,7 @@ export function AppointmentDetailClient({
                   size="sm"
                   disabled={saving}
                   onClick={() => handleStatusChange("COMPLETED")}
-                  className="gap-1.5 border-gray-300 text-gray-700 hover:bg-gray-50 bg-white"
+                  className="gap-1.5 border-border text-foreground hover:bg-muted bg-card"
                 >
                   <Check className="h-3.5 w-3.5" /> O paciente compareceu (marcar realizada)
                 </Button>
@@ -810,9 +810,9 @@ export function AppointmentDetailClient({
 
       {/* ── Correct status for COMPLETED ── */}
       {canCorrect && appt.status === "COMPLETED" && (
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base text-gray-700">Corrigir status</CardTitle>
+            <CardTitle className="text-base text-foreground">Corrigir status</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <Button
@@ -832,7 +832,7 @@ export function AppointmentDetailClient({
             <Button
               variant="outline" size="sm" disabled={saving}
               onClick={() => handleStatusChange("SCHEDULED")}
-              className="gap-1.5 border-gray-300 text-gray-600 hover:bg-gray-50"
+              className="gap-1.5 border-border text-muted-foreground hover:bg-muted"
             >
               <RefreshCw className="h-3.5 w-3.5" /> Voltar para agendada
             </Button>
@@ -853,14 +853,14 @@ export function AppointmentDetailClient({
                   ? router.push(`/app/sessions/${appt.clinicalSession.id}`)
                   : router.push(`/app/sessions/new?appointmentId=${appt.id}&patientId=${appt.patient.id}`)
               }
-              className={!appt.clinicalSession ? "bg-brand-600 hover:bg-brand-700" : ""}
+              className={!appt.clinicalSession ? "bg-primary hover:bg-primary" : ""}
             >
               {appt.clinicalSession ? "Ver anotação" : "Criar anotação clínica"}
             </Button>
           </CardHeader>
           {!appt.clinicalSession && (
             <CardContent>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Nenhuma anotação clínica registrada para esta consulta.
               </p>
             </CardContent>
@@ -883,14 +883,14 @@ export function AppointmentDetailClient({
       {/* ── Charge prompt modal ── */}
       {chargePrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="charge-prompt-title">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-2xl space-y-4">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
                 <CreditCard className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <h2 id="charge-prompt-title" className="font-semibold text-gray-900">Cobrar esta sessão?</h2>
-                <p className="text-sm text-gray-500 mt-0.5">
+                <h2 id="charge-prompt-title" className="font-semibold text-foreground">Cobrar esta sessão?</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
                   {chargePrompt.label} — {appt.patient.preferredName ?? appt.patient.fullName}
                 </p>
               </div>
@@ -900,7 +900,7 @@ export function AppointmentDetailClient({
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Valor (R$)</label>
+                  <label className="text-xs text-muted-foreground block mb-1">Valor (R$)</label>
                   <input
                     type="text" inputMode="decimal"
                     value={chargePrompt.editAmount}
@@ -909,7 +909,7 @@ export function AppointmentDetailClient({
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Desconto (R$)</label>
+                  <label className="text-xs text-muted-foreground block mb-1">Desconto (R$)</label>
                   <input
                     type="text" inputMode="decimal"
                     value={chargePrompt.editDiscount}
@@ -919,7 +919,7 @@ export function AppointmentDetailClient({
                 </div>
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Vencimento</label>
+                <label className="text-xs text-muted-foreground block mb-1">Vencimento</label>
                 <input
                   type="date"
                   value={chargePrompt.editDueDate}
@@ -932,9 +932,9 @@ export function AppointmentDetailClient({
                 const disc = parseFloat(chargePrompt.editDiscount.replace(",", ".")) || 0;
                 const net = Math.max(0, amt - disc);
                 return (
-                  <div className="rounded-lg bg-gray-50 border px-3 py-2 flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Valor líquido</span>
-                    <span className="font-bold text-gray-900">
+                  <div className="rounded-lg bg-muted/50 border px-3 py-2 flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Valor líquido</span>
+                    <span className="font-bold text-foreground">
                       R$ {net.toFixed(2).replace(".", ",")}
                     </span>
                   </div>
@@ -966,14 +966,14 @@ export function AppointmentDetailClient({
       {/* ── Cancel dialog (modal-style) ── */}
       {cancelDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-2xl space-y-5">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
                 <Trash2 className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <h2 id="cancel-dialog-title" className="font-semibold text-gray-900">Cancelar consulta</h2>
-                <p className="text-sm text-gray-500 mt-0.5">
+                <h2 id="cancel-dialog-title" className="font-semibold text-foreground">Cancelar consulta</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">
                   {format(parseISO(appt.startsAt), "d 'de' MMMM · HH:mm", { locale: ptBR })} —{" "}
                   {appt.patient.preferredName ?? appt.patient.fullName}
                 </p>
@@ -983,8 +983,8 @@ export function AppointmentDetailClient({
             {/* Show scope selector only for recurring appointments with future sessions */}
             {appt.recurrenceId && recurrenceFutureCount > 0 ? (
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">O que deseja cancelar?</p>
-                <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 cursor-pointer hover:bg-gray-50 transition-colors has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50">
+                <p className="text-sm font-medium text-foreground">O que deseja cancelar?</p>
+                <label className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-muted transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/10">
                   <input
                     type="radio"
                     name="cancelScope"
@@ -994,13 +994,13 @@ export function AppointmentDetailClient({
                     className="mt-0.5 accent-brand-600"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Somente esta consulta</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-medium text-foreground">Somente esta consulta</p>
+                    <p className="text-xs text-muted-foreground">
                       As {recurrenceFutureCount} próximas sessões permanecem agendadas.
                     </p>
                   </div>
                 </label>
-                <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 cursor-pointer hover:bg-gray-50 transition-colors has-[:checked]:border-red-400 has-[:checked]:bg-red-50">
+                <label className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-muted transition-colors has-[:checked]:border-red-400 has-[:checked]:bg-red-50">
                   <input
                     type="radio"
                     name="cancelScope"
@@ -1010,15 +1010,15 @@ export function AppointmentDetailClient({
                     className="mt-0.5 accent-red-600"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Esta e todas as futuras</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-medium text-foreground">Esta e todas as futuras</p>
+                    <p className="text-xs text-muted-foreground">
                       Esta consulta + {recurrenceFutureCount} sessão(ões) seguintes serão canceladas.
                     </p>
                   </div>
                 </label>
               </div>
             ) : (
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Esta ação irá cancelar a consulta. Ela não poderá ser desfeita automaticamente.
               </p>
             )}
@@ -1197,7 +1197,7 @@ function ChargesCard({
     PAID: "bg-green-50 text-green-700 border-green-200",
     OVERDUE: "bg-red-50 text-red-700 border-red-200",
     PARTIAL: "bg-blue-50 text-blue-700 border-blue-200",
-    VOID: "bg-gray-50 text-gray-500 border-gray-200",
+    VOID: "bg-muted/50 text-muted-foreground border-border",
   };
 
   const computedTotal = charges.reduce((s, c) => s + c.amountCents - (c.discountCents ?? 0), 0);
@@ -1236,7 +1236,7 @@ function ChargesCard({
             <button
               onClick={() => setShowNewCharge(true)}
               title="Adicionar cobrança"
-              className="p-1.5 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+              className="p-1.5 rounded text-muted-foreground/70 hover:text-primary hover:bg-primary/10 transition-colors"
             >
               <DollarSign className="h-4 w-4" />
             </button>
@@ -1244,7 +1244,7 @@ function ChargesCard({
         </CardHeader>
         <CardContent className="space-y-3">
           {charges.length === 0 && !showNewCharge && (
-            <p className="text-sm text-gray-400 text-center py-2">Nenhuma cobrança registrada.</p>
+            <p className="text-sm text-muted-foreground/70 text-center py-2">Nenhuma cobrança registrada.</p>
           )}
 
           {charges.map((charge) => {
@@ -1256,13 +1256,13 @@ function ChargesCard({
             const canPay = !isPaid && !isPartiallyPaid && charge.status !== "VOID";
 
             return (
-              <div key={charge.id} className="rounded-lg border border-gray-100 p-3 space-y-2">
+              <div key={charge.id} className="rounded-lg border border-border/50 p-3 space-y-2">
                 {editingId === charge.id ? (
                   // ── Edit mode ──
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">Valor (R$)</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Valor (R$)</label>
                         <input
                           type="text" inputMode="decimal"
                           value={editForm.amountCents}
@@ -1271,7 +1271,7 @@ function ChargesCard({
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">Desconto (R$)</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Desconto (R$)</label>
                         <input
                           type="text" inputMode="decimal"
                           value={editForm.discountCents}
@@ -1281,7 +1281,7 @@ function ChargesCard({
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 block mb-1">Vencimento</label>
+                      <label className="text-xs text-muted-foreground block mb-1">Vencimento</label>
                       <input
                         type="date"
                         value={editForm.dueDate}
@@ -1290,7 +1290,7 @@ function ChargesCard({
                       />
                     </div>
                     {parseFloat(editForm.discountCents.replace(",", ".")) > 0 && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         Valor final: R$ {Math.max(0,
                           parseFloat(editForm.amountCents.replace(",", ".")) -
                           parseFloat(editForm.discountCents.replace(",", "."))
@@ -1311,23 +1311,23 @@ function ChargesCard({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm">
-                        <CreditCard className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="font-medium text-gray-800">
+                        <CreditCard className="h-3.5 w-3.5 text-muted-foreground/70" />
+                        <span className="font-medium text-foreground">
                           R$ {(net / 100).toFixed(2).replace(".", ",")}
                         </span>
                         {(charge.discountCents ?? 0) > 0 && (
-                          <span className="text-xs text-gray-400 line-through">
+                          <span className="text-xs text-muted-foreground/70 line-through">
                             R$ {(charge.amountCents / 100).toFixed(2).replace(".", ",")}
                           </span>
                         )}
                         {charge.dueDate && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-muted-foreground/70">
                             · venc. {new Date(charge.dueDate).toLocaleDateString("pt-BR")}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <Badge className={`text-xs border ${CHARGE_STATUS_COLORS[charge.status] ?? "bg-gray-50 text-gray-500"}`}>
+                        <Badge className={`text-xs border ${CHARGE_STATUS_COLORS[charge.status] ?? "bg-muted/50 text-muted-foreground"}`}>
                           {CHARGE_STATUS_LABELS[charge.status] ?? charge.status}
                         </Badge>
                         {canModify && (
@@ -1335,7 +1335,7 @@ function ChargesCard({
                             <button
                               onClick={() => startEdit(charge)}
                               title="Editar cobrança"
-                              className="p-1 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                              className="p-1 rounded text-muted-foreground/70 hover:text-primary hover:bg-primary/10 transition-colors"
                             >
                               <Edit2 className="h-3.5 w-3.5" />
                             </button>
@@ -1343,7 +1343,7 @@ function ChargesCard({
                               onClick={() => deleteCharge(charge.id)}
                               disabled={deletingId === charge.id}
                               title="Excluir cobrança"
-                              className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                              className="p-1 rounded text-muted-foreground/70 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -1381,9 +1381,9 @@ function ChargesCard({
 
                     {/* Payments list */}
                     {charge.payments.length > 0 && (
-                      <div className="space-y-1 pt-1 border-t border-gray-50">
+                      <div className="space-y-1 pt-1 border-t border-border/40">
                         {charge.payments.map((p) => (
-                          <div key={p.id} className="flex items-center justify-between text-xs text-gray-500">
+                          <div key={p.id} className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>
                               {buildPaymentMethods(t).find((m: any) => m.value === p.method)?.label ?? p.method} ·{" "}
                               {new Date(p.paidAt).toLocaleDateString("pt-BR")}
@@ -1403,11 +1403,11 @@ function ChargesCard({
 
           {/* New charge inline form */}
           {showNewCharge && (
-            <div className="rounded-lg border border-brand-200 bg-brand-50/30 p-3 space-y-2">
-              <p className="text-xs font-medium text-gray-700">Nova cobrança</p>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+              <p className="text-xs font-medium text-foreground">Nova cobrança</p>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Valor (R$)</label>
+                  <label className="text-xs text-muted-foreground block mb-1">Valor (R$)</label>
                   <input
                     type="text" inputMode="decimal"
                     placeholder="0,00"
@@ -1418,7 +1418,7 @@ function ChargesCard({
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Desconto (R$)</label>
+                  <label className="text-xs text-muted-foreground block mb-1">Desconto (R$)</label>
                   <input
                     type="text" inputMode="decimal"
                     value={newChargeForm.discountCents}
@@ -1428,7 +1428,7 @@ function ChargesCard({
                 </div>
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Vencimento</label>
+                <label className="text-xs text-muted-foreground block mb-1">Vencimento</label>
                 <input
                   type="date"
                   value={newChargeForm.dueDate}
@@ -1437,7 +1437,7 @@ function ChargesCard({
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Descrição (opcional)</label>
+                <label className="text-xs text-muted-foreground block mb-1">Descrição (opcional)</label>
                 <input
                   type="text"
                   value={newChargeForm.description}
@@ -1476,8 +1476,8 @@ function InfoRow({
     <div className="flex gap-3">
       <div className="mt-0.5 shrink-0">{icon}</div>
       <div>
-        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{label}</p>
-        <div className="text-sm text-gray-900 mt-0.5">{children}</div>
+        <p className="text-xs text-muted-foreground/70 font-medium uppercase tracking-wide">{label}</p>
+        <div className="text-sm text-foreground mt-0.5">{children}</div>
       </div>
     </div>
   );

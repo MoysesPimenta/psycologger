@@ -35,10 +35,10 @@ export default async function CalendarPage() {
   ]);
 
   return (
-    <div className="space-y-4">
+    <div className="page-section">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t("calendar")}</h1>
-        <p className="text-sm text-gray-500 mt-1">{tCalendar("headerSubtitle")}</p>
+        <h1 className="page-title">{t("calendar")}</h1>
+        <p className="page-subtitle">{tCalendar("headerSubtitle")}</p>
       </div>
       <CalendarClient
         appointmentTypes={appointmentTypes}

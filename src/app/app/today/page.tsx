@@ -78,14 +78,14 @@ export default async function TodayPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="page-section">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="section-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="page-title">
             {t("today")} — {formatDateHeadingServer(from, locale)}
           </h1>
-          <p className="text-gray-500 text-sm mt-1">{tenant?.name}</p>
+          <p className="page-subtitle">{tenant?.name}</p>
         </div>
         <Button asChild size="sm">
           <Link href="/app/appointments/new">
@@ -96,15 +96,15 @@ export default async function TodayPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {[
-          { label: tToday("statsTotal"), value: stats.total, color: "text-gray-900" },
-          { label: tToday("statsCompleted"), value: stats.completed, color: "text-green-600" },
-          { label: tToday("statsScheduled"), value: stats.scheduled, color: "text-blue-600" },
-          { label: tToday("statsNoShow"), value: stats.noShow, color: "text-red-600" },
+          { label: tToday("statsTotal"), value: stats.total, color: "text-foreground" },
+          { label: tToday("statsCompleted"), value: stats.completed, color: "text-green-600 dark:text-green-400" },
+          { label: tToday("statsScheduled"), value: stats.scheduled, color: "text-blue-600 dark:text-blue-400" },
+          { label: tToday("statsNoShow"), value: stats.noShow, color: "text-red-600 dark:text-red-400" },
         ].map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border p-4">
-            <p className="text-xs text-gray-500 font-medium">{s.label}</p>
+          <div key={s.label} className="stat-card">
+            <p className="text-xs text-muted-foreground font-medium">{s.label}</p>
             <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
           </div>
         ))}

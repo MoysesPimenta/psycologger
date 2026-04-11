@@ -100,9 +100,9 @@ export function UsersSettingsClient() {
   return (
     <div className="space-y-6">
       {/* Invite form */}
-      <div className="bg-white rounded-xl border p-6">
-        <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <UserPlus className="h-5 w-5 text-brand-600" />
+      <div className="bg-card rounded-xl border p-6">
+        <h2 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+          <UserPlus className="h-5 w-5 text-primary" />
           Convidar novo membro
         </h2>
         <form onSubmit={handleInvite} className="flex flex-col sm:flex-row gap-3">
@@ -118,7 +118,7 @@ export function UsersSettingsClient() {
           <select
             value={inviteRole}
             onChange={(e) => setInviteRole(e.target.value)}
-            className="border rounded-md px-3 py-2 text-sm bg-white"
+            className="border rounded-md px-3 py-2 text-sm bg-card"
           >
             {roles.map((r) => (
               <option key={r.value} value={r.value}>{r.label}</option>
@@ -140,12 +140,12 @@ export function UsersSettingsClient() {
                   O email não pôde ser enviado. Compartilhe o link manualmente:
                 </p>
                 <div className="mt-2 flex items-center gap-2">
-                  <code className="flex-1 min-w-0 text-xs bg-white border border-amber-200 rounded px-3 py-2 text-gray-700 truncate block">
+                  <code className="flex-1 min-w-0 text-xs bg-card border border-amber-200 rounded px-3 py-2 text-foreground truncate block">
                     {inviteLink}
                   </code>
                   <button
                     onClick={copyLink}
-                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-md transition-colors"
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-md transition-colors"
                   >
                     {copied ? (
                       <>
@@ -181,27 +181,27 @@ export function UsersSettingsClient() {
       )}
 
       {/* Members list */}
-      <div className="bg-white rounded-xl border">
+      <div className="bg-card rounded-xl border">
         <div className="p-4 border-b">
-          <h2 className="font-semibold text-gray-900">Membros da equipe</h2>
+          <h2 className="font-semibold text-foreground">Membros da equipe</h2>
         </div>
         <div className="divide-y">
           {loadError ? (
             <div className="p-4 text-sm text-red-600">{loadError}</div>
           ) : loading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="p-4 animate-pulse h-16 bg-gray-50" />
+              <div key={i} className="p-4 animate-pulse h-16 bg-muted/50" />
             ))
           ) : members.map((m) => (
             <div key={m.id} className="flex items-center gap-4 p-4">
-              <div className="w-9 h-9 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-9 h-9 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-bold">
                 {(m.user.name ?? m.user.email)[0].toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900">{m.user.name ?? m.user.email}</p>
-                <p className="text-sm text-gray-500">{m.user.email}</p>
+                <p className="font-medium text-foreground">{m.user.name ?? m.user.email}</p>
+                <p className="text-sm text-muted-foreground">{m.user.email}</p>
                 {m.user.lastLoginAt && (
-                  <p className="text-xs text-gray-400">Último acesso: {formatRelative(m.user.lastLoginAt)}</p>
+                  <p className="text-xs text-muted-foreground/70">Último acesso: {formatRelative(m.user.lastLoginAt)}</p>
                 )}
               </div>
               <div className="flex items-center gap-2">

@@ -28,29 +28,29 @@ export default async function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="page-section">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t("settings")}</h1>
-        <p className="text-sm text-gray-500 mt-1">{tSettings("headerSubtitle")}</p>
+        <h1 className="page-title">{t("settings")}</h1>
+        <p className="page-subtitle">{tSettings("headerSubtitle")}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         {settingSections.map((s) => {
           const Icon = s.icon;
           return (
             <Link
               key={s.href}
               href={s.href}
-              className="bg-white rounded-xl border p-5 hover:shadow-sm transition-shadow flex items-center gap-4 group"
+              className="bg-card rounded-xl border border-border/50 p-4 sm:p-5 hover:shadow-sm active:bg-muted/50 transition-all flex items-center gap-3 sm:gap-4 group min-h-[72px]"
             >
-              <div className="w-10 h-10 bg-brand-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Icon className="h-5 w-5 text-brand-600" />
+              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Icon className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900">{s.label}</p>
-                <p className="text-sm text-gray-500 mt-0.5">{s.desc}</p>
+                <p className="font-semibold text-foreground">{s.label}</p>
+                <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{s.desc}</p>
               </div>
-              <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
+              <ArrowRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-muted-foreground flex-shrink-0" />
             </Link>
           );
         })}

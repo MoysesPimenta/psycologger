@@ -55,10 +55,10 @@ const YEARS = [CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1];
 
 // ─── Helper: simple bar ───────────────────────────────────────────────────────
 
-function MiniBar({ value, max, color = "bg-brand-500" }: { value: number; max: number; color?: string }) {
+function MiniBar({ value, max, color = "bg-primary" }: { value: number; max: number; color?: string }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
-    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+    <div className="h-2 bg-muted rounded-full overflow-hidden">
       <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
     </div>
   );
@@ -67,19 +67,19 @@ function MiniBar({ value, max, color = "bg-brand-500" }: { value: number; max: n
 // ─── Stat card ───────────────────────────────────────────────────────────────
 
 function StatCard({
-  label, value, sub, icon: Icon, color = "text-gray-900", bg = "bg-white",
+  label, value, sub, icon: Icon, color = "text-foreground", bg = "bg-card",
 }: {
   label: string; value: string; sub?: string;
   icon: React.ElementType; color?: string; bg?: string;
 }) {
   return (
-    <div className={`${bg} rounded-xl border p-4 space-y-2`}>
+    <div className={`${bg} rounded-xl border border-border/50 p-4 space-y-2`}>
       <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-500 font-medium">{label}</p>
-        <Icon className="h-4 w-4 text-gray-400" />
+        <p className="text-xs text-muted-foreground font-medium">{label}</p>
+        <Icon className="h-4 w-4 text-muted-foreground/50" />
       </div>
       <p className={`text-xl font-bold ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-400">{sub}</p>}
+      {sub && <p className="text-xs text-muted-foreground/70">{sub}</p>}
     </div>
   );
 }
@@ -192,7 +192,7 @@ export function ReportsClient() {
   return (
     <div className="space-y-6">
       {/* Period selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-white border rounded-xl p-3 sm:p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-card border rounded-xl p-3 sm:p-4">
         <select
           value={month}
           onChange={(e) => setMonth(Number(e.target.value))}
@@ -211,7 +211,7 @@ export function ReportsClient() {
             <option key={y} value={y}>{y}</option>
           ))}
         </select>
-        <p className="text-xs sm:text-sm text-gray-500 sm:ml-auto">
+        <p className="text-xs sm:text-sm text-muted-foreground sm:ml-auto">
           Dados de {getMonthName(month)} {year}
         </p>
       </div>
@@ -224,8 +224,8 @@ export function ReportsClient() {
             onClick={() => setTab(id)}
             className={`flex items-center gap-1.5 px-2 sm:px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap min-h-[44px] ${
               tab === id
-                ? "border-brand-600 text-brand-700"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
             title={label}
           >
@@ -241,15 +241,15 @@ export function ReportsClient() {
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white rounded-xl border p-4 animate-pulse h-24" />
+                <div key={i} className="bg-card rounded-xl border p-4 animate-pulse h-24" />
               ))}
             </div>
           ) : dashData ? (
             <>
               {/* Caixa vs Competência */}
               <div>
-                <h3 className="text-xs sm:text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-brand-600" />
+                <h3 className="text-xs sm:text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-primary" />
                   {t("financialSectionTitle")} — {getMonthName(month)} {year}
                 </h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
@@ -258,7 +258,7 @@ export function ReportsClient() {
                     value={formatCurrency(dashData.summary.totalCharged)}
                     sub={`${dashData.summary.chargesCount} ${t("chargesCount")}`}
                     icon={DollarSign}
-                    color="text-gray-900"
+                    color="text-foreground"
                   />
                   <StatCard
                     label={t("receivedLabel")}
@@ -290,30 +290,30 @@ export function ReportsClient() {
                       value={String(dashData.summary.newPatients)}
                       sub={t("newPatientsSub")}
                       icon={Users}
-                      color="text-brand-600"
+                      color="text-primary"
                     />
                   )}
                 </div>
 
                 {/* Caixa vs Competência explanation */}
-                <div className="mt-3 rounded-lg bg-gray-50 border p-3 grid grid-cols-2 gap-4 text-sm">
+                <div className="mt-3 rounded-lg bg-muted/50 border p-3 grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-xs text-gray-500 font-medium mb-1">{t("cashBasisLabel")}</p>
+                    <p className="text-xs text-muted-foreground font-medium mb-1">{t("cashBasisLabel")}</p>
                     <p className="font-bold text-green-700">{formatCurrency(dashData.summary.totalCaixa)}</p>
-                    <p className="text-xs text-gray-400">{t("cashBasisDesc")} {getMonthName(month)}</p>
+                    <p className="text-xs text-muted-foreground/70">{t("cashBasisDesc")} {getMonthName(month)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 font-medium mb-1">{t("accrualBasisLabel")}</p>
-                    <p className="font-bold text-gray-900">{formatCurrency(dashData.summary.totalCharged)}</p>
-                    <p className="text-xs text-gray-400">{t("accrualBasisDesc")} {getMonthName(month)}</p>
+                    <p className="text-xs text-muted-foreground font-medium mb-1">{t("accrualBasisLabel")}</p>
+                    <p className="font-bold text-foreground">{formatCurrency(dashData.summary.totalCharged)}</p>
+                    <p className="text-xs text-muted-foreground/70">{t("accrualBasisDesc")} {getMonthName(month)}</p>
                   </div>
                 </div>
               </div>
 
               {/* Appointment stats */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-brand-600" />
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
                   {t("appointmentsSectionTitle")}
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -326,9 +326,9 @@ export function ReportsClient() {
 
               {/* By provider */}
               {dashData.byProvider.length > 0 && (
-                <div className="bg-white rounded-xl border p-5">
-                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2 text-sm">
-                    <BarChart3 className="h-4 w-4 text-brand-600" />
+                <div className="bg-card rounded-xl border p-5">
+                  <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2 text-sm">
+                    <BarChart3 className="h-4 w-4 text-primary" />
                     {t("revenueByProvider")}
                   </h3>
                   <div className="space-y-4">
@@ -340,8 +340,8 @@ export function ReportsClient() {
                           <div key={p.name} className="space-y-1">
                             <div className="flex items-center justify-between text-sm">
                               <div>
-                                <p className="font-medium text-gray-900">{p.name}</p>
-                                <p className="text-xs text-gray-500">{p.sessions} {t("paidSessions")}</p>
+                                <p className="font-medium text-foreground">{p.name}</p>
+                                <p className="text-xs text-muted-foreground">{p.sessions} {t("paidSessions")}</p>
                               </div>
                               <div className="text-right">
                                 <p className="font-bold text-green-700">{formatCurrency(p.received)}</p>
@@ -360,9 +360,9 @@ export function ReportsClient() {
 
               {/* By payment method */}
               {Object.keys(dashData.byMethod).length > 0 && (
-                <div className="bg-white rounded-xl border p-5">
-                  <h3 className="font-semibold text-gray-900 mb-4 text-sm flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-brand-600" />
+                <div className="bg-card rounded-xl border p-5">
+                  <h3 className="font-semibold text-foreground mb-4 text-sm flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-primary" />
                     {t("paymentMethods")}
                   </h3>
                   <div className="space-y-3">
@@ -374,13 +374,13 @@ export function ReportsClient() {
                         return (
                           <div key={method} className="space-y-1">
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-700">{getPaymentMethodLabel(method)}</span>
+                              <span className="text-foreground">{getPaymentMethodLabel(method)}</span>
                               <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-400">{pct}%</span>
+                                <span className="text-xs text-muted-foreground/70">{pct}%</span>
                                 <span className="font-medium">{formatCurrency(amount)}</span>
                               </div>
                             </div>
-                            <MiniBar value={amount} max={total} color="bg-brand-500" />
+                            <MiniBar value={amount} max={total} color="bg-primary" />
                           </div>
                         );
                       })}
@@ -396,11 +396,11 @@ export function ReportsClient() {
       {tab === "cashflow" && (
         <div className="space-y-6">
           {loading ? (
-            <div className="bg-white rounded-xl border p-5 animate-pulse h-64" />
+            <div className="bg-card rounded-xl border p-5 animate-pulse h-64" />
           ) : cashflow.length > 0 ? (
-            <div className="bg-white rounded-xl border p-5 space-y-4">
-              <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-brand-600" />
+            <div className="bg-card rounded-xl border p-5 space-y-4">
+              <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
                 {t("last6Months")}
               </h3>
 
@@ -410,18 +410,18 @@ export function ReportsClient() {
                   const maxVal = Math.max(...cashflow.map((m) => Math.max(m.competencia, m.caixa)));
                   return cashflow.map((m) => (
                     <div key={m.month} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span className="font-medium w-16">{m.month}</span>
                         <div className="flex items-center gap-4">
-                          <span className="text-gray-700">{m.sessions} {t("cashflowSessions")}</span>
+                          <span className="text-foreground">{m.sessions} {t("cashflowSessions")}</span>
                           <span className="text-green-700 font-medium">{t("cashflowCash")}: {formatCurrency(m.caixa)}</span>
-                          <span className="text-gray-600">{t("cashflowAccrual")}: {formatCurrency(m.competencia)}</span>
+                          <span className="text-muted-foreground">{t("cashflowAccrual")}: {formatCurrency(m.competencia)}</span>
                         </div>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-20">{t("cashflowCash")}</span>
-                          <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                          <span className="text-xs text-muted-foreground/70 w-20">{t("cashflowCash")}</span>
+                          <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
                             <div
                               className="h-full bg-green-500 rounded-full"
                               style={{ width: maxVal > 0 ? `${(m.caixa / maxVal) * 100}%` : "0%" }}
@@ -430,10 +430,10 @@ export function ReportsClient() {
                           <span className="text-xs font-medium w-24 text-right">{formatCurrency(m.caixa)}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-20">{t("cashflowAccrual")}</span>
-                          <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                          <span className="text-xs text-muted-foreground/70 w-20">{t("cashflowAccrual")}</span>
+                          <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-brand-400 rounded-full"
+                              className="h-full bg-primary rounded-full"
                               style={{ width: maxVal > 0 ? `${(m.competencia / maxVal) * 100}%` : "0%" }}
                             />
                           </div>
@@ -446,13 +446,13 @@ export function ReportsClient() {
               </div>
 
               {/* Legend */}
-              <div className="flex items-center gap-4 pt-2 border-t text-xs text-gray-500">
+              <div className="flex items-center gap-4 pt-2 border-t text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-green-500 inline-block" />
                   {t("cashflowLegendCash")}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-brand-400 inline-block" />
+                  <span className="w-3 h-3 rounded-full bg-primary inline-block" />
                   {t("cashflowLegendAccrual")}
                 </span>
               </div>
@@ -461,7 +461,7 @@ export function ReportsClient() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b text-xs text-gray-500">
+                    <tr className="border-b text-xs text-muted-foreground">
                       <th className="text-left py-2 font-medium">{t("cashflowMonth")}</th>
                       <th className="text-right py-2 font-medium">{t("cashflowSessions")}</th>
                       <th className="text-right py-2 font-medium">{t("cashflowCash")}</th>
@@ -472,10 +472,10 @@ export function ReportsClient() {
                   <tbody>
                     {cashflow.map((m) => (
                       <tr key={m.month} className="border-b last:border-0">
-                        <td className="py-2 font-medium text-gray-700">{m.month}</td>
-                        <td className="py-2 text-right text-gray-600">{m.sessions}</td>
+                        <td className="py-2 font-medium text-foreground">{m.month}</td>
+                        <td className="py-2 text-right text-muted-foreground">{m.sessions}</td>
                         <td className="py-2 text-right text-green-700 font-medium">{formatCurrency(m.caixa)}</td>
-                        <td className="py-2 text-right text-gray-700">{formatCurrency(m.competencia)}</td>
+                        <td className="py-2 text-right text-foreground">{formatCurrency(m.competencia)}</td>
                         <td className={`py-2 text-right font-medium ${m.caixa >= m.competencia ? "text-green-600" : "text-orange-600"}`}>
                           {m.caixa >= m.competencia ? "+" : ""}{formatCurrency(m.caixa - m.competencia)}
                         </td>
@@ -483,7 +483,7 @@ export function ReportsClient() {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="font-bold text-gray-900 border-t-2">
+                    <tr className="font-bold text-foreground border-t-2">
                       <td className="py-2">{t("cashflowTotal")}</td>
                       <td className="py-2 text-right">{cashflow.reduce((s, m) => s + m.sessions, 0)}</td>
                       <td className="py-2 text-right text-green-700">{formatCurrency(cashflow.reduce((s, m) => s + m.caixa, 0))}</td>
@@ -495,7 +495,7 @@ export function ReportsClient() {
               </div>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">{t("noData")}</p>
+            <p className="text-muted-foreground text-center py-8">{t("noData")}</p>
           )}
         </div>
       )}
@@ -504,7 +504,7 @@ export function ReportsClient() {
       {tab === "previsibility" && (
         <div className="space-y-6">
           {loading ? (
-            <div className="bg-white rounded-xl border p-5 animate-pulse h-40" />
+            <div className="bg-card rounded-xl border p-5 animate-pulse h-40" />
           ) : previsibility ? (
             <>
               {/* Overdue */}
@@ -524,9 +524,9 @@ export function ReportsClient() {
               )}
 
               {/* Upcoming months */}
-              <div className="bg-white rounded-xl border p-5 space-y-4">
-                <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-brand-600" />
+              <div className="bg-card rounded-xl border p-5 space-y-4">
+                <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
                   {t("previsibilityTitle")}
                 </h3>
                 <div className="space-y-4">
@@ -536,23 +536,23 @@ export function ReportsClient() {
                       <div key={m.month} className="space-y-1.5">
                         <div className="flex items-center justify-between text-sm">
                           <div>
-                            <p className="font-medium text-gray-900">{m.month}</p>
-                            <p className="text-xs text-gray-500">{m.count} {t("previsibilityPending")}</p>
+                            <p className="font-medium text-foreground">{m.month}</p>
+                            <p className="text-xs text-muted-foreground">{m.count} {t("previsibilityPending")}</p>
                           </div>
-                          <p className="font-bold text-brand-700">{formatCurrency(m.expected)}</p>
+                          <p className="font-bold text-primary">{formatCurrency(m.expected)}</p>
                         </div>
-                        <MiniBar value={m.expected} max={maxVal} color="bg-brand-500" />
+                        <MiniBar value={m.expected} max={maxVal} color="bg-primary" />
                       </div>
                     );
                   })}
                 </div>
-                <p className="text-xs text-gray-400 pt-2 border-t">
+                <p className="text-xs text-muted-foreground/70 pt-2 border-t">
                   {t("previsibilityNote")}
                 </p>
               </div>
             </>
           ) : (
-            <p className="text-gray-500 text-center py-8">{t("noData")}</p>
+            <p className="text-muted-foreground text-center py-8">{t("noData")}</p>
           )}
         </div>
       )}
@@ -560,8 +560,8 @@ export function ReportsClient() {
       {/* ── Export tab ── */}
       {tab === "export" && (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border p-5 space-y-4">
-            <h3 className="font-semibold text-gray-900 text-sm">{t("exportSectionTitle")}</h3>
+          <div className="bg-card rounded-xl border p-5 space-y-4">
+            <h3 className="font-semibold text-foreground text-sm">{t("exportSectionTitle")}</h3>
 
             {[
               { label: t("exportMonthlyLabel"), type: "monthly", desc: `${t("exportMonthlyDesc")} ${getMonthName(month)} ${year}` },
@@ -571,8 +571,8 @@ export function ReportsClient() {
             ].map((item) => (
               <div key={item.type} className="flex items-center justify-between py-3 border-b last:border-0">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{item.label}</p>
-                  <p className="text-xs text-gray-500">{item.desc}</p>
+                  <p className="text-sm font-medium text-foreground">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.desc}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => exportCsv(item.type)} className="gap-1.5">
                   <Download className="h-3.5 w-3.5" />

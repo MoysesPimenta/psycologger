@@ -182,7 +182,9 @@
     "saveError": "Erreur lors de l'enregistrement",
     "placeholderTags": "anxiété, dépression, adulte",
     "placeholderNotes": "Préférences de planification, préférences de contact, etc.",
-    "placeholderCPF": "000.000.000-00"
+    "placeholderCPF": "000.000.000-00",
+    "paginationPrev": "Précédent",
+    "paginationNext": "Suivant"
   },
   "settings": {
     "headerSubtitle": "Gérez votre cabinet et vos préférences",

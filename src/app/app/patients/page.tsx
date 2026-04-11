@@ -20,11 +20,11 @@ export default async function PatientsPage() {
   const tPatients = await getTranslations("patients");
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="page-section">
+      <div className="section-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t("patients")}</h1>
-          <p className="text-sm text-gray-500 mt-1">{tPatients("headerSubtitle")}</p>
+          <h1 className="page-title">{t("patients")}</h1>
+          <p className="page-subtitle">{tPatients("headerSubtitle")}</p>
         </div>
         <Button asChild>
           <Link href="/app/patients/new">

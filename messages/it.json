@@ -182,7 +182,9 @@
     "saveError": "Errore nel salvataggio",
     "placeholderTags": "ansia, depressione, adulto",
     "placeholderNotes": "Preferenze di pianificazione, preferenze di contatto, ecc.",
-    "placeholderCPF": "000.000.000-00"
+    "placeholderCPF": "000.000.000-00",
+    "paginationPrev": "Precedente",
+    "paginationNext": "Successivo"
   },
   "settings": {
     "headerSubtitle": "Gestisci la tua pratica e le preferenze",
