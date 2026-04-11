@@ -26,6 +26,7 @@
     "edit": "Edit",
     "delete": "Delete",
     "loading": "Loading...",
+    "saving": "Saving...",
     "error": "Error",
     "success": "Success",
     "logout": "Log out",
@@ -43,7 +44,10 @@
     "view": "View",
     "create": "Create",
     "update": "Update",
-    "remove": "Remove"
+    "remove": "Remove",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System"
   },
   "today": {
     "headerSubtitle": "Manage your practice and preferences",
@@ -162,6 +166,8 @@
     "defaultAppointmentType": "Default appointment type",
     "sessionFeeValue": "Session fee (R$)",
     "sessionFeeDefault": "default:",
+    "quotaExceeded": "Plan limit reached ({current}/{limit} patients).",
+    "quotaUpgrade": "Upgrade to add new patients.",
     "cancel": "Cancel",
     "saveChanges": "Save changes",
     "saving": "Saving...",
@@ -232,7 +238,18 @@
     "chargeOverdueDesc": "Sent when a charge becomes overdue.",
     "reminderTemplateError": "Error loading reminder templates.",
     "reminderSaveError": "Error saving reminder template.",
-    "reminderTemplatePlaceholder": "Available variables:"
+    "reminderTemplatePlaceholder": "Available variables:",
+    "requiredName": "Name is required.",
+    "appointmentTypeDeactivateError": "Error deactivating appointment type.",
+    "appointmentTypeUpdateError": "Error updating appointment type.",
+    "noAppointmentTypes": "No appointment types configured.",
+    "createAppointmentTypeHint": "Create one to schedule appointments.",
+    "inactive": "Inactive",
+    "newAppointmentType": "New appointment type",
+    "addType": "Add type",
+    "deactivateConfirmTitle": "Deactivate appointment type?",
+    "deactivateConfirmMessage": "The type {name} will be deactivated. Existing appointments will not be affected.",
+    "deactivate": "Deactivate"
   },
   "calendar": {
     "headerSubtitle": "Manage appointments and schedules",
@@ -410,7 +427,11 @@
     "label": "Language",
     "pt-BR": "Português",
     "en": "English",
-    "es": "Español"
+    "es": "Español",
+    "he": "עברית",
+    "it": "Italiano",
+    "fr": "Français",
+    "de": "Deutsch"
   },
   "billing": {
     "title": "Plan & Subscription",

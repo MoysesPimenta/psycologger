@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +49,10 @@ const emptyForm: FormState = {
 };
 
 export function AppointmentTypesClient() {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
+  const te = useTranslations("errors");
+
   const [types, setTypes] = useState<AppointmentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -98,7 +103,7 @@ export function AppointmentTypesClient() {
   }
 
   async function handleSave() {
-    if (!form.name.trim()) { setError("Nome é obrigatório."); return; }
+    if (!form.name.trim()) { setError(t("requiredName")); return; }
     setSaving(true);
     setError("");
 
@@ -122,14 +127,14 @@ export function AppointmentTypesClient() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao salvar.");
+        setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? te("saveFailed"));
         return;
       }
 
       await load();
       cancelForm();
     } catch {
-      setError("Erro de rede.");
+      setError(te("connectionError"));
     } finally {
       setSaving(false);
     }
@@ -143,7 +148,7 @@ export function AppointmentTypesClient() {
       await load();
     } else {
       const data = await res.json().catch(() => ({}));
-      setActionError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao desativar tipo de consulta.");
+      setActionError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? t("appointmentTypeDeactivateError"));
     }
   }
 
@@ -158,7 +163,7 @@ export function AppointmentTypesClient() {
       await load();
     } else {
       const data = await res.json().catch(() => ({}));
-      setActionError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao atualizar tipo de consulta.");
+      setActionError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? t("appointmentTypeUpdateError"));
     }
   }
 
@@ -175,8 +180,8 @@ export function AppointmentTypesClient() {
       {types.length === 0 && !showForm && (
         <Card>
           <CardContent className="py-12 text-center text-gray-500">
-            <p className="text-sm">Nenhum tipo de consulta cadastrado.</p>
-            <p className="text-sm mt-1">Crie um para poder agendar consultas.</p>
+            <p className="text-sm">{t("noAppointmentTypes")}</p>
+            <p className="text-sm mt-1">{t("createAppointmentTypeHint")}</p>
           </CardContent>
         </Card>
       )}
@@ -204,7 +209,7 @@ export function AppointmentTypesClient() {
                   <p className="text-xs text-gray-500 mt-0.5">
                     {SESSION_TYPE_LABELS[type.sessionType]} · {type.defaultDurationMin} min
                     {type.defaultPriceCents > 0 && ` · R$ ${(type.defaultPriceCents / 100).toFixed(2)}`}
-                    {!type.isActive && " · Inativo"}
+                    {!type.isActive && ` · ${t("inactive")}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
@@ -230,7 +235,7 @@ export function AppointmentTypesClient() {
       {showForm && (
         <Card>
           <CardContent className="pt-4">
-            <p className="text-sm font-medium text-gray-700 mb-4">Novo tipo de consulta</p>
+            <p className="text-sm font-medium text-gray-700 mb-4">{t("newAppointmentType")}</p>
             <TypeForm
               form={form}
               setForm={setForm}
@@ -245,7 +250,7 @@ export function AppointmentTypesClient() {
 
       {!showForm && editingId === null && (
         <Button variant="outline" onClick={startCreate} className="w-full">
-          <Plus className="h-4 w-4 mr-2" /> Adicionar tipo
+          <Plus className="h-4 w-4 mr-2" /> {t("addType")}
         </Button>
       )}
 
@@ -256,14 +261,14 @@ export function AppointmentTypesClient() {
           onClick={() => setConfirmDeactivate(null)}>
           <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-4"
             onClick={(e) => e.stopPropagation()}>
-            <h2 id="deactivate-type-title" className="text-base font-semibold text-gray-900">Desativar tipo de consulta?</h2>
+            <h2 id="deactivate-type-title" className="text-base font-semibold text-gray-900">{t("deactivateConfirmTitle")}</h2>
             <p className="text-sm text-gray-600">
-              O tipo <strong>{confirmDeactivate.name}</strong> será desativado. As consultas existentes não serão afetadas.
+              {t("deactivateConfirmMessage", { name: confirmDeactivate.name })}
             </p>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setConfirmDeactivate(null)}>Cancelar</Button>
+              <Button variant="outline" size="sm" onClick={() => setConfirmDeactivate(null)}>{tc("cancel")}</Button>
               <Button variant="destructive" size="sm" onClick={() => executeDelete(confirmDeactivate.id)}>
-                <Trash2 className="h-4 w-4 mr-1" /> Desativar
+                <Trash2 className="h-4 w-4 mr-1" /> {t("deactivate")}
               </Button>
             </div>
           </div>
@@ -288,6 +293,9 @@ function TypeForm({
   saving: boolean;
   error: string;
 }) {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -369,11 +377,11 @@ function TypeForm({
 
       <div className="flex flex-col-reverse sm:flex-row gap-2">
         <Button variant="outline" onClick={onCancel} size="sm" className="h-11 sm:h-auto w-full sm:w-auto">
-          <X className="h-3.5 w-3.5 mr-1" /> Cancelar
+          <X className="h-3.5 w-3.5 mr-1" /> {tc("cancel")}
         </Button>
         <Button onClick={onSave} disabled={saving} size="sm" className="h-11 sm:h-auto w-full sm:w-auto">
           <Check className="h-3.5 w-3.5 mr-1" />
-          {saving ? "Salvando..." : "Salvar"}
+          {saving ? tc("saving") : tc("save")}
         </Button>
       </div>
     </div>

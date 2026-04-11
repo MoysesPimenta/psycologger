@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,8 @@ interface AppointmentTypeSummary {
 export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?: AppointmentTypeSummary[] }) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("patients");
+  const tc = useTranslations("common");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
@@ -65,19 +68,19 @@ export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?:
           const errorData = await res.json().catch(() => null);
           const msg =
             errorData?.code === "QUOTA_EXCEEDED"
-              ? `Limite do plano atingido (${errorData.current ?? "?"}/${errorData.limit ?? "?"} pacientes). Faça upgrade para adicionar novos pacientes.`
-              : "Limite do plano atingido. Faça upgrade para adicionar novos pacientes.";
+              ? `${t("quotaExceeded", { current: errorData.current ?? "?", limit: errorData.limit ?? "?" })} ${t("quotaUpgrade")}`
+              : `${t("quotaExceeded", { current: "?", limit: "?" })} ${t("quotaUpgrade")}`;
           toast({ title: msg, variant: "destructive" });
           return;
         }
         throw new Error();
       }
       const data = await res.json();
-      toast({ title: "Paciente criado!", variant: "success" });
+      toast({ title: t("patientCreated"), variant: "success" });
       router.push(`/app/patients/${data.data.id}`);
       router.refresh();
     } catch {
-      toast({ title: "Erro ao criar paciente", variant: "destructive" });
+      toast({ title: t("saveError"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -89,38 +92,38 @@ export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?:
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Nome completo *</Label>
+              <Label htmlFor="fullName">{t("fullName")} *</Label>
               <Input id="fullName" value={form.fullName} onChange={(e) => set("fullName", e.target.value)} required placeholder="João Silva" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="preferredName">Nome preferido (apelido)</Label>
+              <Label htmlFor="preferredName">{t("preferredName")}</Label>
               <Input id="preferredName" value={form.preferredName} onChange={(e) => set("preferredName", e.target.value)} placeholder="João" />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("email")}</Label>
               <Input id="email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="joao@email.com" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone / WhatsApp</Label>
+              <Label htmlFor="phone">{t("phone")}</Label>
               <Input id="phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="11 99999-0000" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="dob">Data de nascimento</Label>
+            <Label htmlFor="dob">{t("dateOfBirth")}</Label>
             <Input id="dob" type="date" value={form.dob} onChange={(e) => set("dob", e.target.value)} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tags">Tags (separadas por vírgula)</Label>
+            <Label htmlFor="tags">{t("tags")}</Label>
             <Input id="tags" value={form.tags} onChange={(e) => set("tags", e.target.value)} placeholder="ansiedade, depressão, adulto" />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Observações (não clínicas)</Label>
+            <Label htmlFor="notes">{t("notes")}</Label>
             <textarea
               id="notes"
               value={form.notes}
@@ -133,10 +136,10 @@ export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?:
           {/* ── Billing defaults ── */}
           {appointmentTypes.length > 0 && (
             <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
-              <p className="text-sm font-medium text-gray-700">Cobrança padrão</p>
+              <p className="text-sm font-medium text-gray-700">{t("defaultChargingSection")}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="defaultAppointmentTypeId" className="text-xs text-gray-600">Tipo de consulta padrão</Label>
+                  <Label htmlFor="defaultAppointmentTypeId" className="text-xs text-gray-600">{t("defaultAppointmentType")}</Label>
                   <select
                     id="defaultAppointmentTypeId"
                     value={form.defaultAppointmentTypeId}
@@ -151,7 +154,7 @@ export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?:
                     }}
                     className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="">— Nenhum —</option>
+                    <option value="">{t("noSelection")}</option>
                     {appointmentTypes.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name} · R$ {(t.defaultPriceCents / 100).toFixed(2).replace(".", ",")}
@@ -161,9 +164,9 @@ export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?:
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="defaultFeeOverrideCents" className="text-xs text-gray-600">
-                    Valor por sessão (R$)
+                    {t("sessionFeeValue")}
                     {selectedType && !form.defaultFeeOverrideCents && (
-                      <span className="ml-1 font-normal text-gray-400">padrão: R$ {(selectedType.defaultPriceCents / 100).toFixed(2).replace(".", ",")}</span>
+                      <span className="ml-1 font-normal text-gray-400">{t("sessionFeeDefault")} R$ {(selectedType.defaultPriceCents / 100).toFixed(2).replace(".", ",")}</span>
                     )}
                   </Label>
                   <Input
@@ -181,10 +184,10 @@ export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?:
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => router.back()}>
-              Cancelar
+              {tc("cancel")}
             </Button>
             <Button type="submit" loading={loading}>
-              {loading ? "Salvando..." : "Criar paciente"}
+              {loading ? t("saving") : tc("create")}
             </Button>
           </div>
         </form>

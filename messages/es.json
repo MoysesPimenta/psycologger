@@ -26,6 +26,7 @@
     "edit": "Editar",
     "delete": "Eliminar",
     "loading": "Cargando...",
+    "saving": "Guardando...",
     "error": "Error",
     "success": "Éxito",
     "logout": "Cerrar sesión",
@@ -43,7 +44,10 @@
     "view": "Ver",
     "create": "Crear",
     "update": "Actualizar",
-    "remove": "Quitar"
+    "remove": "Quitar",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeSystem": "Sistema"
   },
   "today": {
     "headerSubtitle": "Administra tu práctica y preferencias",
@@ -75,7 +79,7 @@
     "chargeThisSession": "¿Cobrar esta sesión?",
     "amount": "Cantidad (R$)",
     "discount": "Descuento (R$)",
-    "dueDate": "Fecha de vencimiento",
+    "dueDate": "Fecha de vencimiento:",
     "netAmount": "Cantidad neta:",
     "creating": "Creando...",
     "create": "Crear cargo",
@@ -115,12 +119,10 @@
     "summaryToReceive": "Por recibir",
     "chargeCount": "cargo",
     "chargeCounts": "cargos",
-    "dueDate": "Fecha de vencimiento:",
     "partiallyPaid": "Parcialmente pagada",
     "markPaid": "Marcar como pagada",
     "payRemainder": "Pagar saldo",
     "paid": "Pagada",
-    "paymentMethod": "Método de pago",
     "markPaidSuccess": "¡Pago registrado!",
     "markPaidError": "Error al registrar pago",
     "loadError": "Error al cargar cargos. Intenta de nuevo.",
@@ -164,6 +166,8 @@
     "defaultAppointmentType": "Tipo de cita predeterminada",
     "sessionFeeValue": "Tarifa de sesión (R$)",
     "sessionFeeDefault": "predeterminada:",
+    "quotaExceeded": "Límite del plan alcanzado ({current}/{limit} pacientes).",
+    "quotaUpgrade": "Actualiza para agregar nuevos pacientes.",
     "cancel": "Cancelar",
     "saveChanges": "Guardar cambios",
     "saving": "Guardando...",
@@ -234,7 +238,18 @@
     "chargeOverdueDesc": "Enviado cuando un cargo vence.",
     "reminderTemplateError": "Error al cargar plantillas de recordatorio.",
     "reminderSaveError": "Error al guardar plantilla de recordatorio.",
-    "reminderTemplatePlaceholder": "Variables disponibles:"
+    "reminderTemplatePlaceholder": "Variables disponibles:",
+    "requiredName": "El nombre es requerido.",
+    "appointmentTypeDeactivateError": "Error al desactivar tipo de cita.",
+    "appointmentTypeUpdateError": "Error al actualizar tipo de cita.",
+    "noAppointmentTypes": "No hay tipos de cita configurados.",
+    "createAppointmentTypeHint": "Crea uno para poder agendar citas.",
+    "inactive": "Inactivo",
+    "newAppointmentType": "Nuevo tipo de cita",
+    "addType": "Agregar tipo",
+    "deactivateConfirmTitle": "¿Desactivar tipo de cita?",
+    "deactivateConfirmMessage": "El tipo {name} será desactivado. Las citas existentes no serán afectadas.",
+    "deactivate": "Desactivar"
   },
   "calendar": {
     "headerSubtitle": "Administra citas y horarios",
@@ -377,7 +392,11 @@
     "label": "Idioma",
     "pt-BR": "Português",
     "en": "English",
-    "es": "Español"
+    "es": "Español",
+    "he": "עברית",
+    "it": "Italiano",
+    "fr": "Français",
+    "de": "Deutsch"
   },
   "billing": {
     "title": "Plan y Suscripción",

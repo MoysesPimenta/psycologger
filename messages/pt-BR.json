@@ -26,6 +26,7 @@
     "edit": "Editar",
     "delete": "Excluir",
     "loading": "Carregando...",
+    "saving": "Salvando...",
     "error": "Erro",
     "success": "Sucesso",
     "logout": "Sair",
@@ -43,7 +44,10 @@
     "view": "Ver",
     "create": "Criar",
     "update": "Atualizar",
-    "remove": "Remover"
+    "remove": "Remover",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "themeSystem": "Sistema"
   },
   "today": {
     "headerSubtitle": "Gerencie sua clínica e preferências",
@@ -162,6 +166,8 @@
     "defaultAppointmentType": "Tipo de consulta padrão",
     "sessionFeeValue": "Valor por sessão (R$)",
     "sessionFeeDefault": "padrão:",
+    "quotaExceeded": "Limite do plano atingido ({current}/{limit} pacientes).",
+    "quotaUpgrade": "Faça upgrade para adicionar novos pacientes.",
     "cancel": "Cancelar",
     "saveChanges": "Salvar alterações",
     "saving": "Salvando...",
@@ -232,7 +238,18 @@
     "chargeOverdueDesc": "Enviado quando a cobrança passa do vencimento.",
     "reminderTemplateError": "Erro ao carregar modelos de lembretes.",
     "reminderSaveError": "Erro ao salvar modelo de lembrete.",
-    "reminderTemplatePlaceholder": "Variáveis disponíveis:"
+    "reminderTemplatePlaceholder": "Variáveis disponíveis:",
+    "requiredName": "Nome é obrigatório.",
+    "appointmentTypeDeactivateError": "Erro ao desativar tipo de consulta.",
+    "appointmentTypeUpdateError": "Erro ao atualizar tipo de consulta.",
+    "noAppointmentTypes": "Nenhum tipo de consulta cadastrado.",
+    "createAppointmentTypeHint": "Crie um para poder agendar consultas.",
+    "inactive": "Inativo",
+    "newAppointmentType": "Novo tipo de consulta",
+    "addType": "Adicionar tipo",
+    "deactivateConfirmTitle": "Desativar tipo de consulta?",
+    "deactivateConfirmMessage": "O tipo {name} será desativado. As consultas existentes não serão afetadas.",
+    "deactivate": "Desativar"
   },
   "calendar": {
     "headerSubtitle": "Gerencie consultas e horários",
@@ -410,7 +427,11 @@
     "label": "Idioma",
     "pt-BR": "Português",
     "en": "English",
-    "es": "Español"
+    "es": "Español",
+    "he": "עברית",
+    "it": "Italiano",
+    "fr": "Français",
+    "de": "Deutsch"
   },
   "billing": {
     "title": "Plano e Assinatura",

@@ -5,10 +5,12 @@ import { Providers } from "@/components/providers";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, getLocale } from "next-intl/server";
 import { cookies, headers } from "next/headers";
+import { isRtlLocale } from "@/i18n/config";
+import type { Locale } from "@/i18n/config";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin", "latin-ext"] });
 
 export const metadata: Metadata = {
   title: {
@@ -47,7 +49,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
-  themeColor: "#3b82f6",
+  themeColor: "#2563eb",
 };
 
 export default async function RootLayout({
@@ -56,6 +58,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const messages = await getMessages();
+  const locale = (await getLocale()) as Locale;
+  const dir = isRtlLocale(locale) ? "rtl" : "ltr";
 
   // Read the CSP nonce from the response header set by middleware.
   // The nonce is generated per-request and enables strict CSP while
@@ -74,7 +78,7 @@ export default async function RootLayout({
   const htmlClass = theme === "dark" ? "dark" : "";
 
   return (
-    <html lang="pt-BR" className={htmlClass} suppressHydrationWarning>
+    <html lang={locale} dir={dir} className={htmlClass} suppressHydrationWarning>
       <head>
         {/* No-flash theme bootstrap. Runs before paint, resolves
             "system" against the OS preference. Mirrors logic in

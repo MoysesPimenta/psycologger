@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Sun, Moon, Monitor } from "lucide-react";
 
 type Theme = "light" | "dark" | "system";
@@ -28,6 +29,7 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
+  const t = useTranslations("common");
   const [theme, setTheme] = useState<Theme>("system");
 
   useEffect(() => {
@@ -62,9 +64,9 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   }
 
   const opts: { value: Theme; icon: typeof Sun; label: string }[] = [
-    { value: "light", icon: Sun, label: "Claro" },
-    { value: "dark", icon: Moon, label: "Escuro" },
-    { value: "system", icon: Monitor, label: "Sistema" },
+    { value: "light", icon: Sun, label: t("themeLight") },
+    { value: "dark", icon: Moon, label: t("themeDark") },
+    { value: "system", icon: Monitor, label: t("themeSystem") },
   ];
 
   if (compact) {

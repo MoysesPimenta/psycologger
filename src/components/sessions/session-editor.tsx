@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   Save, ChevronLeft, Clock, FileText, Tag, History,
@@ -104,6 +105,7 @@ function FileAttachmentPanel({
   onCountChange?: (count: number) => void;
 }) {
   const { toast } = useToast();
+  const tc = useTranslations("common");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<FileAttachment[]>(initialFiles);
   const updateFiles = (updater: (prev: FileAttachment[]) => FileAttachment[]) => {
@@ -251,9 +253,9 @@ function FileAttachmentPanel({
               O arquivo <strong>{confirmDelete.name}</strong> será removido permanentemente. Esta ação não pode ser desfeita.
             </p>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>Cancelar</Button>
+              <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>{tc("cancel")}</Button>
               <Button variant="destructive" size="sm" onClick={() => executeFileDelete(confirmDelete.id)}>
-                <Trash2 className="h-4 w-4 mr-1" /> Excluir
+                <Trash2 className="h-4 w-4 mr-1" /> {tc("delete")}
               </Button>
             </div>
           </div>
@@ -268,6 +270,7 @@ function FileAttachmentPanel({
 export function SessionEditor({ session, patient, appointment, canEdit }: Props) {
   const router = useRouter();
   const { toast } = useToast();
+  const tc = useTranslations("common");
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -434,11 +437,11 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" size="sm" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
-                Cancelar
+                {tc("cancel")}
               </Button>
               <Button variant="destructive" size="sm" onClick={handleDeleteSession} disabled={deleting}>
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
-                Excluir sessão
+                {tc("delete")}
               </Button>
             </div>
           </div>
@@ -471,13 +474,13 @@ export function SessionEditor({ session, patient, appointment, canEdit }: Props)
             <Button variant="outline" size="sm" onClick={() => setShowDeleteModal(true)}
               className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
               <Trash2 className="h-4 w-4 mr-1" />
-              Excluir
+              {tc("delete")}
             </Button>
           )}
           {canEdit && (
             <Button onClick={handleSave} disabled={saving} size="sm">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
-              {saving ? "Salvando…" : "Salvar"}
+              {saving ? tc("loading") : tc("save")}
             </Button>
           )}
         </div>

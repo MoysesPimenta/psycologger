@@ -4,48 +4,69 @@
 
 @layer base {
   :root {
+    /* Blue / Purple / White design direction
+     * Primary: Blue-600 (#2563eb) — trust, calm, professionalism
+     * Accent: Purple-500 (#8b5cf6) — creativity, therapy, warmth
+     * Surface: White with subtle blue-gray undertones
+     * Success: Emerald for positive states
+     */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 224 71% 4%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 224 71% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
+    --popover-foreground: 224 71% 4%;
+    --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+    --secondary: 250 50% 96%;
+    --secondary-foreground: 224 71% 4%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
+    --radius: 0.625rem;
+
+    /* Extended semantic tokens */
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 221 83% 53%;
+    --info-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 224 71% 4%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 224 50% 8%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 224 50% 8%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 224 71% 4%;
+    --secondary: 260 30% 18%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --muted: 223 30% 15%;
+    --muted-foreground: 218 11% 65%;
+    --accent: 262 83% 68%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 223 30% 18%;
+    --input: 223 30% 18%;
+    --ring: 224 76% 48%;
+
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 217 91% 60%;
+    --info-foreground: 224 71% 4%;
   }
 }
 
@@ -180,6 +201,64 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * RTL (Right-to-Left) support for Hebrew and future RTL locales.
+ *
+ * Uses the [dir="rtl"] attribute set on <html> by the root layout.
+ * Flips directional spacing, alignment and layout for RTL languages.
+ * CSS logical properties (margin-inline-start, etc.) are preferred in
+ * new components, but these overrides handle legacy directional utilities.
+ * ------------------------------------------------------------------------- */
+
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Flip sidebar position for RTL */
+[dir="rtl"] .md\:left-64 {
+  left: auto;
+  right: 16rem;
+}
+
+[dir="rtl"] .md\:ml-64 {
+  margin-left: 0;
+  margin-right: 16rem;
+}
+
+/* Flip common spacing utilities */
+[dir="rtl"] .ml-auto { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .mr-auto { margin-right: 0; margin-left: auto; }
+[dir="rtl"] .ml-2 { margin-left: 0; margin-right: 0.5rem; }
+[dir="rtl"] .mr-2 { margin-right: 0; margin-left: 0.5rem; }
+[dir="rtl"] .ml-3 { margin-left: 0; margin-right: 0.75rem; }
+[dir="rtl"] .mr-3 { margin-right: 0; margin-left: 0.75rem; }
+[dir="rtl"] .ml-4 { margin-left: 0; margin-right: 1rem; }
+[dir="rtl"] .pl-4 { padding-left: 0; padding-right: 1rem; }
+[dir="rtl"] .pr-4 { padding-right: 0; padding-left: 1rem; }
+
+/* Flip text alignment */
+[dir="rtl"] .text-left { text-align: right; }
+[dir="rtl"] .text-right { text-align: left; }
+
+/* Flip flex direction for RTL where needed */
+[dir="rtl"] .space-x-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+[dir="rtl"] .space-x-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+[dir="rtl"] .space-x-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+/* Flip gap direction is automatic with flex-row + dir=rtl */
+
+/* Flip icons that indicate direction (arrows, chevrons) */
+[dir="rtl"] .rotate-rtl {
+  transform: scaleX(-1);
+}
+
+/* ---------------------------------------------------------------------------
  * Dark-mode utility remap.
  *
  * The clinic + patient surfaces were originally built against hard-coded
@@ -249,7 +328,7 @@
 .dark .bg-amber-50,
 .dark .bg-yellow-50 { background-color: hsl(38 90% 55% / 0.12); }
 .dark .bg-red-50 { background-color: hsl(0 84% 60% / 0.12); }
-.dark .bg-purple-50 { background-color: hsl(270 80% 60% / 0.12); }
+.dark .bg-purple-50 { background-color: hsl(var(--accent) / 0.12); }
 .dark .bg-brand-50 { background-color: hsl(var(--primary) / 0.12); }
 .dark .bg-brand-100 { background-color: hsl(var(--primary) / 0.18); }
 
