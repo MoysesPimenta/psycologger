@@ -24,7 +24,7 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
 
   if (state === "GRACE") {
     return (
-      <div className="fixed top-0 left-0 right-0 z-40 bg-yellow-50 dark:bg-yellow-950 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3">
+      <div className="fixed top-0 left-0 right-0 md:left-64 z-40 bg-yellow-50 dark:bg-yellow-950 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1">
             <div className="text-yellow-600 dark:text-yellow-400 text-xl">⚠️</div>
@@ -72,7 +72,7 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
     }
 
     return (
-      <div className="fixed top-0 left-0 right-0 z-40 bg-red-50 dark:bg-red-950 border-b border-red-200 dark:border-red-800 px-4 py-3">
+      <div className="fixed top-0 left-0 right-0 md:left-64 z-40 bg-red-50 dark:bg-red-950 border-b border-red-200 dark:border-red-800 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1">
             <div className="text-red-600 dark:text-red-400 text-xl">🚫</div>

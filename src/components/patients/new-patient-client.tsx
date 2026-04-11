@@ -59,7 +59,19 @@ export function NewPatientClient({ appointmentTypes = [] }: { appointmentTypes?:
           defaultFeeOverrideCents: feeCents ?? undefined,
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        // Check for quota exceeded (402)
+        if (res.status === 402) {
+          const errorData = await res.json().catch(() => null);
+          const msg =
+            errorData?.code === "QUOTA_EXCEEDED"
+              ? `Limite do plano atingido (${errorData.current ?? "?"}/${errorData.limit ?? "?"} pacientes). Faça upgrade para adicionar novos pacientes.`
+              : "Limite do plano atingido. Faça upgrade para adicionar novos pacientes.";
+          toast({ title: msg, variant: "destructive" });
+          return;
+        }
+        throw new Error();
+      }
       const data = await res.json();
       toast({ title: "Paciente criado!", variant: "success" });
       router.push(`/app/patients/${data.data.id}`);

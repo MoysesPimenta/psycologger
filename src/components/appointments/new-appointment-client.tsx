@@ -234,6 +234,15 @@ export function NewAppointmentClient({ userId, role }: Props) {
         }),
       });
       if (!res.ok) {
+        if (res.status === 402) {
+          const d = await res.json().catch(() => null);
+          const msg =
+            d?.code === "QUOTA_EXCEEDED"
+              ? `Limite do plano atingido (${d.current ?? "?"}/${d.limit ?? "?"} pacientes). Faça upgrade para adicionar novos pacientes.`
+              : "Limite do plano atingido. Faça upgrade para adicionar novos pacientes.";
+          setPatientError(msg);
+          return;
+        }
         const d = await res.json().catch(() => ({}));
         setPatientError(typeof d?.error === "string" ? d.error : d?.error?.message ?? d?.message ?? "Erro ao criar paciente.");
         return;
