@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export interface BillingBannerProps {
   state: "GRACE" | "OVER_QUOTA" | null;
@@ -19,23 +20,22 @@ export interface BillingBannerProps {
 
 export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBannerProps) {
   const [dismissed, setDismissed] = useState(false);
+  const t = useTranslations("billingBanner");
 
   if (!state || dismissed) return null;
 
   if (state === "GRACE") {
     return (
-      <div className="fixed top-0 left-0 right-0 md:left-64 rtl:md:left-0 rtl:md:right-64 z-40 bg-yellow-50 dark:bg-yellow-950 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3">
+      <div className="fixed top-0 left-0 right-0 ltr:md:left-64 rtl:md:right-64 z-40 bg-yellow-50 dark:bg-yellow-950 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1">
             <div className="text-yellow-600 dark:text-yellow-400 text-xl">⚠️</div>
             <div>
               <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">
-                Período de graça ativo
+                {t("gracePeriodActive")}
               </p>
               <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                Seu pagamento não foi processado. Você tem{" "}
-                <strong>{graceDaysLeft || 3} dias</strong> para atualizar seu método de
-                pagamento.
+                {t("graceMessage", { days: graceDaysLeft || 3 })}
               </p>
             </div>
           </div>
@@ -44,13 +44,13 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
               href="/app/billing"
               className="px-3 py-1 bg-yellow-600 dark:bg-yellow-700 text-white text-sm rounded hover:bg-yellow-700 dark:hover:bg-yellow-600 transition"
             >
-              Atualizar Pagamento
+              {t("updatePayment")}
             </Link>
             <button
               onClick={() => setDismissed(true)}
               className="px-3 py-1 text-sm text-yellow-700 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900 rounded transition"
             >
-              Descartar
+              {t("dismiss")}
             </button>
           </div>
         </div>
@@ -62,27 +62,32 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
     const overQuotaMessages: string[] = [];
     if (quotaInfo.patients.overQuota) {
       overQuotaMessages.push(
-        `Pacientes: ${quotaInfo.patients.current}/${quotaInfo.patients.limit}`
+        t("patients", {
+          current: quotaInfo.patients.current,
+          limit: quotaInfo.patients.limit,
+        })
       );
     }
     if (quotaInfo.therapists.overQuota) {
       overQuotaMessages.push(
-        `Terapeutas: ${quotaInfo.therapists.current}/${quotaInfo.therapists.limit}`
+        t("therapists", {
+          current: quotaInfo.therapists.current,
+          limit: quotaInfo.therapists.limit,
+        })
       );
     }
 
     return (
-      <div className="fixed top-0 left-0 right-0 md:left-64 rtl:md:left-0 rtl:md:right-64 z-40 bg-red-50 dark:bg-red-950 border-b border-red-200 dark:border-red-800 px-4 py-3">
+      <div className="fixed top-0 left-0 right-0 ltr:md:left-64 rtl:md:right-64 z-40 bg-red-50 dark:bg-red-950 border-b border-red-200 dark:border-red-800 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1">
             <div className="text-red-600 dark:text-red-400 text-xl">🚫</div>
             <div>
               <p className="text-sm font-semibold text-red-900 dark:text-red-100">
-                Limite do plano excedido
+                {t("planLimitExceeded")}
               </p>
               <p className="text-xs text-red-800 dark:text-red-200">
-                {overQuotaMessages.join(", ")}. Você não pode adicionar novos pacientes ou
-                terapeutas até fazer upgrade.
+                {overQuotaMessages.join(". ")}. {t("overQuotaMessage")}
               </p>
             </div>
           </div>
@@ -91,13 +96,13 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
               href="/app/billing"
               className="px-3 py-1 bg-red-600 dark:bg-red-700 text-white text-sm rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
             >
-              Fazer Upgrade
+              {t("upgrade")}
             </Link>
             <button
               onClick={() => setDismissed(true)}
               className="px-3 py-1 text-sm text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900 rounded transition"
             >
-              Descartar
+              {t("dismiss")}
             </button>
           </div>
         </div>

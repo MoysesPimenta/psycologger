@@ -388,6 +388,17 @@
     "tableHeaderEntity": "Entidad",
     "tableHeaderIP": "IP"
   },
+  "billingBanner": {
+    "gracePeriodActive": "Período de gracia activo",
+    "graceMessage": "Su pago no fue procesado. Tiene {days} días para actualizar su método de pago.",
+    "updatePayment": "Actualizar Pago",
+    "dismiss": "Descartar",
+    "planLimitExceeded": "Límite del plan excedido",
+    "patients": "Pacientes: {current}/{limit}",
+    "therapists": "Terapeutas: {current}/{limit}",
+    "overQuotaMessage": "No puede agregar nuevos pacientes o terapeutas hasta hacer upgrade.",
+    "upgrade": "Hacer Upgrade"
+  },
   "localeSwitcher": {
     "label": "Idioma",
     "pt-BR": "Português",

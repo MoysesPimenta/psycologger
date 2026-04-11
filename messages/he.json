@@ -423,6 +423,17 @@
     "tableHeaderEntity": "ישות",
     "tableHeaderIP": "IP"
   },
+  "billingBanner": {
+    "gracePeriodActive": "תקופת חסד פעילה",
+    "graceMessage": "התשלום שלך לא עובד. יש לך {days} ימים לעדכן את אמצעי התשלום.",
+    "updatePayment": "עדכון תשלום",
+    "dismiss": "סגור",
+    "planLimitExceeded": "חריגה ממגבלת התוכנית",
+    "patients": "מטופלים: {current}/{limit}",
+    "therapists": "מטפלים: {current}/{limit}",
+    "overQuotaMessage": "לא ניתן להוסיף מטופלים או מטפלים חדשים עד לשדרוג.",
+    "upgrade": "שדרוג"
+  },
   "localeSwitcher": {
     "label": "שפה",
     "pt-BR": "Português",

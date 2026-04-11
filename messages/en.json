@@ -423,6 +423,17 @@
     "tableHeaderEntity": "Entity",
     "tableHeaderIP": "IP"
   },
+  "billingBanner": {
+    "gracePeriodActive": "Grace period active",
+    "graceMessage": "Your payment was not processed. You have {days} days to update your payment method.",
+    "updatePayment": "Update Payment",
+    "dismiss": "Dismiss",
+    "planLimitExceeded": "Plan limit exceeded",
+    "patients": "Patients: {current}/{limit}",
+    "therapists": "Therapists: {current}/{limit}",
+    "overQuotaMessage": "You cannot add new patients or therapists until you upgrade.",
+    "upgrade": "Upgrade"
+  },
   "localeSwitcher": {
     "label": "Language",
     "pt-BR": "Português",

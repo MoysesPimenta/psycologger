@@ -423,6 +423,17 @@
     "tableHeaderEntity": "Entité",
     "tableHeaderIP": "IP"
   },
+  "billingBanner": {
+    "gracePeriodActive": "Période de grâce active",
+    "graceMessage": "Votre paiement n'a pas été traité. Vous avez {days} jours pour mettre à jour votre moyen de paiement.",
+    "updatePayment": "Mettre à jour le paiement",
+    "dismiss": "Ignorer",
+    "planLimitExceeded": "Limite du forfait dépassée",
+    "patients": "Patients : {current}/{limit}",
+    "therapists": "Thérapeutes : {current}/{limit}",
+    "overQuotaMessage": "Vous ne pouvez pas ajouter de nouveaux patients ou thérapeutes avant de passer à un forfait supérieur.",
+    "upgrade": "Mettre à niveau"
+  },
   "localeSwitcher": {
     "label": "Langue",
     "pt-BR": "Português",
