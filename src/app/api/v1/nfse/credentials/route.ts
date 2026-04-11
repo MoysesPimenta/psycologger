@@ -6,7 +6,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, handleApiError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "integrations:configure");
+    requireTenant(ctx);
 
     const credential = await db.integrationCredential.findUnique({
       where: {
@@ -62,6 +63,7 @@ export async function PUT(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "integrations:configure");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const body = credentialsSchema.parse(await req.json());
@@ -145,6 +147,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "integrations:configure");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const deleted = await db.integrationCredential.delete({

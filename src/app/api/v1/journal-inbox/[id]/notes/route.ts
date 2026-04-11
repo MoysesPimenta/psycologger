@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ok, created, handleApiError, apiError, NotFoundError } from "@/lib/api";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { rateLimit } from "@/lib/rate-limit";
@@ -44,6 +44,7 @@ export async function GET(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
+    requireTenant(ctx);
 
     await verifyEntryAccess(params.id, ctx);
 
@@ -80,9 +81,10 @@ export async function POST(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
+    requireTenant(ctx);
 
     // Rate limit therapist notes: 60 per hour per user
-    const rl = await rateLimit(`therapist-notes:${ctx.userId}`, 60, 3600 * 1000);
+    const rl = await rateLimit(`therapist-notes:${ctx.tenantId}:${ctx.userId}`, 60, 3600 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: { code: "RATE_LIMITED", message: "Limite de notas atingido. Tente novamente mais tarde." } },

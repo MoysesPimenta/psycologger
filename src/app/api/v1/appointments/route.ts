@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Rate limit appointments creation: 100 per hour per user
-    const rl = await rateLimit(`appointments:${ctx.userId}`, 100, 3600 * 1000);
+    const rl = await rateLimit(`appointments:${ctx.tenantId}:${ctx.userId}`, 100, 3600 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: { code: "RATE_LIMITED", message: "Limite de consultas atingido. Tente novamente mais tarde." } },

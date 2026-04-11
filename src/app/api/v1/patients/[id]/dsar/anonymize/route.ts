@@ -9,7 +9,7 @@
 
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { noContent, handleApiError, apiError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -28,6 +28,7 @@ export async function POST(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "tenant:edit");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const body = requestSchema.parse(await req.json());

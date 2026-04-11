@@ -6,7 +6,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, handleApiError, BadRequestError, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -21,6 +21,7 @@ export async function GET(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "nfse:issue");
+    requireTenant(ctx);
 
     const invoice = await db.nfseInvoice.findFirst({
       where: {
@@ -70,6 +71,7 @@ export async function POST(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "nfse:issue");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const body = actionSchema.parse(await req.json());

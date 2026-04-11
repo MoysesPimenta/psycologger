@@ -5,7 +5,7 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, handleApiError, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -18,6 +18,7 @@ export async function GET(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "files:downloadClinical");
+    requireTenant(ctx);
 
     // Verify session exists and user has access (PSYCHOLOGIST only sees own sessions)
     const session = await db.clinicalSession.findFirst({
@@ -50,6 +51,7 @@ export async function DELETE(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "files:delete");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Verify session exists and user has access

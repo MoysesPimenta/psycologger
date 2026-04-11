@@ -5,7 +5,7 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, created, handleApiError, NotFoundError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -33,6 +33,7 @@ export async function GET(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "sessions:view");
+    requireTenant(ctx);
 
     const session = await db.clinicalSession.findFirst({
       where: {
@@ -83,6 +84,7 @@ export async function POST(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "files:uploadClinical");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     if (!isStorageConfigured()) {

@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { handleApiError, BadRequestError } from "@/lib/api";
 import { exchangeCode } from "@/lib/google-calendar";
 import { encryptJson } from "@/lib/crypto";
@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
 
     // Get the authenticated user
     const ctx = await getAuthContext(req);
+    requireTenant(ctx);
     const userId = ctx.userId;
 
     // Exchange the code for tokens

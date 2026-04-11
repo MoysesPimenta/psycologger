@@ -8,7 +8,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, created, handleApiError, BadRequestError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "nfse:issue");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const body = bodySchema.parse(await req.json());

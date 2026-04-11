@@ -7,7 +7,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { ok, handleApiError, apiError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -21,6 +21,7 @@ export async function GET(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:edit");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Verify patient exists in tenant

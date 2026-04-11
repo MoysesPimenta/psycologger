@@ -7,7 +7,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, noContent, handleApiError, NotFoundError } from "@/lib/api";
 import { requirePermission, getPatientScope } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
@@ -42,6 +42,7 @@ export async function GET(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
+    requireTenant(ctx);
     const patient = await resolvePatient(params.id, ctx);
     // Decrypt CPF and notes before returning to client
     const decrypted = await decryptPatientCpf(patient);
@@ -75,6 +76,7 @@ export async function PATCH(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:edit");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const existingPatient = await resolvePatient(params.id, ctx);
@@ -263,6 +265,7 @@ export async function DELETE(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:archive");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     await resolvePatient(params.id, ctx);

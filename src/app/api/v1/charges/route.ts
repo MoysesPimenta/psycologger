@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Rate limit charges creation: 100 per hour per user
-    const rl = await rateLimit(`charges:${ctx.userId}`, 100, 3600 * 1000);
+    const rl = await rateLimit(`charges:${ctx.tenantId}:${ctx.userId}`, 100, 3600 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: { code: "RATE_LIMITED", message: "Limite de cobranças atingido. Tente novamente mais tarde." } },

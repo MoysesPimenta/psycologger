@@ -5,7 +5,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, handleApiError, parsePagination, buildMeta } from "@/lib/api";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { decrypt } from "@/lib/crypto";
 
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list"); // At minimum, must see patients
+    requireTenant(ctx);
 
     const { searchParams } = new URL(req.url);
     const { page, pageSize, skip } = parsePagination(searchParams);

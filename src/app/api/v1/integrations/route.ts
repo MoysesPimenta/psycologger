@@ -4,7 +4,7 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, handleApiError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 
@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "tenant:view");
+    requireTenant(ctx);
 
     const integrations = await db.integrationCredential.findMany({
       where: { tenantId: ctx.tenantId },

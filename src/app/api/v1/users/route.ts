@@ -6,7 +6,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, created, handleApiError, apiError, parsePagination, buildMeta } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { sendInviteEmail } from "@/lib/email";
@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "users:view");
+    requireTenant(ctx);
 
     const { page, pageSize, skip } = parsePagination(req.nextUrl.searchParams);
 
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "users:invite");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     const body = inviteSchema.parse(await req.json());

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const ctx = await getPatientContext(req);
 
     // Rate limit: 60 requests per minute per patient
-    const rl = await rateLimit(`portal-notifications:${ctx.patientId}`, 60, 60 * 1000);
+    const rl = await rateLimit(`portal-notifications:${ctx.tenantId}:${ctx.patientId}`, 60, 60 * 1000);
     if (!rl.allowed) {
       return apiError("TOO_MANY_REQUESTS", "Muitas solicitações. Aguarde.", 429);
     }

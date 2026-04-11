@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limit journal creation per patient
     const rl = await rateLimit(
-      `portal-journal:${ctx.patientId}`,
+      `portal-journal:${ctx.tenantId}:${ctx.patientId}`,
       PORTAL_JOURNAL_RATE_LIMIT,
       PORTAL_JOURNAL_RATE_LIMIT_WINDOW_MS,
     );

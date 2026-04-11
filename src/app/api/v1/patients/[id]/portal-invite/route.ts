@@ -7,7 +7,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { created, handleApiError, apiError } from "@/lib/api";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { generateActivationToken } from "@/lib/patient-auth";
@@ -31,6 +31,7 @@ export async function POST(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:edit");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Verify patient belongs to this tenant
@@ -45,7 +46,7 @@ export async function POST(
 
     // Rate limit: prevent invite spam per patient
     const rl = await rateLimit(
-      `portal-invite:${params.id}`,
+      `portal-invite:${ctx.tenantId}:${params.id}`,
       PORTAL_INVITE_RATE_LIMIT,
       PORTAL_INVITE_RATE_LIMIT_WINDOW_MS,
     );

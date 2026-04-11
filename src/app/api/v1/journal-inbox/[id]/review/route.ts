@@ -5,7 +5,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, handleApiError, apiError } from "@/lib/api";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 
@@ -18,6 +18,7 @@ export async function PATCH(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Only SHARED entries assigned to this therapist

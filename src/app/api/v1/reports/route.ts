@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, handleApiError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { csvSafe } from "@/lib/utils";
@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "reports:view");
+    requireTenant(ctx);
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type") ?? "monthly";

@@ -5,7 +5,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, handleApiError, NotFoundError } from "@/lib/api";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,6 +17,7 @@ export async function DELETE(
   try {
     const ctx = await getAuthContext(req);
     requirePermission(ctx, "patients:list");
+    requireTenant(ctx);
 
     const note = await db.journalNote.findUnique({
       where: { id: params.noteId },

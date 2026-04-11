@@ -6,7 +6,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getAuthContext } from "@/lib/tenant";
+import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, handleApiError, NotFoundError, apiError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { rateLimit } from "@/lib/rate-limit";
@@ -15,6 +15,7 @@ import { PROFILE_UPDATE_RATE_LIMIT, PROFILE_UPDATE_RATE_LIMIT_WINDOW_MS } from "
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
+    requireTenant(ctx);
 
     const user = await db.user.findUnique({
       where: { id: ctx.userId },
@@ -36,10 +37,11 @@ const patchSchema = z.object({
 export async function PATCH(req: NextRequest) {
   try {
     const ctx = await getAuthContext(req);
+    requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
 
     // Rate limit profile updates per user
-    const rl = await rateLimit(`profile:${ctx.userId}`, PROFILE_UPDATE_RATE_LIMIT, PROFILE_UPDATE_RATE_LIMIT_WINDOW_MS);
+    const rl = await rateLimit(`profile:${ctx.tenantId}:${ctx.userId}`, PROFILE_UPDATE_RATE_LIMIT, PROFILE_UPDATE_RATE_LIMIT_WINDOW_MS);
     if (!rl.allowed) {
       return apiError("TOO_MANY_REQUESTS", "Muitas atualizações. Aguarde alguns minutos.", 429);
     }
