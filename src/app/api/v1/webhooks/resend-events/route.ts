@@ -22,6 +22,7 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { rateLimit } from "@/lib/rate-limit";
 import { ok, apiError } from "@/lib/api";
 import { verifySvixSignature as verifySvixSignatureLib } from "@/lib/support-inbound";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
   // Global circuit breaker
   const global = await rateLimit("resend:events:global", 500, 60_000);
   if (!global.allowed) {
-    console.warn("[resend-events] global rate limit exceeded");
+    logger.warn("resend-events", "global rate limit exceeded");
     return apiError("RATE_LIMITED", "Too many requests", 429);
   }
 
@@ -120,9 +121,7 @@ export async function POST(req: NextRequest) {
       10 * 60_000
     );
     if (!perTenant.allowed) {
-      console.warn(
-        `[resend-events] per-tenant rate limit exceeded for ${tenantId}`
-      );
+      logger.warn("resend-events", "per-tenant rate limit exceeded", { tenantId });
       return ok({ ok: true, rateLimited: true });
     }
   }
@@ -130,16 +129,12 @@ export async function POST(req: NextRequest) {
   // Handle events
   switch (eventType) {
     case "email.delivered":
-      // Just log silently for now (future: could update delivery stats)
-      console.log(
-        `[resend-events] email.delivered messageId=${messageId} to="${email}"`
-      );
+      // Log silently for now (future: could update delivery stats)
+      logger.info("resend-events", "email.delivered", { messageId, tenantId });
       break;
 
     case "email.bounced":
-      console.log(
-        `[resend-events] email.bounced messageId=${messageId} to="${email}" reason="${reason}" bounceType="${bounceType}"`
-      );
+      logger.warn("resend-events", "email.bounced", { messageId, reason, bounceType, tenantId });
       await auditLog({
         action: "EMAIL_BOUNCE",
         tenantId: tenantId ?? undefined,
@@ -161,9 +156,7 @@ export async function POST(req: NextRequest) {
       break;
 
     case "email.complained":
-      console.log(
-        `[resend-events] email.complained messageId=${messageId} to="${email}" complaintType="${complaintType}"`
-      );
+      logger.error("resend-events", "email.complained", { messageId, complaintType, tenantId });
       await auditLog({
         action: "EMAIL_COMPLAINT",
         tenantId: tenantId ?? undefined,
@@ -184,15 +177,12 @@ export async function POST(req: NextRequest) {
       break;
 
     case "email.delivery_delayed":
-      console.warn(
-        `[resend-events] email.delivery_delayed messageId=${messageId} to="${email}" reason="${reason}"`
-      );
-      // Log to console only, no audit log
+      logger.warn("resend-events", "email.delivery_delayed", { messageId, reason, tenantId });
       break;
 
     default:
       // Unknown event type — just log and ignore
-      console.log(`[resend-events] unknown event type: ${eventType}`);
+      logger.info("resend-events", "unknown event type", { eventType });
   }
 
   // Always return 200 so Resend doesn't retry

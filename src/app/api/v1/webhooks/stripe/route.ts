@@ -30,9 +30,12 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error("STRIPE_SECRET_KEY is not configured");
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
+const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 
 export async function POST(req: NextRequest) {
   if (!WEBHOOK_SECRET) {

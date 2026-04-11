@@ -16,7 +16,10 @@ import { requirePriceId } from "@/lib/billing/plans";
 
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error("STRIPE_SECRET_KEY is not configured");
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const schema = z.object({
   tier: z.enum(["PRO", "CLINIC"]),
