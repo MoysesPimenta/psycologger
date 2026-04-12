@@ -298,8 +298,8 @@ export function CalendarClient({
                 </div>
               );
             })}
-            {/* Floating action button on mobile */}
-            <div className="fixed bottom-24 end-4 md:hidden z-30">
+            {/* Floating action button on mobile — positioned above the bottom nav */}
+            <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] end-4 md:hidden z-30">
               <Button asChild size="lg" className="rounded-full shadow-lg h-14 w-14">
                 <Link href="/app/appointments/new">
                   <Plus className="h-6 w-6" />

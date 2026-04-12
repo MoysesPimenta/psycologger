@@ -9,6 +9,7 @@ import ImpersonationBanner from "@/components/sa/impersonation-banner";
 import { requireActiveSubscription } from "@/lib/billing/subscription-status";
 import { getTenantQuotaUsage } from "@/lib/billing/limits";
 import { db } from "@/lib/db";
+import { cn } from "@/lib/utils";
 import { ThemeSync } from "@/components/theme-sync";
 
 export const dynamic = "force-dynamic";
@@ -107,11 +108,20 @@ export default async function AppLayout({
           quotaInfo={billingBanner.quotaInfo}
         />
       )}
-      <div className={`flex min-h-dvh bg-background ${ctx.impersonating ? "pt-16" : ""} ${billingBanner ? "pt-16" : ""}`}>
+      <div className={`flex min-h-dvh bg-background ${ctx.impersonating ? "md:pt-16" : ""} ${billingBanner ? "md:pt-16" : ""}`}>
         <AppSidebar userRole={ctx.role} />
         {/* Main content area — offset by sidebar width on md+ */}
         <main className="flex-1 md:ms-64 overflow-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-8 pb-24 md:pb-8">
+          {/*
+            Mobile top padding breakdown:
+            - pt-16 (64px) = mobile top bar (56px) + 8px breathing room
+            - When billing banner is visible: pt-32 (128px) = top bar (56px) + banner (~56px) + 16px
+            Desktop top padding: pt-8 (32px) normally, pt-24 when billing banner is present
+          */}
+          <div className={cn(
+            "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-28 md:pb-8",
+            billingBanner ? "pt-[7.5rem] md:pt-24" : "pt-16 md:pt-8"
+          )}>
             {children}
           </div>
         </main>

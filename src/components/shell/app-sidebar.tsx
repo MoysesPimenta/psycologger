@@ -93,7 +93,7 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
   return (
     <>
       {/* Mobile top bar — compact, glass-effect header */}
-      <header className="md:hidden fixed top-0 inset-inline-0 z-30 h-14 bg-background/80 backdrop-blur-lg border-b border-border/50 flex items-center justify-between px-4 safe-pt">
+      <header className="md:hidden fixed top-0 inset-inline-0 z-40 h-14 bg-background/80 backdrop-blur-lg border-b border-border/50 flex items-center justify-between px-4 safe-pt">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center shadow-sm">
             <Stethoscope className="h-3.5 w-3.5 text-primary-foreground" />
