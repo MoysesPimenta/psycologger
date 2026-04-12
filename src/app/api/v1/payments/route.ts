@@ -14,6 +14,7 @@ import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { created, handleApiError, NotFoundError, BadRequestError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { rateLimit } from "@/lib/rate-limit";
 
 const createSchema = z.object({
   chargeId: z.string().uuid(),
@@ -36,6 +37,15 @@ export async function POST(req: NextRequest) {
     requirePermission(ctx, "payments:create");
     requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
+
+    // Rate limit: 60 payment creates per user per hour
+    const rl = await rateLimit(`payments:create:${ctx.tenantId}:${ctx.userId}`, 60, 3600 * 1000);
+    if (!rl.allowed) {
+      return Response.json(
+        { error: { code: "RATE_LIMITED", message: "Too many requests. Please wait before adding more payments." } },
+        { status: 429 }
+      );
+    }
 
     const body = createSchema.parse(await req.json());
 

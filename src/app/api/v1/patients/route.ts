@@ -15,6 +15,7 @@ import { auditLog, extractRequestMeta } from "@/lib/audit";
 import { encryptCpf, decryptPatientCpfs, cpfBlindIndex, isCpfShapedQuery } from "@/lib/cpf-crypto";
 import { encryptPatientNotes, decryptPatientNotes } from "@/lib/patient-notes";
 import { assertCanAddPatient } from "@/lib/billing/limits";
+import { rateLimit } from "@/lib/rate-limit";
 
 const createSchema = z.object({
   fullName: z.string().min(2).max(100),
@@ -100,6 +101,15 @@ export async function POST(req: NextRequest) {
     requirePermission(ctx, "patients:create");
     requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
+
+    // Rate limit: 60 patient creates per user per hour
+    const rl = await rateLimit(`patients:create:${ctx.tenantId}:${ctx.userId}`, 60, 3600 * 1000);
+    if (!rl.allowed) {
+      return Response.json(
+        { error: { code: "RATE_LIMITED", message: "Too many requests. Please wait before creating more patients." } },
+        { status: 429 }
+      );
+    }
 
     const body = createSchema.parse(await req.json());
 

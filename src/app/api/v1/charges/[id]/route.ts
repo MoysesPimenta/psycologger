@@ -10,6 +10,7 @@ import { getAuthContext, requireTenant } from "@/lib/tenant";
 import { ok, noContent, handleApiError, NotFoundError, BadRequestError } from "@/lib/api";
 import { requirePermission } from "@/lib/rbac";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { rateLimit } from "@/lib/rate-limit";
 
 const patchSchema = z.object({
   amountCents: z.number().int().positive().max(100_000_000).optional(),
@@ -30,6 +31,15 @@ export async function PATCH(
     requirePermission(ctx, "charges:edit");
     requireTenant(ctx);
     const { ipAddress, userAgent } = extractRequestMeta(req);
+
+    // Rate limit: 100 charge edits per user per hour
+    const rl = await rateLimit(`charges:edit:${ctx.tenantId}:${ctx.userId}`, 100, 3600 * 1000);
+    if (!rl.allowed) {
+      return Response.json(
+        { error: { code: "RATE_LIMITED", message: "Too many requests. Please wait before editing more charges." } },
+        { status: 429 }
+      );
+    }
 
     const charge = await db.charge.findFirst({
       where: {

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   });
 
   try {
-    const rows = await client.$queryRawUnsafe<Array<{ ok: number }>>("SELECT 1 as ok");
+    const rows = await client.$queryRaw<Array<{ ok: number }>>`SELECT 1 as ok`;
     console.log(JSON.stringify({ evt: "staging_keepalive_ok", rows: rows.length }));
     return NextResponse.json({ ok: true, pinged: true });
   } catch (err) {

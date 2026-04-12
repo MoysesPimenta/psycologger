@@ -23,8 +23,10 @@ After a deep audit across 10 dimensions — tracing every critical flow from UI 
 - Charge/payment, appointment, clinical session CRUD traced through code
 
 **What was fixed (this audit):**
-- 15 code changes across 30 files
+- 19 code changes across 34 files
 - 3 security fixes (impersonation secret, health info disclosure, magic byte validation)
+- 3 rate limiting additions (patients create, payments create, charges edit)
+- 1 SQL safety fix (staging-keepalive $queryRawUnsafe → $queryRaw)
 - 1 data integrity fix (charge amount edit after payment blocked)
 - 1 schema fix (CPF uniqueness constraint per tenant)
 - 38+ hardcoded Portuguese strings replaced with i18n across 10 components
@@ -60,6 +62,8 @@ After a deep audit across 10 dimensions — tracing every critical flow from UI 
 | CSP nonces per-request | — | VERIFIED CORRECT |
 | Stripe/Resend webhook signature verification | — | VERIFIED CORRECT |
 | Rate limiting on auth endpoints | — | VERIFIED CORRECT |
+| Rate limiting on patients/payments/charges mutations | MEDIUM | **FIXED** — 3 endpoints |
+| Staging-keepalive $queryRawUnsafe SQL injection risk | LOW | **FIXED** — parameterized |
 | No secrets in client code | — | VERIFIED via grep |
 
 ### DATA INTEGRITY
@@ -144,7 +148,7 @@ After a deep audit across 10 dimensions — tracing every critical flow from UI 
 
 ## C. Change Log
 
-### Code Changes (30 files, +486 / -90 lines)
+### Code Changes (34 files, +510 / -92 lines)
 
 **Security Fixes:**
 1. `src/lib/impersonation.ts` — Removed hardcoded fallback secret; now throws if NEXTAUTH_SECRET unset
@@ -182,10 +186,16 @@ After a deep audit across 10 dimensions — tracing every critical flow from UI 
 **i18n Locale Files (7 files, 3 new namespaces per file):**
 24-30. `messages/{en,pt-BR,es,de,fr,it,he}.json` — Added newAppointment, newCharge, portalLogin, impersonationBanner namespaces
 
+**Round 2 — Rate Limiting & SQL Safety:**
+31. `src/app/api/v1/patients/route.ts` — Added rate limiting (60/hr per user) to POST patient creation
+32. `src/app/api/v1/payments/route.ts` — Added rate limiting (60/hr per user) to POST payment creation
+33. `src/app/api/v1/charges/[id]/route.ts` — Added rate limiting (100/hr per user) to PATCH charge edits
+34. `src/app/api/v1/cron/staging-keepalive/route.ts` — Replaced `$queryRawUnsafe` with parameterized `$queryRaw` tagged template
+
 ### New Tests (3 files, 89 tests)
-31. `tests/unit/charge-payment-validation.test.ts` — 21 tests
-32. `tests/unit/impersonation-comprehensive.test.ts` — 25 tests
-33. `tests/unit/portal-session.test.ts` — 43 tests
+35. `tests/unit/charge-payment-validation.test.ts` — 21 tests
+36. `tests/unit/impersonation-comprehensive.test.ts` — 25 tests
+37. `tests/unit/portal-session.test.ts` — 43 tests
 
 ---
 
