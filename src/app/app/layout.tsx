@@ -109,12 +109,6 @@ export default async function AppLayout({
         <AppSidebar userRole={ctx.role} />
         {/* Main content area — offset by sidebar width on md+ */}
         <main className="flex-1 md:ms-64 overflow-auto">
-          {/*
-            The billing banner is sticky on mobile (flows in the document,
-            sticks below the top bar while scrolling) and fixed on desktop.
-            Placing it here inside <main> ensures it naturally pushes content
-            down on mobile without needing fragile padding calculations.
-          */}
           {billingBanner && (
             <BillingBanner
               state={billingBanner.state}

@@ -28,7 +28,7 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
 
   if (!state || dismissed) return null;
 
-  // Shared positioning: sticky on mobile (flows in document), fixed on desktop
+  // Sticky on mobile (flows in document, sticks below top bar), fixed on desktop.
   const positionClasses =
     "sticky top-14 md:fixed md:top-0 left-0 right-0 ltr:md:left-64 rtl:md:right-64 z-30";
 
