@@ -93,7 +93,7 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
   return (
     <>
       {/* Mobile top bar — compact, glass-effect header */}
-      <header className="md:hidden fixed top-0 inset-inline-0 z-40 h-14 bg-background/80 backdrop-blur-lg border-b border-border/50 flex items-center justify-between px-4 safe-pt">
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-background border-b border-border/50 flex items-center justify-between px-4 safe-pt">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center shadow-sm">
             <Stethoscope className="h-3.5 w-3.5 text-primary-foreground" />
@@ -212,9 +212,9 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
         </div>
       </aside>
 
-      {/* Mobile bottom navigation bar — glass effect, safe-area aware */}
-      <nav className="fixed bottom-0 inset-inline-0 z-40 bg-background/80 backdrop-blur-lg border-t border-border/50 md:hidden safe-area-inset-bottom">
-        <div className="flex justify-around items-end">
+      {/* Mobile bottom navigation bar — full-width, opaque, safe-area padded */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border/50 md:hidden safe-pb">
+        <div className="flex w-full">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -224,14 +224,14 @@ export function AppSidebar({ userRole }: AppSidebarProps) {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 py-2 px-1 text-xs font-medium transition-colors flex-1 min-h-[56px] tap-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md relative",
+                  "flex flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium transition-colors flex-1 min-h-[56px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring relative",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {isActive && (
-                  <span className="absolute top-0 inset-x-4 h-0.5 bg-primary rounded-full" />
+                  <span className="absolute top-0 inset-x-3 h-0.5 bg-primary rounded-full" />
                 )}
                 <Icon className={cn("h-5 w-5", isActive && "stroke-[2.5]")} />
                 <span className="text-[10px] leading-tight text-center font-medium">{item.label}</span>
