@@ -28,9 +28,9 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
 
   if (!state || dismissed) return null;
 
-  // Sticky on mobile (flows in document, sticks below top bar), fixed on desktop.
+  // Fixed on all viewports. On mobile sits below the 56px top bar.
   const positionClasses =
-    "sticky top-14 md:fixed md:top-0 left-0 right-0 ltr:md:left-64 rtl:md:right-64 z-30";
+    "fixed top-14 md:top-0 left-0 right-0 ltr:md:left-64 rtl:md:right-64 z-30";
 
   if (state === "GRACE") {
     return (
