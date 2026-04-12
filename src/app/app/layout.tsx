@@ -95,12 +95,18 @@ export default async function AppLayout({
     <>
       <ThemeSync serverTheme={serverTheme} />
       <ServiceWorkerRegister />
-      {ctx.impersonating && (
-        <ImpersonationBanner
-          impersonatedUserName={undefined} // TODO: fetch from context or pass through
-          impersonatedUserEmail={undefined}
-        />
-      )}
+      {ctx.impersonating && await (async () => {
+        const impersonatedUser = await db.user.findUnique({
+          where: { id: ctx.userId },
+          select: { name: true, email: true },
+        });
+        return (
+          <ImpersonationBanner
+            impersonatedUserName={impersonatedUser?.name ?? undefined}
+            impersonatedUserEmail={impersonatedUser?.email ?? undefined}
+          />
+        );
+      })()}
       {billingBanner && (
         <BillingBanner
           state={billingBanner.state}

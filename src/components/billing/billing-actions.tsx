@@ -30,7 +30,6 @@ export function ManageSubscriptionButton() {
           payload?.error?.message ||
           `Erro ao abrir portal de assinatura (HTTP ${res.status})`;
         alert(msg);
-        console.error("[billing] portal failed", res.status, payload);
       }
     } finally {
       setLoading(false);
@@ -86,7 +85,6 @@ export function UpgradeButton({
           payload?.error?.message ||
           `Erro ao iniciar checkout (HTTP ${res.status})`;
         alert(msg);
-        console.error("[billing] checkout failed", res.status, payload);
       }
     } finally {
       setLoading(false);

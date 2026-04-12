@@ -44,7 +44,6 @@ export function ImpersonateButton({ userId, userName }: ImpersonateButtonProps) 
         alert(`Erro: ${msg}`);
       }
     } catch (error) {
-      console.error("Impersonation error:", error);
       alert(t("impersonate.error"));
     } finally {
       setIsLoading(false);

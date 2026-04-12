@@ -977,5 +977,52 @@
       "since": "Da",
       "until": "Fino a"
     }
+  },
+  "impersonationBanner": {
+    "impersonating": "Impersonando {name}",
+    "unknownUser": "utente",
+    "stop": "Ferma",
+    "stopping": "Fermando...",
+    "stopFailed": "Errore nell'arresto dell'impersonazione"
+  },
+  "newAppointment": {
+    "cancel": "Annulla",
+    "newPatient": "Nuovo paziente",
+    "saving": "Salvataggio in corso...",
+    "createAppointment": "Crea appuntamento",
+    "registerNewPatient": "Registra nuovo paziente",
+    "fullName": "Nome completo *",
+    "preferredName": "Nome preferito",
+    "patientAndType": "Paziente e tipo",
+    "monthly": "Mensile",
+    "biweekly": "Bimensile",
+    "weekly": "Settimanale",
+    "createAndSelect": "Crea e seleziona",
+    "selectPatient": "Seleziona un paziente...",
+    "createMultiple": "Crea {count} appuntamenti"
+  },
+  "newCharge": {
+    "patient": "Paziente *",
+    "selectPatient": "Seleziona un paziente...",
+    "saving": "Salvataggio in corso...",
+    "createCharge": "Crea addebito",
+    "invalidAmount": "Inserire un importo valido.",
+    "networkError": "Errore di rete. Riprova.",
+    "creationError": "Errore nella creazione dell'addebito.",
+    "cancel": "Annulla"
+  },
+  "portalLogin": {
+    "checkEmail": "Controlla la tua e-mail",
+    "linkSent": "Abbiamo inviato un link di accesso",
+    "linkSentMessage": "Abbiamo inviato un link di accesso a {email}.",
+    "linkExpiration": "Il link scade tra 30 minuti.",
+    "sendError": "Errore nell'invio del link di accesso.",
+    "connectionError": "Errore di connessione. Riprova.",
+    "useAnotherEmail": "Usa un'altra e-mail",
+    "portalTitle": "Portale del Paziente",
+    "enterEmail": "Inserisci la tua e-mail per ricevere un link di accesso sicuro.",
+    "sendLink": "Invia link di accesso",
+    "sending": "Invio in corso...",
+    "multiClinic": "Se sei paziente in più di una clinica, riceverai un link per ciascuna."
   }
 }

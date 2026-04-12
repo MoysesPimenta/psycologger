@@ -90,7 +90,6 @@ export function IntegrationsClient() {
         }
       })
       .catch((err) => {
-        console.warn("[integrations] Failed to load integration statuses:", err);
         setError("Erro ao carregar status das integrações.");
       })
       .finally(() => setLoading(false));
@@ -114,7 +113,7 @@ export function IntegrationsClient() {
         setGcalSelectedId(json.data.selectedCalendarId || null);
       }
     } catch (err) {
-      console.warn("[integrations] Failed to load Google Calendars:", err);
+      // Error handled silently
     } finally {
       setGcalCalendarsLoading(false);
     }
@@ -131,7 +130,6 @@ export function IntegrationsClient() {
         setError("Erro ao iniciar conexão com Google Calendar");
       }
     } catch (err) {
-      console.error("[integrations] Failed to get auth URL:", err);
       setError("Erro ao iniciar conexão com Google Calendar");
     } finally {
       setGcalLoading(false);
@@ -155,7 +153,6 @@ export function IntegrationsClient() {
         setError("Erro ao desconectar Google Calendar");
       }
     } catch (err) {
-      console.error("[integrations] Failed to disconnect:", err);
       setError("Erro ao desconectar Google Calendar");
     } finally {
       setGcalLoading(false);
@@ -176,7 +173,6 @@ export function IntegrationsClient() {
         setError("Erro ao atualizar calendário selecionado");
       }
     } catch (err) {
-      console.error("[integrations] Failed to select calendar:", err);
       setError("Erro ao atualizar calendário selecionado");
     } finally {
       setGcalCalendarsLoading(false);
@@ -196,7 +192,7 @@ export function IntegrationsClient() {
         }
       })
       .catch((err) => {
-        console.warn("[integrations] Failed to reload integration statuses:", err);
+        // Error handled silently
       });
   };
 
@@ -214,7 +210,6 @@ export function IntegrationsClient() {
         setError("Erro ao desconectar NFSe Nacional");
       }
     } catch (err) {
-      console.error("[integrations] Failed to disconnect NFSE:", err);
       setError("Erro ao desconectar NFSe Nacional");
     }
   };

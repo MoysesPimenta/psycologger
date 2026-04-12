@@ -41,7 +41,7 @@ export default function JournalTherapistNotes({ journalEntryId }: Props) {
         setNotes(result.data || []);
       }
     } catch (error) {
-      console.error("Error fetching notes:", error);
+      // Error handled silently
     } finally {
       setLoading(false);
     }
@@ -72,7 +72,7 @@ export default function JournalTherapistNotes({ journalEntryId }: Props) {
         setNewNoteText("");
       }
     } catch (error) {
-      console.error("Error adding note:", error);
+      // Error handled silently
     } finally {
       setSaving(false);
     }
@@ -97,7 +97,7 @@ export default function JournalTherapistNotes({ journalEntryId }: Props) {
         setNotes(notes.filter((note) => note.id !== noteId));
       }
     } catch (error) {
-      console.error("Error deleting note:", error);
+      // Error handled silently
     } finally {
       setDeleting(null);
     }

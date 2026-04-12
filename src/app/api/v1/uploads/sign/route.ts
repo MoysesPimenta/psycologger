@@ -88,11 +88,12 @@ export async function POST(req: NextRequest) {
       return apiError("BAD_REQUEST", "Invalid purpose", 400);
     }
 
-    // Validate content type
+    // SECURITY: Validate content type against strict allowlist for the purpose
+    // This prevents clients from requesting signed URLs for arbitrary content types
     if (!rules.contentTypes.includes(contentType)) {
       return apiError(
         "BAD_REQUEST",
-        `Invalid content type for ${purpose}: ${contentType}`,
+        `Invalid content type for ${purpose}: ${contentType}. Allowed: ${rules.contentTypes.join(", ")}`,
         400
       );
     }

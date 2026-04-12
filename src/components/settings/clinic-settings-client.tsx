@@ -30,6 +30,7 @@ const WORKING_DAYS_OPTIONS = [
 
 export function ClinicSettingsClient() {
   const t = useTranslations("patients");
+  const tc = useTranslations("common");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -386,7 +387,7 @@ export function ClinicSettingsClient() {
 
       <div className="flex justify-end">
         <Button type="submit" disabled={saving}>
-          {saving ? "Salvando..." : "Salvar alterações"}
+          {saving ? tc("saving") : t("saveChanges")}
         </Button>
       </div>
     </form>

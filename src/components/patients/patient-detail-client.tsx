@@ -35,7 +35,7 @@ function daysUntilHardDelete(deletedAt: string): number {
 function ConfirmModal({
   title,
   description,
-  confirmLabel = "Confirmar",
+  confirmLabel,
   confirmVariant = "destructive",
   onConfirm,
   onCancel,
@@ -282,7 +282,7 @@ export function PatientDetailClient({
           <FilesTab files={patient.files} patientId={patient.id} canViewClinical={canViewClinical} />
         )}
         {tab === "financial" && (
-          <FinancialTab charges={patient.charges} patientId={patient.id} />
+          <FinancialTab charges={patient.charges} patientId={patient.id} t={t} tc={tc} />
         )}
         {tab === "profile" && (
           <ProfileTab patient={patient} appointmentTypes={appointmentTypes} onPatientUpdate={(updates) => setPatient((p: any) => ({ ...p, ...updates }))} />
@@ -575,12 +575,16 @@ function FinancialPaymentModal({
   partial,
   onClose,
   onPaid,
+  t,
+  tc,
 }: {
   charge: any;
   patientId: string;
   partial: boolean;
   onClose: () => void;
   onPaid: (chargeId: string, payment: any, newStatus: string, remainderCharge?: any) => void;
+  t: ReturnType<typeof useTranslations>;
+  tc: ReturnType<typeof useTranslations>;
 }) {
   const net = charge.amountCents - charge.discountCents;
   const paidSoFar = charge.payments.reduce((s: number, p: any) => s + p.amountCents, 0);
@@ -715,7 +719,7 @@ function FinancialPaymentModal({
           <Button size="sm" onClick={handleSave} disabled={saving}
             className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
             <Check className="h-4 w-4" />
-            {saving ? "Salvando..." : "Confirmar"}
+            {saving ? t("saving") : tc("confirm")}
           </Button>
         </div>
       </div>
@@ -724,7 +728,7 @@ function FinancialPaymentModal({
 }
 
 /* ─── Financial tab ──────────────────────────────────────────────────────── */
-function FinancialTab({ charges: initialCharges, patientId }: { charges: any[]; patientId: string }) {
+function FinancialTab({ charges: initialCharges, patientId, t, tc }: { charges: any[]; patientId: string; t: ReturnType<typeof useTranslations>; tc: ReturnType<typeof useTranslations> }) {
   const [charges, setCharges] = useState(initialCharges);
   const [payModal, setPayModal] = useState<{ charge: any; partial: boolean } | null>(null);
 
@@ -780,6 +784,8 @@ function FinancialTab({ charges: initialCharges, patientId }: { charges: any[]; 
           partial={payModal.partial}
           onClose={() => setPayModal(null)}
           onPaid={handlePaid}
+          t={t}
+          tc={tc}
         />
       )}
 

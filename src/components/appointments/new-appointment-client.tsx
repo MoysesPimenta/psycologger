@@ -91,7 +91,7 @@ function nearestDayOfWeek(from: Date, targetDay: number): Date {
 export function NewAppointmentClient({ userId, role }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const t = useTranslations("patients");
+  const t = useTranslations("newAppointment");
 
   const prefillPatientId = searchParams.get("patientId") ?? "";
   const today = format(new Date(), "yyyy-MM-dd");
@@ -333,7 +333,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
     : 1;
 
   const recLabel = rec.enabled
-    ? rec.frequency === "MONTHLY" ? "Mensal" : rec.interval === 2 ? "Quinzenal" : "Semanal"
+    ? rec.frequency === "MONTHLY" ? t("monthly") : rec.interval === 2 ? t("biweekly") : t("weekly")
     : null;
 
   const selectedType = appointmentTypes.find((t) => t.id === form.appointmentTypeId);
@@ -345,7 +345,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
       {/* ── Card 1: Paciente e tipo ─────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-3 pt-5 px-5">
-          <CardTitle className="text-base">Paciente e tipo</CardTitle>
+          <CardTitle className="text-base">{t("patientAndType")}</CardTitle>
         </CardHeader>
         <CardContent className="px-5 pb-5 space-y-4">
 
@@ -359,7 +359,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
                 className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium"
               >
                 {showNewPatient ? <X className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-                {showNewPatient ? "Cancelar" : "Novo paciente"}
+                {showNewPatient ? t("cancel") : t("newPatient")}
               </button>
             </div>
 
@@ -370,7 +370,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
               onChange={(e) => setForm((f) => ({ ...f, patientId: e.target.value }))}
               required
             >
-              <option value="">Selecione um paciente...</option>
+              <option value="">{t("selectPatient")}</option>
               {patients.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.preferredName ? `${p.preferredName} (${p.fullName})` : p.fullName}
@@ -381,10 +381,10 @@ export function NewAppointmentClient({ userId, role }: Props) {
             {/* Inline new patient form */}
             {showNewPatient && (
               <div className="mt-2 border border-primary/30 bg-primary/10 rounded-lg p-4 space-y-3">
-                <p className="text-xs font-semibold text-primary/90 uppercase tracking-wide">Cadastrar novo paciente</p>
+                <p className="text-xs font-semibold text-primary/90 uppercase tracking-wide">{t("registerNewPatient")}</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2 space-y-1">
-                    <Label className="text-xs">Nome completo *</Label>
+                    <Label className="text-xs">{t("fullName")}</Label>
                     <Input
                       placeholder="Maria da Silva"
                       value={newPatient.fullName}
@@ -393,7 +393,7 @@ export function NewAppointmentClient({ userId, role }: Props) {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Nome preferido</Label>
+                    <Label className="text-xs">{t("preferredName")}</Label>
                     <Input
                       placeholder="Maria"
                       value={newPatient.preferredName}
@@ -421,10 +421,10 @@ export function NewAppointmentClient({ userId, role }: Props) {
                 <div className="flex gap-2">
                   <Button size="sm" type="button" onClick={handleCreatePatient} disabled={savingPatient}>
                     <Check className="h-3.5 w-3.5 mr-1" />
-                    {savingPatient ? "Salvando..." : "Criar e selecionar"}
+                    {savingPatient ? t("saving") : t("createAndSelect")}
                   </Button>
                   <Button size="sm" type="button" variant="outline" onClick={() => setShowNewPatient(false)}>
-                    Cancelar
+                    {t("cancel")}
                   </Button>
                 </div>
               </div>
@@ -612,9 +612,9 @@ export function NewAppointmentClient({ userId, role }: Props) {
                   <Label className="text-sm">Frequência</Label>
                   <div className="flex gap-2">
                     {[
-                      { label: "Semanal",   freq: "WEEKLY",   int: 1 },
-                      { label: "Quinzenal", freq: "WEEKLY",   int: 2 },
-                      { label: "Mensal",    freq: "MONTHLY",  int: 1 },
+                      { label: t("weekly"),   freq: "WEEKLY",   int: 1 },
+                      { label: t("biweekly"), freq: "WEEKLY",   int: 2 },
+                      { label: t("monthly"),    freq: "MONTHLY",  int: 1 },
                     ].map((opt) => {
                       const active = rec.frequency === opt.freq && rec.interval === opt.int;
                       return (
@@ -816,13 +816,13 @@ export function NewAppointmentClient({ userId, role }: Props) {
       )}
 
       <div className="flex gap-3 pb-8">
-        <Button type="button" variant="outline" onClick={() => router.back()}>Cancelar</Button>
+        <Button type="button" variant="outline" onClick={() => router.back()}>{t("cancel")}</Button>
         <Button type="submit" disabled={loading || !form.patientId || !form.appointmentTypeId}>
           {loading
-            ? "Salvando..."
+            ? t("saving")
             : rec.enabled
-            ? `Criar ${totalSessions} consultas`
-            : "Criar consulta"}
+            ? t("createMultiple", { count: totalSessions })
+            : t("createAppointment")}
         </Button>
       </div>
     </form>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ interface Patient {
 export function NewChargeClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("newCharge");
   const prefillPatientId = searchParams.get("patientId") ?? "";
 
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -47,7 +49,7 @@ export function NewChargeClient() {
     const discountCents = Math.round(parseFloat(form.discountBRL.replace(",", ".") || "0") * 100);
 
     if (isNaN(amountCents) || amountCents <= 0) {
-      setError("Informe um valor válido.");
+      setError(t("invalidAmount"));
       return;
     }
 
@@ -70,14 +72,14 @@ export function NewChargeClient() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? "Erro ao criar cobrança.");
+        setError(typeof data?.error === "string" ? data.error : data?.error?.message ?? data?.message ?? t("creationError"));
         return;
       }
 
       router.push("/app/financial/charges");
       router.refresh();
     } catch {
-      setError("Erro de rede. Tente novamente.");
+      setError(t("networkError"));
     } finally {
       setLoading(false);
     }
@@ -89,7 +91,7 @@ export function NewChargeClient() {
         <CardContent className="pt-6 space-y-4">
           {/* Patient */}
           <div className="space-y-2">
-            <Label htmlFor="patientId">Paciente *</Label>
+            <Label htmlFor="patientId">{t("patient")}</Label>
             <select
               id="patientId"
               className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -97,7 +99,7 @@ export function NewChargeClient() {
               onChange={(e) => setForm((f) => ({ ...f, patientId: e.target.value }))}
               required
             >
-              <option value="">Selecione um paciente...</option>
+              <option value="">{t("selectPatient")}</option>
               {patients.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.preferredName ? `${p.preferredName} (${p.fullName})` : p.fullName}
@@ -182,10 +184,10 @@ export function NewChargeClient() {
 
       <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={() => router.back()}>
-          Cancelar
+          {t("cancel")}
         </Button>
         <Button type="submit" disabled={loading || !form.patientId || !form.amountBRL}>
-          {loading ? "Salvando..." : "Criar cobrança"}
+          {loading ? t("saving") : t("createCharge")}
         </Button>
       </div>
     </form>

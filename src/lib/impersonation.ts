@@ -20,7 +20,16 @@ export interface ImpersonationPayload {
 }
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || "fallback-secret-unsafe"
+  (() => {
+    const secret = process.env.NEXTAUTH_SECRET;
+    if (!secret) {
+      throw new Error(
+        "NEXTAUTH_SECRET is required for impersonation token signing. " +
+        "Set this environment variable before using impersonation features."
+      );
+    }
+    return secret;
+  })()
 );
 
 const IMPERSONATION_MAX_AGE_SECONDS = 3600; // 1 hour

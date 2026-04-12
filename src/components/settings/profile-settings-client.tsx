@@ -151,10 +151,10 @@ export function ProfileSettingsClient({ initialName, email, initialPhone }: Prop
             )}
             <Button type="submit" disabled={saving || !dirty || !name.trim()} className="min-h-[44px] sm:min-w-[120px]">
               {saving ? (
-                "Salvando..."
+                tc("saving")
               ) : (
                 <span className="flex items-center gap-1.5">
-                  <Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Salvar alterações</span><span className="sm:hidden">Salvar</span>
+                  <Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{t("saveChanges")}</span><span className="sm:hidden">{tc("save")}</span>
                 </span>
               )}
             </Button>

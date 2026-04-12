@@ -86,6 +86,7 @@ const PAYMENT_VARIABLES = [
 
 export function RemindersClient() {
   const t = useTranslations("settings");
+  const tc = useTranslations("common");
   const [templates, setTemplates] = useState<Record<string, ReminderTemplate | null>>({
     CONFIRMATION: null,
     REMINDER_24H: null,
@@ -218,7 +219,7 @@ export function RemindersClient() {
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => handleSave(type)} disabled={saving}>
-                  {saving ? "Salvando..." : "Salvar"}
+                  {saving ? tc("saving") : tc("save")}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setEditing(null)}>
                   Cancelar

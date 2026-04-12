@@ -38,6 +38,7 @@ export async function PATCH(
         // PSYCHOLOGIST can only edit their own charges
         ...(ctx.role === "PSYCHOLOGIST" && { providerUserId: ctx.userId }),
       },
+      include: { payments: { select: { amountCents: true } } },
     });
     if (!charge) throw new NotFoundError("Charge");
 
@@ -48,6 +49,17 @@ export async function PATCH(
     const newDiscount = body.discountCents ?? charge.discountCents;
     if (newDiscount > newAmount) {
       throw new BadRequestError("Discount cannot exceed the charge amount");
+    }
+
+    // Prevent editing amount/discount if charge has any payments
+    const totalPaid = charge.payments.reduce((sum, p) => sum + p.amountCents, 0);
+    if (totalPaid > 0) {
+      if (body.amountCents !== undefined || body.discountCents !== undefined) {
+        throw new BadRequestError(
+          "Cannot edit the amount or discount of a charge that has recorded payments. Total paid: R$ " +
+            (totalPaid / 100).toFixed(2) + "."
+        );
+      }
     }
 
     // Validate charge status transition

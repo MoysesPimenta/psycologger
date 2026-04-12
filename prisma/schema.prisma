@@ -441,7 +441,7 @@ model Patient {
   @@index([tenantId, assignedUserId])
   @@index([tenantId, isActive])
   @@index([tenantId, fullName])
-  @@index([tenantId, cpfBlindIndex])
+  @@unique([tenantId, cpfBlindIndex])
 }
 
 model PatientContact {

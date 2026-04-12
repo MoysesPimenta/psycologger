@@ -977,5 +977,52 @@
       "since": "From",
       "until": "Until"
     }
+  },
+  "impersonationBanner": {
+    "impersonating": "Impersonating {name}",
+    "unknownUser": "user",
+    "stop": "Stop",
+    "stopping": "Stopping...",
+    "stopFailed": "Failed to stop impersonation"
+  },
+  "newAppointment": {
+    "cancel": "Cancel",
+    "newPatient": "New patient",
+    "saving": "Saving...",
+    "createAppointment": "Create appointment",
+    "registerNewPatient": "Register new patient",
+    "fullName": "Full name *",
+    "preferredName": "Preferred name",
+    "patientAndType": "Patient and type",
+    "monthly": "Monthly",
+    "biweekly": "Bi-weekly",
+    "weekly": "Weekly",
+    "createAndSelect": "Create and select",
+    "selectPatient": "Select a patient...",
+    "createMultiple": "Create {count} appointments"
+  },
+  "newCharge": {
+    "patient": "Patient *",
+    "selectPatient": "Select a patient...",
+    "saving": "Saving...",
+    "createCharge": "Create charge",
+    "invalidAmount": "Please enter a valid amount.",
+    "networkError": "Network error. Try again.",
+    "creationError": "Error creating charge.",
+    "cancel": "Cancel"
+  },
+  "portalLogin": {
+    "checkEmail": "Check your email",
+    "linkSent": "We sent an access link",
+    "linkSentMessage": "We sent an access link to {email}.",
+    "linkExpiration": "The link expires in 30 minutes.",
+    "sendError": "Error sending access link.",
+    "connectionError": "Connection error. Try again.",
+    "useAnotherEmail": "Use another email",
+    "portalTitle": "Patient Portal",
+    "enterEmail": "Enter your email to receive a secure access link.",
+    "sendLink": "Send access link",
+    "sending": "Sending...",
+    "multiClinic": "If you are a patient at more than one clinic, you will receive a link for each one."
   }
 }

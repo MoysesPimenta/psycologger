@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Mail } from "lucide-react";
 import Link from "next/link";
 import { fetchWithCsrf } from "@/lib/csrf-client";
 
 export function PortalLoginClient() {
+  const t = useTranslations("portalLogin");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,13 +31,13 @@ export function PortalLoginClient() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        setError(data?.error?.message ?? "Erro ao enviar link de acesso.");
+        setError(data?.error?.message ?? t("sendError"));
         return;
       }
 
       setSent(true);
     } catch {
-      setError("Erro de conexão. Tente novamente.");
+      setError(t("connectionError"));
     } finally {
       setLoading(false);
     }
@@ -46,20 +48,20 @@ export function PortalLoginClient() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
         <div className="w-full max-w-sm space-y-6 text-center">
           <Mail className="h-12 w-12 text-brand-500 mx-auto" />
-          <h1 className="text-xl font-bold text-gray-900">Verifique seu email</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t("checkEmail")}</h1>
           <p className="text-sm text-gray-500">
-            Enviamos um link de acesso para <strong>{email}</strong>.
+            {t("linkSentMessage", { email })}
             <br />
-            O link expira em 30 minutos.
+            {t("linkExpiration")}
           </p>
           <p className="text-xs text-gray-400">
-            Se você é paciente em mais de uma clínica, receberá um link para cada uma.
+            {t("multiClinic")}
           </p>
           <button
             onClick={() => { setSent(false); setError(null); }}
             className="text-sm text-brand-600 hover:underline"
           >
-            Usar outro email
+            {t("useAnotherEmail")}
           </button>
         </div>
       </div>
@@ -70,9 +72,9 @@ export function PortalLoginClient() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Portal do Paciente</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("portalTitle")}</h1>
           <p className="mt-2 text-sm text-gray-500">
-            Informe seu email para receber um link de acesso seguro.
+            {t("enterEmail")}
           </p>
         </div>
 
@@ -101,7 +103,7 @@ export function PortalLoginClient() {
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Enviando..." : "Enviar link de acesso"}
+            {loading ? t("sending") : t("sendLink")}
           </Button>
         </form>
 

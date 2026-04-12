@@ -977,5 +977,52 @@
       "since": "À partir de",
       "until": "Jusqu'à"
     }
+  },
+  "impersonationBanner": {
+    "impersonating": "Usurpation de {name}",
+    "unknownUser": "utilisateur",
+    "stop": "Arrêter",
+    "stopping": "Arrêt en cours...",
+    "stopFailed": "Échec de l'arrêt de l'usurpation"
+  },
+  "newAppointment": {
+    "cancel": "Annuler",
+    "newPatient": "Nouveau patient",
+    "saving": "Enregistrement en cours...",
+    "createAppointment": "Créer un rendez-vous",
+    "registerNewPatient": "Enregistrer un nouveau patient",
+    "fullName": "Nom complet *",
+    "preferredName": "Nom préféré",
+    "patientAndType": "Patient et type",
+    "monthly": "Mensuel",
+    "biweekly": "Bimensuel",
+    "weekly": "Hebdomadaire",
+    "createAndSelect": "Créer et sélectionner",
+    "selectPatient": "Sélectionnez un patient...",
+    "createMultiple": "Créer {count} rendez-vous"
+  },
+  "newCharge": {
+    "patient": "Patient *",
+    "selectPatient": "Sélectionnez un patient...",
+    "saving": "Enregistrement en cours...",
+    "createCharge": "Créer une facture",
+    "invalidAmount": "Veuillez entrer un montant valide.",
+    "networkError": "Erreur réseau. Réessayez.",
+    "creationError": "Erreur lors de la création de la facture.",
+    "cancel": "Annuler"
+  },
+  "portalLogin": {
+    "checkEmail": "Vérifiez votre e-mail",
+    "linkSent": "Nous avons envoyé un lien d'accès",
+    "linkSentMessage": "Nous avons envoyé un lien d'accès à {email}.",
+    "linkExpiration": "Le lien expire dans 30 minutes.",
+    "sendError": "Erreur lors de l'envoi du lien d'accès.",
+    "connectionError": "Erreur de connexion. Réessayez.",
+    "useAnotherEmail": "Utiliser un autre e-mail",
+    "portalTitle": "Portail Patient",
+    "enterEmail": "Entrez votre e-mail pour recevoir un lien d'accès sécurisé.",
+    "sendLink": "Envoyer le lien d'accès",
+    "sending": "Envoi en cours...",
+    "multiClinic": "Si vous êtes patient dans plus d'une clinique, vous recevrez un lien pour chacune."
   }
 }

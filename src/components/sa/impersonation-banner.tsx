@@ -9,6 +9,7 @@ import { useState } from "react";
 import { AlertCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { fetchWithCsrf } from "@/lib/csrf-client";
+import { useTranslations } from "next-intl";
 
 export interface ImpersonationBannerProps {
   impersonatedUserName?: string;
@@ -21,6 +22,7 @@ export default function ImpersonationBanner({
 }: ImpersonationBannerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const t = useTranslations("impersonationBanner");
 
   const handleStop = async () => {
     setIsLoading(true);
@@ -38,11 +40,10 @@ export default function ImpersonationBanner({
           payload?.message ||
           (typeof payload?.error === "string" ? payload.error : null) ||
           `HTTP ${res.status}`;
-        alert(`Falha ao parar impersonação: ${msg}`);
+        alert(`${t("stopFailed")}: ${msg}`);
       }
-    } catch (error) {
-      console.error("Failed to stop impersonation:", error);
-      alert("Erro ao parar impersonação");
+    } catch {
+      alert(t("stopFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +55,7 @@ export default function ImpersonationBanner({
         <AlertCircle className="h-5 w-5 flex-shrink-0" />
         <div>
           <p className="font-semibold text-sm">
-            Impersonando {impersonatedUserName || impersonatedUserEmail || "usuário"}
+            {t("impersonating", { name: impersonatedUserName || impersonatedUserEmail || t("unknownUser") })}
           </p>
           {impersonatedUserEmail && (
             <p className="text-xs opacity-90">{impersonatedUserEmail}</p>
@@ -69,12 +70,12 @@ export default function ImpersonationBanner({
         {isLoading ? (
           <>
             <div className="animate-spin h-3 w-3 border-1 border-white border-t-transparent rounded-full" />
-            Parando...
+            {t("stopping")}
           </>
         ) : (
           <>
             <X className="h-3.5 w-3.5" />
-            Parar
+            {t("stop")}
           </>
         )}
       </button>

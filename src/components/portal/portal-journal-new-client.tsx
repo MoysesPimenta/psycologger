@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ChevronLeft, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ const VISIBILITY_OPTIONS = [
 
 export function PortalJournalNewClient() {
   const router = useRouter();
+  const t = useTranslations("common");
   const [entryType, setEntryType] = useState<string>("MOOD_CHECKIN");
   const [visibility, setVisibility] = useState<string>("PRIVATE");
   const [moodScore, setMoodScore] = useState<number | null>(null);
@@ -277,7 +279,7 @@ export function PortalJournalNewClient() {
       {/* Sticky save bar on mobile */}
       <div className="fixed bottom-24 inset-x-0 z-10 px-4 pb-4 bg-gradient-to-t from-white via-white to-transparent pt-4 max-w-lg md:max-w-2xl mx-auto">
         <Button onClick={handleSave} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl active:scale-95 transition-all" disabled={loading}>
-          {loading ? "Salvando..." : "Salvar"}
+          {loading ? t("saving") : t("save")}
         </Button>
       </div>
     </div>

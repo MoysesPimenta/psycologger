@@ -977,5 +977,52 @@
       "since": "De",
       "until": "Até"
     }
+  },
+  "impersonationBanner": {
+    "impersonating": "Impersonando {name}",
+    "unknownUser": "usuário",
+    "stop": "Parar",
+    "stopping": "Parando...",
+    "stopFailed": "Falha ao parar impersonação"
+  },
+  "newAppointment": {
+    "cancel": "Cancelar",
+    "newPatient": "Novo paciente",
+    "saving": "Salvando...",
+    "createAppointment": "Criar consulta",
+    "registerNewPatient": "Cadastrar novo paciente",
+    "fullName": "Nome completo *",
+    "preferredName": "Nome preferido",
+    "patientAndType": "Paciente e tipo",
+    "monthly": "Mensal",
+    "biweekly": "Quinzenal",
+    "weekly": "Semanal",
+    "createAndSelect": "Criar e selecionar",
+    "selectPatient": "Selecione um paciente...",
+    "createMultiple": "Criar {count} consultas"
+  },
+  "newCharge": {
+    "patient": "Paciente *",
+    "selectPatient": "Selecione um paciente...",
+    "saving": "Salvando...",
+    "createCharge": "Criar cobrança",
+    "invalidAmount": "Informe um valor válido.",
+    "networkError": "Erro de rede. Tente novamente.",
+    "creationError": "Erro ao criar cobrança.",
+    "cancel": "Cancelar"
+  },
+  "portalLogin": {
+    "checkEmail": "Verifique seu email",
+    "linkSent": "Enviamos um link de acesso",
+    "linkSentMessage": "Enviamos um link de acesso para {email}.",
+    "linkExpiration": "O link expira em 30 minutos.",
+    "sendError": "Erro ao enviar link de acesso.",
+    "connectionError": "Erro de conexão. Tente novamente.",
+    "useAnotherEmail": "Usar outro email",
+    "portalTitle": "Portal do Paciente",
+    "enterEmail": "Informe seu email para receber um link de acesso seguro.",
+    "sendLink": "Enviar link de acesso",
+    "sending": "Enviando...",
+    "multiClinic": "Se você é paciente em mais de uma clínica, receberá um link para cada uma."
   }
 }

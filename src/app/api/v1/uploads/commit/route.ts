@@ -36,6 +36,8 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { handleApiError, created, apiError } from "@/lib/api";
 import { auditLog, extractRequestMeta } from "@/lib/audit";
+import { downloadFile } from "@/lib/storage";
+import { validateMimeType } from "@/lib/mime-check";
 
 const schema = z.object({
   storagePath: z.string(),
@@ -130,6 +132,30 @@ export async function POST(req: NextRequest) {
           403
         );
       }
+    }
+
+    // SECURITY: Magic-byte validation for uploaded files
+    // Fetch the first bytes of the uploaded file from storage to validate magic bytes.
+    // This prevents spoofed Content-Type headers on staff/patient portal uploads.
+    try {
+      const uploadedBuffer = await downloadFile(storagePath);
+      if (!validateMimeType(uploadedBuffer, contentType)) {
+        return apiError(
+          "BAD_REQUEST",
+          "File content does not match declared content type. File may be corrupted or spoofed.",
+          400
+        );
+      }
+    } catch (err) {
+      // If we can't read the file (e.g., it doesn't exist yet), log the error
+      // but allow commit to proceed. This may happen if there's a race condition
+      // or if the signed URL upload has not yet propagated through the storage backend.
+      console.warn(
+        `[uploads/commit] Warning: Could not validate magic bytes for ${storagePath}:`,
+        err instanceof Error ? err.message : String(err)
+      );
+      // In production, you may want to reject here instead of warn.
+      // For now, we log and proceed to allow eventual consistency with storage.
     }
 
     // Create FileObject record

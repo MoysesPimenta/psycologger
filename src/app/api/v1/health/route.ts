@@ -62,6 +62,8 @@ export async function GET(): Promise<NextResponse> {
   let overallStatus: "healthy" | "degraded" | "unhealthy" = "unhealthy";
 
   // Check environment variables
+  // NOTE: In production, do NOT expose variable names (information disclosure risk).
+  const isProduction = process.env.NODE_ENV === "production";
   try {
     const envResult = validateAllEnvVars();
     checks.env = {
@@ -69,9 +71,10 @@ export async function GET(): Promise<NextResponse> {
       requiredVarsSet: envResult.requiredVarsSet,
       requiredVarsTotal: envResult.requiredVarsTotal,
       warningCount: envResult.warnings.length,
-      missingVarNames: envResult.missingVarNames,
-      invalidVarNames: envResult.invalidVarNames,
-      warningVarNames: envResult.warningVarNames,
+      // Only expose variable names in non-production environments
+      missingVarNames: isProduction ? [] : envResult.missingVarNames,
+      invalidVarNames: isProduction ? [] : envResult.invalidVarNames,
+      warningVarNames: isProduction ? [] : envResult.warningVarNames,
     };
   } catch (err) {
     checks.env = {

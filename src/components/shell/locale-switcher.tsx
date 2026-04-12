@@ -30,7 +30,7 @@ export function LocaleSwitcher() {
         router.refresh();
       }
     } catch (error) {
-      console.error("Failed to change locale:", error);
+      // Error handled silently
     } finally {
       setIsPending(false);
     }

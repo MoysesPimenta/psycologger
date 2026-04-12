@@ -320,6 +320,7 @@ export function AppointmentDetailClient({
   const router = useRouter();
   const t = useTranslations("appointments");
   const tCharges = useTranslations("charges");
+  const tc = useTranslations("common");
   const [appt, setAppt] = useState(() => normalizeAppt(initialAppt));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -956,7 +957,7 @@ export function AppointmentDetailClient({
                 className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
               >
                 <CreditCard className="h-4 w-4" />
-                {creatingCharge ? "Criando..." : "Criar cobrança"}
+                {creatingCharge ? tCharges("creating") : tCharges("create")}
               </Button>
             </div>
           </div>
@@ -1071,6 +1072,8 @@ function ChargesCard({
   onChargesChange: (charges: Charge[]) => void;
   t: ReturnType<typeof useTranslations>;
 }) {
+  const tc = useTranslations("common");
+  const tCharges = useTranslations("charges");
   const [charges, setCharges] = useState(initialCharges);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ amountCents: "", discountCents: "", dueDate: "" });
@@ -1299,10 +1302,10 @@ function ChargesCard({
                     )}
                     <div className="flex gap-2 justify-end">
                       <Button variant="outline" size="sm" onClick={() => setEditingId(null)} disabled={saving}>
-                        Cancelar
+                        {tc("cancel")}
                       </Button>
                       <Button size="sm" onClick={() => saveEdit(charge.id)} disabled={saving}>
-                        {saving ? "Salvando..." : "Salvar"}
+                        {saving ? tc("saving") : tc("save")}
                       </Button>
                     </div>
                   </div>
@@ -1447,10 +1450,10 @@ function ChargesCard({
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setShowNewCharge(false)} disabled={creatingNew}>
-                  Cancelar
+                  {tc("cancel")}
                 </Button>
                 <Button size="sm" onClick={createNewCharge} disabled={creatingNew || !newChargeForm.amountCents}>
-                  {creatingNew ? "Salvando..." : "Adicionar"}
+                  {creatingNew ? tc("saving") : tc("add")}
                 </Button>
               </div>
             </div>

@@ -977,5 +977,52 @@
       "since": "Von",
       "until": "Bis"
     }
+  },
+  "impersonationBanner": {
+    "impersonating": "Angemeldet als {name}",
+    "unknownUser": "Benutzer",
+    "stop": "Beenden",
+    "stopping": "Wird beendet...",
+    "stopFailed": "Fehler beim Beenden der Identitätsübernahme"
+  },
+  "newAppointment": {
+    "cancel": "Abbrechen",
+    "newPatient": "Neuer Patient",
+    "saving": "Speichern läuft...",
+    "createAppointment": "Termin erstellen",
+    "registerNewPatient": "Neuen Patienten registrieren",
+    "fullName": "Vollständiger Name *",
+    "preferredName": "Bevorzugter Name",
+    "patientAndType": "Patient und Typ",
+    "monthly": "Monatlich",
+    "biweekly": "Alle zwei Wochen",
+    "weekly": "Wöchentlich",
+    "createAndSelect": "Erstellen und auswählen",
+    "selectPatient": "Wählen Sie einen Patienten...",
+    "createMultiple": "Erstelle {count} Termine"
+  },
+  "newCharge": {
+    "patient": "Patient *",
+    "selectPatient": "Wählen Sie einen Patienten...",
+    "saving": "Speichern läuft...",
+    "createCharge": "Gebühr erstellen",
+    "invalidAmount": "Bitte geben Sie einen gültigen Betrag ein.",
+    "networkError": "Netzwerkfehler. Versuchen Sie es erneut.",
+    "creationError": "Fehler beim Erstellen der Gebühr.",
+    "cancel": "Abbrechen"
+  },
+  "portalLogin": {
+    "checkEmail": "Überprüfe deine E-Mail",
+    "linkSent": "Wir haben einen Zugriffslink gesendet",
+    "linkSentMessage": "Wir haben einen Zugriffslink an {email} gesendet.",
+    "linkExpiration": "Der Link verfällt in 30 Minuten.",
+    "sendError": "Fehler beim Senden des Zugrifflinks.",
+    "connectionError": "Verbindungsfehler. Versuchen Sie es erneut.",
+    "useAnotherEmail": "Andere E-Mail verwenden",
+    "portalTitle": "Patientenportal",
+    "enterEmail": "Geben Sie Ihre E-Mail ein, um einen sicheren Zugriffslink zu erhalten.",
+    "sendLink": "Zugriffslink senden",
+    "sending": "Wird gesendet...",
+    "multiClinic": "Wenn Sie Patient in mehr als einer Klinik sind, erhalten Sie einen Link für jede."
   }
 }

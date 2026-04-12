@@ -977,5 +977,52 @@
       "since": "מ",
       "until": "עד"
     }
+  },
+  "impersonationBanner": {
+    "impersonating": "מתחזה ל-{name}",
+    "unknownUser": "משתמש",
+    "stop": "הפסק",
+    "stopping": "מפסיק...",
+    "stopFailed": "כשל בעצירת ההתחזות"
+  },
+  "newAppointment": {
+    "cancel": "ביטול",
+    "newPatient": "מטופל חדש",
+    "saving": "שומר...",
+    "createAppointment": "צור פגישה",
+    "registerNewPatient": "הרשם מטופל חדש",
+    "fullName": "שם מלא *",
+    "preferredName": "שם מועדף",
+    "patientAndType": "מטופל וסוג",
+    "monthly": "חודשי",
+    "biweekly": "דו-שבועי",
+    "weekly": "שבועי",
+    "createAndSelect": "צור ובחר",
+    "selectPatient": "בחר מטופל...",
+    "createMultiple": "צור {count} פגישות"
+  },
+  "newCharge": {
+    "patient": "מטופל *",
+    "selectPatient": "בחר מטופל...",
+    "saving": "שומר...",
+    "createCharge": "צור חיוב",
+    "invalidAmount": "אנא הזן סכום תקף.",
+    "networkError": "שגיאת רשת. נסה שוב.",
+    "creationError": "שגיאה ביצירת חיוב.",
+    "cancel": "ביטול"
+  },
+  "portalLogin": {
+    "checkEmail": "בדוק את הדוא\"ל שלך",
+    "linkSent": "שלחנו קישור גישה",
+    "linkSentMessage": "שלחנו קישור גישה אל {email}.",
+    "linkExpiration": "הקישור פוקע בעוד 30 דקות.",
+    "sendError": "שגיאה בשליחת קישור הגישה.",
+    "connectionError": "שגיאת חיבור. נסה שוב.",
+    "useAnotherEmail": "השתמש בדוא\"ל אחר",
+    "portalTitle": "פורטל מטופלים",
+    "enterEmail": "הזן את דוא\"לך כדי לקבל קישור גישה מאובטח.",
+    "sendLink": "שלח קישור גישה",
+    "sending": "שולח...",
+    "multiClinic": "אם אתה מטופל ביותר מקליניקה אחת, תקבל קישור לכל אחת."
   }
 }
