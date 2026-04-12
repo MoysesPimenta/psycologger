@@ -1,5 +1,9 @@
 /**
  * Billing banner — shown when subscription is in GRACE period or over quota
+ *
+ * On mobile: renders as a sticky element below the top bar (not fixed),
+ * so it naturally pushes content down regardless of its height.
+ * On desktop: fixed at the top, offset by the sidebar width.
  */
 
 "use client";
@@ -24,13 +28,17 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
 
   if (!state || dismissed) return null;
 
+  // Shared positioning: sticky on mobile (flows in document), fixed on desktop
+  const positionClasses =
+    "sticky top-14 md:fixed md:top-0 left-0 right-0 ltr:md:left-64 rtl:md:right-64 z-30";
+
   if (state === "GRACE") {
     return (
-      <div className="fixed top-14 md:top-0 left-0 right-0 ltr:md:left-64 rtl:md:right-64 z-30 bg-yellow-50 dark:bg-yellow-950 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3">
+      <div className={`${positionClasses} bg-yellow-50 dark:bg-yellow-950 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="text-yellow-600 dark:text-yellow-400 text-xl">⚠️</div>
-            <div>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="text-yellow-600 dark:text-yellow-400 text-xl flex-shrink-0">⚠️</div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">
                 {t("gracePeriodActive")}
               </p>
@@ -42,13 +50,13 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
           <div className="flex gap-2 flex-shrink-0">
             <Link
               href="/app/billing"
-              className="px-3 py-1 bg-yellow-600 dark:bg-yellow-700 text-white text-sm rounded hover:bg-yellow-700 dark:hover:bg-yellow-600 transition"
+              className="px-3 py-1.5 bg-yellow-600 dark:bg-yellow-700 text-white text-sm rounded-lg hover:bg-yellow-700 dark:hover:bg-yellow-600 transition font-medium"
             >
               {t("updatePayment")}
             </Link>
             <button
               onClick={() => setDismissed(true)}
-              className="px-3 py-1 text-sm text-yellow-700 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900 rounded transition"
+              className="px-3 py-1.5 text-sm text-yellow-700 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900 rounded-lg transition"
             >
               {t("dismiss")}
             </button>
@@ -78,11 +86,11 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
     }
 
     return (
-      <div className="fixed top-14 md:top-0 left-0 right-0 ltr:md:left-64 rtl:md:right-64 z-30 bg-red-50 dark:bg-red-950 border-b border-red-200 dark:border-red-800 px-4 py-3">
+      <div className={`${positionClasses} bg-red-50 dark:bg-red-950 border-b border-red-200 dark:border-red-800 px-4 py-3`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1">
-            <div className="text-red-600 dark:text-red-400 text-xl">🚫</div>
-            <div>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="text-red-600 dark:text-red-400 text-xl flex-shrink-0">🚫</div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-red-900 dark:text-red-100">
                 {t("planLimitExceeded")}
               </p>
@@ -94,13 +102,13 @@ export function BillingBanner({ state, graceDaysLeft, quotaInfo }: BillingBanner
           <div className="flex gap-2 flex-shrink-0">
             <Link
               href="/app/billing"
-              className="px-3 py-1 bg-red-600 dark:bg-red-700 text-white text-sm rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
+              className="px-3 py-1.5 bg-red-600 dark:bg-red-700 text-white text-sm rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition font-medium"
             >
               {t("upgrade")}
             </Link>
             <button
               onClick={() => setDismissed(true)}
-              className="px-3 py-1 text-sm text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900 rounded transition"
+              className="px-3 py-1.5 text-sm text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition"
             >
               {t("dismiss")}
             </button>

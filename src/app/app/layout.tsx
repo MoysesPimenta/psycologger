@@ -101,26 +101,30 @@ export default async function AppLayout({
           impersonatedUserEmail={undefined}
         />
       )}
-      {billingBanner && (
-        <BillingBanner
-          state={billingBanner.state}
-          graceDaysLeft={billingBanner.graceDaysLeft}
-          quotaInfo={billingBanner.quotaInfo}
-        />
-      )}
-      <div className={`flex min-h-dvh bg-background ${ctx.impersonating ? "md:pt-16" : ""} ${billingBanner ? "md:pt-16" : ""}`}>
+      <div className={cn(
+        "flex min-h-dvh bg-background",
+        ctx.impersonating && "md:pt-16",
+        billingBanner && "md:pt-16",
+      )}>
         <AppSidebar userRole={ctx.role} />
         {/* Main content area — offset by sidebar width on md+ */}
         <main className="flex-1 md:ms-64 overflow-auto">
           {/*
-            Mobile top padding breakdown:
-            - pt-16 (64px) = mobile top bar (56px) + 8px breathing room
-            - When billing banner is visible: pt-32 (128px) = top bar (56px) + banner (~56px) + 16px
-            Desktop top padding: pt-8 (32px) normally, pt-24 when billing banner is present
+            The billing banner is sticky on mobile (flows in the document,
+            sticks below the top bar while scrolling) and fixed on desktop.
+            Placing it here inside <main> ensures it naturally pushes content
+            down on mobile without needing fragile padding calculations.
           */}
+          {billingBanner && (
+            <BillingBanner
+              state={billingBanner.state}
+              graceDaysLeft={billingBanner.graceDaysLeft}
+              quotaInfo={billingBanner.quotaInfo}
+            />
+          )}
           <div className={cn(
-            "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-28 md:pb-8",
-            billingBanner ? "pt-[7.5rem] md:pt-24" : "pt-16 md:pt-8"
+            "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-8 pb-32 md:pb-8",
+            billingBanner && "md:pt-24",
           )}>
             {children}
           </div>
