@@ -34,6 +34,16 @@ export default async function AppLayout({
       select: { id: true },
     });
     if (suspended) redirect("/suspended");
+
+    // Authenticated but with no membership at all: the user signed in via magic
+    // link and never created or joined a clinic. Send them to onboarding rather
+    // than a 403 error boundary, which reads as "login is broken".
+    const anyMembership = await db.membership.findFirst({
+      where: { userId: session.user.id },
+      select: { id: true },
+    });
+    if (!anyMembership) redirect("/onboarding");
+
     throw err;
   }
 

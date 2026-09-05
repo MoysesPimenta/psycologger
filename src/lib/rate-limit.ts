@@ -1,12 +1,22 @@
 /**
- * Rate limiting — Upstash Redis in production, in-memory fallback for dev.
+ * Rate limiting — Upstash Redis when configured, Postgres as a distributed
+ * fallback, in-memory only as a last resort in development.
  *
- * Env vars (optional — falls back to in-memory if unset):
+ * The Postgres fallback exists because an unreachable Redis used to fail closed
+ * in production, which took down every rate-limited write in the app (patients,
+ * appointments, sessions, charges, onboarding, invites). Postgres is already a
+ * hard dependency of every request, and its counters are shared across all
+ * serverless instances, so the limiter stays effective instead of degrading to
+ * a per-instance counter or denying everything.
+ *
+ * Env vars (optional — falls back to Postgres if unset):
  *   UPSTASH_REDIS_REST_URL
  *   UPSTASH_REDIS_REST_TOKEN
  */
 
+import { createHash } from "crypto";
 import { RATE_LIMIT_CLEANUP_INTERVAL_MS } from "@/lib/constants";
+import { db } from "@/lib/db";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -42,6 +52,67 @@ function memoryRateLimit(key: string, limit: number, windowMs: number): RateLimi
     return { allowed: false, remaining: 0 };
   }
   return { allowed: true, remaining: limit - entry.count };
+}
+
+// ─── Postgres distributed fallback ─────────────────────────────────────────────
+
+let lastPgCleanup = 0;
+
+/**
+ * Hash the limiter key before persisting it. Rate-limit keys embed emails, IP
+ * addresses and tenant/user ids; hashing keeps that out of the database while
+ * preserving the uniqueness the counter needs. The limit/window are folded in
+ * so two different limiter configs never share a counter row.
+ */
+function hashKey(key: string, limit: number, windowMs: number): string {
+  return createHash("sha256").update(`${limit}:${windowMs}:${key}`).digest("hex");
+}
+
+/**
+ * Fixed-window counter backed by Postgres. Returns null when the store itself
+ * fails, so the caller can decide how to degrade.
+ */
+async function postgresRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult | null> {
+  try {
+    const now = Date.now();
+    const windowStart = new Date(Math.floor(now / windowMs) * windowMs);
+    const expiresAt = new Date(windowStart.getTime() + windowMs);
+    const hashed = hashKey(key, limit, windowMs);
+
+    // Single atomic statement: the upsert increments under the primary key, so
+    // concurrent lambdas cannot race past the limit.
+    const rows = await db.$queryRaw<Array<{ count: number }>>`
+      INSERT INTO "RateLimitCounter" ("key", "windowStart", "count", "expiresAt")
+      VALUES (${hashed}, ${windowStart}, 1, ${expiresAt})
+      ON CONFLICT ("key", "windowStart")
+      DO UPDATE SET "count" = "RateLimitCounter"."count" + 1
+      RETURNING "count"
+    `;
+    const count = Number(rows[0]?.count ?? 1);
+
+    // Opportunistic garbage collection of elapsed windows.
+    if (now - lastPgCleanup > RATE_LIMIT_CLEANUP_INTERVAL_MS) {
+      lastPgCleanup = now;
+      void db
+        .$executeRaw`DELETE FROM "RateLimitCounter" WHERE "expiresAt" < NOW()`
+        .catch(() => {
+          /* best effort — a failed sweep must never block a request */
+        });
+    }
+
+    if (count > limit) {
+      console.warn(JSON.stringify({ evt: "rate_limit_denied", store: "postgres", limit, windowMs }));
+      return { allowed: false, remaining: 0 };
+    }
+    return { allowed: true, remaining: limit - count };
+  } catch (err) {
+    console.error("[rate-limit] Postgres fallback error:", err);
+    return null;
+  }
 }
 
 // ─── Upstash Redis rate limiting ────────────────────────────────────────────────
@@ -106,7 +177,7 @@ async function getUpstashLimiter(limit: number, windowMs: number): Promise<unkno
 // ─── Public API ─────────────────────────────────────────────────────────────────
 
 /**
- * Rate limit a key. Uses Upstash Redis when configured, falls back to in-memory.
+ * Rate limit a key. Uses Upstash Redis when configured, falls back to Postgres.
  */
 export async function rateLimit(
   key: string,
@@ -131,16 +202,20 @@ export async function rateLimit(
       }
       return { allowed: result.success, remaining: result.remaining };
     } catch (err) {
-      console.error("[rate-limit] Upstash error:", err);
-      // In production, fail closed instead of silently degrading to a
-      // per-instance in-memory counter that defeats the limiter on Vercel.
-      if (process.env.NODE_ENV === "production") {
-        return { allowed: false, remaining: 0 };
-      }
+      // Do NOT fail closed here — an unreachable Redis must not take down every
+      // write in the app. Fall through to the Postgres counter, which is still
+      // shared across instances.
+      console.error("[rate-limit] Upstash error, falling back to Postgres:", err);
     }
-  } else if (process.env.NODE_ENV === "production") {
-    // env-check should already have prevented boot, but defense-in-depth.
-    console.error("[rate-limit] Upstash not configured in production — denying request");
+  }
+
+  const pg = await postgresRateLimit(key, limit, windowMs);
+  if (pg) return pg;
+
+  if (process.env.NODE_ENV === "production") {
+    // Both shared stores are unavailable. An in-memory counter is per-instance
+    // and would silently defeat the limiter, so deny instead.
+    console.error("[rate-limit] No shared store available — denying request");
     return { allowed: false, remaining: 0 };
   }
   return memoryRateLimit(key, limit, windowMs);
