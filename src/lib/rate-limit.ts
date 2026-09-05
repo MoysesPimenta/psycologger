@@ -122,6 +122,15 @@ let upstashRedis: any = null;
 let upstashInitialized = false;
 let Ratelimit: any = null;
 
+/**
+ * Circuit breaker. A dead Upstash host costs ~9.6s per request (DNS failure plus
+ * the client's internal retries) before the Postgres fallback is reached, which
+ * is worse than useless on every rate-limited write. After a failure we stop
+ * calling Upstash entirely for a short window and go straight to Postgres.
+ */
+const UPSTASH_CIRCUIT_OPEN_MS = 60_000;
+let upstashDisabledUntil = 0;
+
 // Cache limiters by config key: "limit:windowMs"
 const upstashLimiters = new Map<string, any>();
 
@@ -141,7 +150,9 @@ async function initializeUpstash(): Promise<boolean> {
     const RatelimitModule = require("@upstash/ratelimit");
     Ratelimit = RatelimitModule.Ratelimit;
 
-    upstashRedis = new Redis({ url, token });
+    // retry: false — without this the client burns seconds retrying a host that
+    // is not resolving, in front of a limiter that has a working fallback.
+    upstashRedis = new Redis({ url, token, retry: false });
     return true;
   } catch {
     // @upstash packages not installed — fall back to in-memory
@@ -151,6 +162,8 @@ async function initializeUpstash(): Promise<boolean> {
 }
 
 async function getUpstashLimiter(limit: number, windowMs: number): Promise<unknown> {
+  if (Date.now() < upstashDisabledUntil) return null;
+
   const hasUpstash = await initializeUpstash();
   if (!hasUpstash || !upstashRedis || !Ratelimit) return null;
 
@@ -200,12 +213,19 @@ export async function rateLimit(
           reset: result.reset,
         }));
       }
+      upstashDisabledUntil = 0;
       return { allowed: result.success, remaining: result.remaining };
     } catch (err) {
       // Do NOT fail closed here — an unreachable Redis must not take down every
       // write in the app. Fall through to the Postgres counter, which is still
       // shared across instances.
-      console.error("[rate-limit] Upstash error, falling back to Postgres:", err);
+      upstashDisabledUntil = Date.now() + UPSTASH_CIRCUIT_OPEN_MS;
+      console.error(
+        `[rate-limit] Upstash error, falling back to Postgres and skipping it for ${
+          UPSTASH_CIRCUIT_OPEN_MS / 1000
+        }s:`,
+        err
+      );
     }
   }
 
